@@ -1,0 +1,27 @@
+{
+  "name": "inventarios-witt-nativa",
+  "version": "2.0.0",
+  "private": true,
+  "description": "App nativa de Android (Capacitor) de Inventarios Grupo Witt. Abre la versión web publicada en GitHub Pages y le agrega escáner a pantalla completa, vibración y pantalla encendida.",
+  "scripts": {
+    "www": "node scripts/preparar-www.mjs",
+    "recursos": "node scripts/recursos.mjs && capacitor-assets generate --android",
+    "ajustar": "node scripts/ajustar-android.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.10",
+    "@capacitor/app": "7.1.2",
+    "@capacitor/core": "7.6.10",
+    "@capacitor/filesystem": "7.1.9",
+    "@capacitor/haptics": "7.0.5",
+    "@capacitor/share": "7.0.4",
+    "@capacitor/splash-screen": "7.0.5",
+    "@capacitor/status-bar": "7.0.6",
+    "@capacitor-community/keep-awake": "7.1.0",
+    "@capacitor-mlkit/barcode-scanning": "7.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "7.6.10"
+  }
+}
