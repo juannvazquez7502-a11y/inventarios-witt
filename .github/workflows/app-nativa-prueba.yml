@@ -35,6 +35,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Revisar la sintaxis del guion de la prueba
+        run: bash -n "app-nativa-prueba/$PRUEBA.sh"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -75,6 +78,7 @@ jobs:
           if [ "$PRUEBA" = qr ]; then ./gradlew assembleRelease assembleDebug --no-daemon; else ./gradlew assembleDebug --no-daemon; fi
           mkdir -p ../../apks/debug && cp app/build/outputs/apk/debug/*.apk ../../apks/debug/
           grep -n -A9 'autoVerify' app/src/main/AndroidManifest.xml || echo "sin App Link en el manifiesto"
+          grep -rn -A3 'witt-liga-vieja\|FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY' app/src/main/java/ || echo "MainActivity sin el arreglo de la liga vieja"
 
       # Solo prueba qr. Igual que en app-nativa.yml: la contraseña va por variable de entorno y la llave se borra al terminar.
       - name: Firmar con la llave del APK (prueba qr)
