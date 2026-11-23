@@ -672,7 +672,10 @@
      esta app (App Link verificado con assetlinks.json). Con la app abierta llega por "appUrlOpen"; con la app cerrada, por
      getLaunchUrl() al arrancar. Se entrega a la capa enlaces.js (window.__wittUnirse.desdeUrl), que espera a que la app
      esté lista, quita el parámetro y llama openJoinFromQR, igual que en la web. La liga de arranque se usa una sola vez por
-     proceso (sessionStorage): si la página se recarga, no vuelve a unir. */
+     WebView (sessionStorage): si la página se recarga, no vuelve a unir. Cuando Android crea una Activity nueva con el mismo
+     intent (abrir desde Recientes tras salir con Atrás, o volver después de que mató el proceso), sessionStorage empieza
+     vacío: de eso se encarga MainActivity (ajustar-android.mjs, "witt-liga-vieja"), que cambia ese intent por MAIN antes de
+     que Capacitor lo lea, así getLaunchUrl y "appUrlOpen" ya no traen la liga vieja. */
   try{
     var CLAVE_LIGAS = "witt-unirse-ligas";
     var ligasUsadas = function(){ try{ return JSON.parse(W.sessionStorage.getItem(CLAVE_LIGAS) || "[]") || []; }catch(e){ return []; } };
