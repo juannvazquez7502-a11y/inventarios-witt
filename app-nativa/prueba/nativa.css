@@ -1,0 +1,28 @@
+/* ===== Puente nativo (23-nov-2026): solo dentro de la app nativa (html.witt-nativa lo pone nativa.js). En la web no aplica nada. ===== */
+/* Inventario físico: el lector de piezas usa la cámara web (guarda la foto chica de cada escaneo) a pantalla completa. */
+html.witt-nativa #modal-fz-scan.show{padding:0 !important;align-items:stretch !important;justify-content:stretch !important;background:#000 !important;}
+html.witt-nativa #modal-fz-scan .fz-scan-modal{position:fixed !important;inset:0 !important;width:100% !important;max-width:none !important;height:100% !important;max-height:none !important;margin:0 !important;border-radius:0 !important;border:0 !important;display:flex !important;flex-direction:column;overflow:hidden !important;padding:calc(env(safe-area-inset-top, 0px) + 10px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px) !important;background:#000 !important;color:#fff !important;box-shadow:none !important;transform:none !important;}
+html.witt-nativa #modal-fz-scan .fz-scan-modal::before{display:none !important;}
+html.witt-nativa #modal-fz-scan .fz-head h3,html.witt-nativa #modal-fz-scan #fz-scan-hint{color:#fff !important;}
+html.witt-nativa #modal-fz-scan #fz-scan-hint{opacity:.8;}
+html.witt-nativa #modal-fz-scan #fz-scan-close{background:rgba(255,255,255,.16) !important;color:#fff !important;}
+html.witt-nativa #modal-fz-scan #fz-cam-slot{flex:1 1 auto;min-height:0;display:flex;}
+html.witt-nativa #modal-fz-scan #cam-frame{flex:1 1 auto;width:100% !important;height:auto !important;max-height:none !important;aspect-ratio:auto !important;margin:0 !important;}
+html.witt-nativa #modal-fz-scan #video{width:100% !important;height:100% !important;max-height:none !important;aspect-ratio:auto !important;object-fit:cover;}
+html.witt-nativa #modal-fz-scan .fz-row .btn{background:rgba(255,255,255,.14) !important;color:#fff !important;border-color:transparent !important;}
+
+/* Archivo exportado: guardado en el teléfono, con botón Compartir. */
+html.witt-nativa .wn-archivo{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 88px);z-index:9000;display:flex;align-items:center;gap:12px;
+  padding:12px 12px 12px 16px;border-radius:18px;background:#fff;color:#0f1111;box-shadow:0 10px 34px rgba(0,0,0,.22);
+  opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s ease,transform .25s cubic-bezier(.2,.85,.25,1);max-width:520px;margin:0 auto;}
+html.witt-nativa .wn-archivo.show{opacity:1;transform:none;pointer-events:auto;}
+html.witt-nativa .wn-archivo-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.3;}
+html.witt-nativa .wn-archivo-txt b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+html.witt-nativa .wn-archivo-txt span{opacity:.72;}
+html.witt-nativa .wn-archivo-btns{display:flex;gap:6px;flex:0 0 auto;}
+html.witt-nativa .wn-archivo button{border:0;border-radius:999px;padding:10px 14px;font:700 14px/1 inherit;font-family:inherit;min-height:40px;cursor:pointer;}
+html.witt-nativa .wn-compartir{background:#00574a;color:#fff;}
+html.witt-nativa .wn-listo{background:rgba(0,0,0,.07);color:inherit;}
+html.witt-nativa:not([data-theme="light"]) .wn-archivo{background:#1b211f;color:#f3f5f4;}
+html.witt-nativa:not([data-theme="light"]) .wn-listo{background:rgba(255,255,255,.1);}
+@media (prefers-reduced-motion: reduce){ html.witt-nativa .wn-archivo{transition:none;} }
