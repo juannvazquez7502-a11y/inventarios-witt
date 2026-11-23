@@ -4,6 +4,7 @@
 //   INTERNET ya viene en la plantilla. Ningún otro.
 // - ML Kit: descarga el escáner de Google (pantalla completa) al instalar la app.
 // - versionCode = 100 + número de corrida (mayor que el del TWA, para instalarse encima) y versionName de la corrida.
+// - App Link verificado (autoVerify) para la página de la app: la cámara del teléfono abre la app con la liga para unirse.
 import { readFileSync, writeFileSync } from "node:fs";
 
 const must = (cond, que) => { if (!cond) throw new Error("No encontré: " + que); };
@@ -31,6 +32,37 @@ must(man.includes("<application"), "<application");
 if (!man.includes("com.google.mlkit.vision.DEPENDENCIES")) {
   man = man.replace(/(<application[^>]*>)/, `$1\n        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />`);
 }
+// App Link (23-nov-2026): la CÁMARA del teléfono lee el QR para unirse (liga https://…github.io/inventarios-witt/?unirse=…)
+// y Android abre esta app directo, sin preguntar y sin Chrome. android:autoVerify="true": Android lo verifica con
+// https://juannvazquez7502-a11y.github.io/.well-known/assetlinks.json (paquete y huella de la llave del APK).
+// Solo la página de la app (/inventarios-witt/ e index.html), no las películas, los MP4 ni otras rutas del sitio.
+// La liga llega a la página por el plugin App ("appUrlOpen" o getLaunchUrl) y la capa enlaces.js abre la unión.
+const HOST_APP = "juannvazquez7502-a11y.github.io";
+if (!man.includes('android:host="' + HOST_APP + '"')) {
+  const iMain = man.search(/<activity\b[^>]*android:name="\.MainActivity"/);
+  must(iMain >= 0, "<activity .MainActivity>");
+  const iLanzador = man.indexOf("android.intent.category.LAUNCHER", iMain);
+  must(iLanzador > iMain, "intent-filter LAUNCHER de MainActivity");
+  const iFinFiltro = man.indexOf("</intent-filter>", iLanzador);
+  const iFinAct = man.indexOf("</activity>", iMain);
+  must(iFinFiltro > 0 && iFinFiltro < iFinAct, "cierre del intent-filter LAUNCHER");
+  const FILTRO = [
+    "",
+    '            <intent-filter android:autoVerify="true">',
+    '                <action android:name="android.intent.action.VIEW" />',
+    '                <category android:name="android.intent.category.DEFAULT" />',
+    '                <category android:name="android.intent.category.BROWSABLE" />',
+    '                <data android:scheme="https" />',
+    '                <data android:host="' + HOST_APP + '" />',
+    '                <data android:path="/inventarios-witt/" />',
+    '                <data android:path="/inventarios-witt" />',
+    '                <data android:path="/inventarios-witt/index.html" />',
+    "            </intent-filter>"
+  ].join("\n");
+  const corte = iFinFiltro + "</intent-filter>".length;
+  man = man.slice(0, corte) + "\n" + FILTRO + man.slice(corte);
+}
+must(/android:launchMode="singleTask"/.test(man), 'android:launchMode="singleTask" en MainActivity (la liga con la app abierta llega por appUrlOpen)');
 writeFileSync(MAN, man, "utf8");
 
 // Barras del sistema: con targetSdk 35, Android 15 dibuja la app detrás de las barras (borde a borde) y no deja pintar la
@@ -78,5 +110,6 @@ const vars = readFileSync(VAR, "utf8");
 const sdk = k => (vars.match(new RegExp(k + "\\s*=\\s*(\\d+)")) || [])[1];
 console.log(JSON.stringify({
   versionCode: VC, versionName: VN, permisosAgregados: permisos.length, estilosBarras: estilos, fondoVentana: fondo,
+  appLink: man.includes('android:autoVerify="true"') && man.includes('android:host="' + HOST_APP + '"'),
   minSdk: sdk("minSdkVersion"), compileSdk: sdk("compileSdkVersion"), targetSdk: sdk("targetSdkVersion")
 }));
