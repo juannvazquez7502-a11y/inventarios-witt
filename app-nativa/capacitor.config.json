@@ -1,0 +1,36 @@
+{
+  "appId": "mx.grupowitt.inventarios",
+  "appName": "Inventarios",
+  "webDir": "www",
+  "server": {
+    "url": "https://juannvazquez7502-a11y.github.io/inventarios-witt/",
+    "hostname": "juannvazquez7502-a11y.github.io",
+    "androidScheme": "https",
+    "errorPath": "inventarios-witt/sin-conexion.html",
+    "allowNavigation": [
+      "juannvazquez7502-a11y.github.io",
+      "*.supabase.co"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "adjustMarginsForEdgeToEdge": "force",
+    "appendUserAgent": "InventariosWittNativa/2"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#00574a",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#00574a"
+    }
+  }
+}
