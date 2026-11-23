@@ -33,6 +33,27 @@ if (!man.includes("com.google.mlkit.vision.DEPENDENCIES")) {
 }
 writeFileSync(MAN, man, "utf8");
 
+// Barras del sistema: con targetSdk 35, Android 15 dibuja la app detrás de las barras (borde a borde) y no deja pintar la
+// barra de estado (salía blanca con íconos blancos) ni acomoda la pantalla al teclado. La app pide salir de ese modo
+// (windowOptOutEdgeToEdgeEnforcement): así la barra de estado toma el verde de la app (StatusBar.setBackgroundColor), el
+// teclado empuja la página como en Chrome y Capacitor no agrega márgenes (adjustMarginsForEdgeToEdge = "auto").
+const ST = "android/app/src/main/res/values/styles.xml";
+let st = readFileSync(ST, "utf8");
+if (!/xmlns:tools=/.test(st)) st = st.replace(/<resources(\s|>)/, '<resources xmlns:tools="http://schemas.android.com/tools"$1');
+const BARRAS = [
+  '        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>',
+  '        <item name="android:statusBarColor">#00574a</item>',
+  '        <item name="android:navigationBarColor">#0f1111</item>',
+  '        <item name="android:windowLightStatusBar">false</item>'
+].join("\n");
+let estilos = 0;
+st = st.replace(/(<style\s+name="AppTheme\.NoActionBar(?:Launch)?"[^>]*>)([\s\S]*?)(\s*<\/style>)/g, (m, a, b, c) => {
+  estilos++;
+  return b.includes("windowOptOutEdgeToEdgeEnforcement") ? m : a + b + "\n" + BARRAS + c;
+});
+must(estilos === 2, "los estilos AppTheme.NoActionBar y AppTheme.NoActionBarLaunch en styles.xml");
+writeFileSync(ST, st, "utf8");
+
 const GR = "android/app/build.gradle";
 let gr = readFileSync(GR, "utf8");
 must(/versionCode\s+\d+/.test(gr), "versionCode en build.gradle");
@@ -44,6 +65,6 @@ const VAR = "android/variables.gradle";
 const vars = readFileSync(VAR, "utf8");
 const sdk = k => (vars.match(new RegExp(k + "\\s*=\\s*(\\d+)")) || [])[1];
 console.log(JSON.stringify({
-  versionCode: VC, versionName: VN, permisosAgregados: permisos.length,
+  versionCode: VC, versionName: VN, permisosAgregados: permisos.length, estilosBarras: estilos,
   minSdk: sdk("minSdkVersion"), compileSdk: sdk("compileSdkVersion"), targetSdk: sdk("targetSdkVersion")
 }));
