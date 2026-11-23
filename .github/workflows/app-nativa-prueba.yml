@@ -19,6 +19,8 @@ jobs:
       URL_PRUEBA: https://juannvazquez7502-a11y.github.io/inventarios-witt/prueba-nativa/
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -39,10 +41,12 @@ jobs:
         run: |
           # La copia sin internet se arma con la página de prueba (con nativa.js); index.html del repo NO se cambia (solo en esta máquina).
           cp ../prueba-nativa/index.html ../index.html
-          jq --arg u "$URL_PRUEBA" '.server.url = $u' capacitor.config.json > c.json && mv c.json capacitor.config.json
+          # errorPath igual a <scope del service worker de prueba>/sin-conexion.html, como en la app real (/inventarios-witt/).
+          jq --arg u "$URL_PRUEBA" '.server.url = $u | .server.errorPath = "inventarios-witt/prueba-nativa/sin-conexion.html"' capacitor.config.json > c.json && mv c.json capacitor.config.json
           cat capacitor.config.json
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           node scripts/preparar-www.mjs
+          mkdir -p www/inventarios-witt/prueba-nativa && cp www/inventarios-witt/sin-conexion.html www/inventarios-witt/prueba-nativa/sin-conexion.html
           npx cap add android
           node scripts/recursos.mjs
           npx capacitor-assets generate --android --iconBackgroundColor "#00574a" --iconBackgroundColorDark "#00574a" --splashBackgroundColor "#00574a" --splashBackgroundColorDark "#00574a"
@@ -61,8 +65,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download apk-v1.0.1-6 -p "*.apk" -D apks/twa || true
-          gh release download app-nativa-v2.0.0-4 -p "*.apk" -D apks/release || true
+          gh release download apk-v1.0.1-6 --repo "$GITHUB_REPOSITORY" -p "*.apk" -D apks/twa || true
+          T=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 30 --json tagName --jq '[.[].tagName | select(startswith("app-nativa-v"))][0]')
+          echo "nativa firmada: $T"
+          gh release download "$T" --repo "$GITHUB_REPOSITORY" -p "*.apk" -D apks/release || true
           ls -la apks/*
 
       - name: KVM
@@ -84,7 +90,7 @@ jobs:
           test -n "$(dig +short @127.0.0.2 juannvazquez7502-a11y.github.io)"
 
       - name: Emulador (Android 15 con Play Store)
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d   # v2.38.0
         with:
           api-level: 35
           target: google_apis_playstore
