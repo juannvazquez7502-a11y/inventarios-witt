@@ -4,9 +4,21 @@ name: App nativa (prueba en emulador)
 # y lo prueba en un emulador con toques reales (adb input), capturas (screencap) y lectura de pantalla (uiautomator).
 # También instala el APK TWA y encima la app nativa firmada del Release, para ver que se actualiza con la misma llave.
 # No toca index.html, apk.yml ni app-nativa.yml. *.supabase.co bloqueado por DNS: solo datos sintéticos.
+# prueba = critica: escáner, atrás, sin red y actualización encima del TWA (app-nativa-prueba/critica.sh).
+# prueba = qr: ligas para unirse con la CÁMARA del teléfono (App Link, app-nativa-prueba/qr.sh). El APK de prueba se firma
+#   con la misma llave del APK publicado (secretos APK_KEYSTORE_*) para que Android verifique el App Link con assetlinks.json;
+#   la llave solo existe en el paso "Firmar" y se borra al terminar. Ese APK no se publica: solo se instala en el emulador.
 
 on:
   workflow_dispatch:
+    inputs:
+      prueba:
+        description: "Qué probar: critica (escáner, atrás, sin red) o qr (ligas para unirse con la cámara del teléfono)"
+        type: choice
+        options:
+          - critica
+          - qr
+        default: critica
 
 permissions:
   contents: read
@@ -17,6 +29,7 @@ jobs:
     timeout-minutes: 75
     env:
       URL_PRUEBA: https://juannvazquez7502-a11y.github.io/inventarios-witt/prueba-nativa/
+      PRUEBA: ${{ inputs.prueba || 'critica' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +55,8 @@ jobs:
           # La copia sin internet se arma con la página de prueba (con nativa.js); index.html del repo NO se cambia (solo en esta máquina).
           cp ../prueba-nativa/index.html ../index.html
           # errorPath igual a <scope del service worker de prueba>/sin-conexion.html, como en la app real (/inventarios-witt/).
-          jq --arg u "$URL_PRUEBA" '.server.url = $u | .server.errorPath = "inventarios-witt/prueba-nativa/sin-conexion.html"' capacitor.config.json > c.json && mv c.json capacitor.config.json
+          # webContentsDebuggingEnabled: el APK firmado de la prueba qr es de "release" y sin esto no se podría leer la página (CDP).
+          jq --arg u "$URL_PRUEBA" '.server.url = $u | .server.errorPath = "inventarios-witt/prueba-nativa/sin-conexion.html" | .android.webContentsDebuggingEnabled = true' capacitor.config.json > c.json && mv c.json capacitor.config.json
           cat capacitor.config.json
           npm ci --no-audit --no-fund
           node scripts/preparar-www.mjs
@@ -58,10 +72,32 @@ jobs:
         working-directory: app-nativa/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          if [ "$PRUEBA" = qr ]; then ./gradlew assembleRelease assembleDebug --no-daemon; else ./gradlew assembleDebug --no-daemon; fi
           mkdir -p ../../apks/debug && cp app/build/outputs/apk/debug/*.apk ../../apks/debug/
+          grep -n -A9 'autoVerify' app/src/main/AndroidManifest.xml || echo "sin App Link en el manifiesto"
+
+      # Solo prueba qr. Igual que en app-nativa.yml: la contraseña va por variable de entorno y la llave se borra al terminar.
+      - name: Firmar con la llave del APK (prueba qr)
+        if: ${{ env.PRUEBA == 'qr' }}
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          KS_PASS_RAW: ${{ secrets.APK_KEYSTORE_PASS }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS_RAW" ]; then echo "::error::Faltan los secretos APK_KEYSTORE_B64 / APK_KEYSTORE_PASS."; exit 1; fi
+          trap 'rm -f android.keystore alineado.apk' EXIT
+          printf '%s' "$KS_B64" | tr -d '\r\n ' | base64 -d > android.keystore
+          KS_PASS=$(printf '%s' "$KS_PASS_RAW" | tr -d '\r\n'); export KS_PASS
+          echo "::add-mask::$KS_PASS"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          SIN=$(ls app-nativa/android/app/build/outputs/apk/release/*.apk | head -1)
+          mkdir -p apks/firmada capturas
+          "$BT/zipalign" -f -p 4 "$SIN" alineado.apk
+          "$BT/apksigner" sign --ks android.keystore --ks-type PKCS12 --ks-pass env:KS_PASS --key-pass env:KS_PASS --out apks/firmada/prueba-qr.apk alineado.apk
+          "$BT/apksigner" verify --print-certs apks/firmada/prueba-qr.apk | grep -iE "SHA-256" | tee capturas/huella-apk-prueba.txt
+          curl -fsSL https://juannvazquez7502-a11y.github.io/.well-known/assetlinks.json | tee capturas/assetlinks.json
 
       - name: APK publicados (TWA y nativa firmada) para la prueba de actualización
+        if: ${{ env.PRUEBA != 'qr' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -99,7 +135,7 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 900
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back emulated -dns-server 127.0.0.2
-          script: bash app-nativa-prueba/critica.sh
+          script: bash "app-nativa-prueba/$PRUEBA.sh"
 
       - name: Registro de DNS
         if: always()
@@ -111,6 +147,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: capturas-prueba-critica
+          name: capturas-prueba-${{ env.PRUEBA }}
           path: capturas/
           retention-days: 7
