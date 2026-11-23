@@ -34,7 +34,15 @@ self.addEventListener("fetch", (e)=>{
         return res;
       }catch(_){
         const c = await caches.open(CACHE);
-        return (await c.match(req, { ignoreSearch: true })) || (await c.match("__app__")) || new Response("Sin señal y la app todavía no se había guardado en este teléfono. Ábrela una vez con internet.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+        const guardada = (await c.match(req, { ignoreSearch: true })) || (await c.match("__app__"));
+        if(guardada) return guardada;
+        // App nativa (Capacitor): la copia que trae el APK. Capacitor atiende los fetch del service worker y sirve
+        // "sin-conexion.html" desde el APK (server.errorPath). En el navegador sin señal este fetch falla y queda el aviso.
+        try{
+          const copia = await fetch(new URL("sin-conexion.html", self.registration.scope).href, { cache: "no-store" });
+          if(copia && copia.ok) return new Response(copia.body, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
+        }catch(_){}
+        return new Response("Sin señal y la app todavía no se había guardado en este teléfono. Ábrela una vez con internet.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
       }
     })());
     return;
