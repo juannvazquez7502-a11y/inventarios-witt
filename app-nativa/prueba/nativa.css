@@ -25,4 +25,24 @@ html.witt-nativa .wn-compartir{background:#00574a;color:#fff;}
 html.witt-nativa .wn-listo{background:rgba(0,0,0,.07);color:inherit;}
 html.witt-nativa:not([data-theme="light"]) .wn-archivo{background:#1b211f;color:#f3f5f4;}
 html.witt-nativa:not([data-theme="light"]) .wn-listo{background:rgba(255,255,255,.1);}
-@media (prefers-reduced-motion: reduce){ html.witt-nativa .wn-archivo{transition:none;} }
+/* «Abriendo el escáner…» mientras sale la pantalla de Google (no bloquea toques). */
+html.witt-nativa .wn-abriendo{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 40%);z-index:9100;display:flex;align-items:center;gap:10px;
+  padding:12px 18px;border-radius:999px;background:rgba(15,17,17,.92);color:#fff;font:600 15px/1.2 inherit;font-family:inherit;box-shadow:0 10px 30px rgba(0,0,0,.3);
+  opacity:0;transform:translate(-50%,8px);pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.85,.25,1);white-space:nowrap;}
+html.witt-nativa .wn-abriendo.show{opacity:1;transform:translate(-50%,0);}
+html.witt-nativa .wn-abriendo i{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;animation:wnGira .8s linear infinite;flex:0 0 auto;}
+@keyframes wnGira{to{transform:rotate(360deg);}}
+/* Escaneo continuo: barra para seguir (o detener) mientras se ve el aviso de la app con «Deshacer». */
+html.witt-nativa .wn-seguir{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + var(--nav-h, 62px) + 14px);z-index:8900;display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  padding:12px 12px 12px 16px;border-radius:18px;background:#1b211f;color:#f3f5f4;box-shadow:0 10px 34px rgba(0,0,0,.28);max-width:520px;margin:0 auto;
+  opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s ease,transform .25s cubic-bezier(.2,.85,.25,1);}
+html.witt-nativa .wn-seguir.show{opacity:1;transform:none;pointer-events:auto;}
+html.witt-nativa .wn-seguir-txt{flex:1 1 180px;min-width:0;font-size:14px;line-height:1.3;}
+html.witt-nativa .wn-seguir-btns{display:flex;gap:8px;flex:0 0 auto;margin-left:auto;}
+html.witt-nativa .wn-seguir button{border:0;border-radius:999px;padding:12px 16px;font:700 15px/1 inherit;font-family:inherit;min-height:44px;cursor:pointer;}
+html.witt-nativa .wn-seguir button[hidden]{display:none;}
+html.witt-nativa .wn-ya{background:#00574a;color:#fff;}
+html.witt-nativa .wn-detener{background:rgba(255,255,255,.12);color:inherit;}
+html.witt-nativa[data-theme="light"] .wn-seguir{background:#fff;color:#0f1111;}
+html.witt-nativa[data-theme="light"] .wn-detener{background:rgba(0,0,0,.07);}
+@media (prefers-reduced-motion: reduce){ html.witt-nativa .wn-archivo,html.witt-nativa .wn-seguir,html.witt-nativa .wn-abriendo{transition:none;} html.witt-nativa .wn-abriendo i{animation:none;} }
