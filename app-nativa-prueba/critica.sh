@@ -48,9 +48,20 @@ wvtop() { # borde superior del WebView en la pantalla (uiautomator)
   case "$t" in ''|*[!0-9]*) t=0;; esac
   echo "$t"
 }
+sin_anr() { # el emulador de CI a veces muestra "Application Not Responding" del launcher: se cierra con "Wait"
+  local i
+  for i in 1 2 3; do
+    foco | grep -q "Not Responding" || return 0
+    echo "aviso ANR del sistema: lo cierro"
+    tocar_nativo 'aerr_wait|text="Wait"' || adb shell input keyevent 4
+    sleep 2
+  done
+}
 tocar() { # toca un elemento de la página (selector CSS) con un toque real
-  local sel="$1" top xy
-  top=$(wvtop); xy=$(WV_TOP=$top $H centro "$sel" | tr -d '"')
+  local sel="$1" top xy i
+  sin_anr
+  for i in 1 2 3 4 5; do top=$(wvtop); [ "$top" != 0 ] && break; sleep 2; done
+  xy=$(WV_TOP=$top $H centro "$sel" | tr -d '"')
   echo "tocar '$sel' -> [$xy] (WebView desde y=$top)"
   case "$xy" in [0-9]*' '[0-9]*) adb shell input tap $xy; return 0;; *) return 1;; esac
 }
@@ -85,7 +96,7 @@ if [ -n "$TWA" ] && [ -n "$REL" ]; then
   adb install -r "$REL" > "$OUT/A-actualizar-a-nativa.txt" 2>&1; cat "$OUT/A-actualizar-a-nativa.txt"
   adb shell dumpsys package "$PKG" | grep -E "versionCode|versionName" | head -2 >> "$OUT/A-actualizar-a-nativa.txt"
   cat "$OUT/A-actualizar-a-nativa.txt"
-  abrir; sleep 20; foto A1-nativa-firmada-pagina-publicada
+  abrir; sleep 20; sin_anr; sleep 2; foto A1-nativa-firmada-pagina-publicada
   adb shell am force-stop "$PKG"
 else
   echo "Faltan APK del TWA o de la nativa firmada" | tee "$OUT/A-instalar-twa.txt"
@@ -97,7 +108,7 @@ paso "B. Abre la app de prueba"
 adb install -r "$DBG" | tee "$OUT/B-instalar.txt"
 adb logcat -c
 abrir
-sleep 20; foto 01-abre-20s
+sleep 20; sin_anr; foto 01-abre-20s
 conectar; cdp 01-info info
 
 paso "B2. Bienvenida: escribe el nombre sintético con el teclado y toca Continuar"
@@ -140,10 +151,15 @@ adb shell input keyevent 4; sleep 2; foto 13-atras-a-selector; cdp 13-info info
 adb shell input keyevent 4; sleep 3; foto 14-atras-sale-de-la-app
 echo "pid tras salir: $(adb shell pidof $PKG | tr -d '\r')" | tee "$OUT/14-pid.txt"
 
-paso "H. Sin red, con la app ya abierta antes (service worker de /prueba-nativa/)"
+paso "H0. Se abre otra vez CON red (la segunda vez el service worker guarda la página)"
+adb shell am force-stop "$PKG"
+abrir; sleep 20; sin_anr; foto 14b-segunda-vez-con-red; conectar; cdp 14b-info info
+cdp 14b-cache eval '(async()=>{const k=await caches.keys();const o={};for(const n of k){const c=await caches.open(n);o[n]=(await c.keys()).map(r=>r.url).slice(0,8);}return JSON.stringify(o);})()'
+
+paso "H. Sin red, con la página ya guardada por el service worker de /prueba-nativa/"
 adb shell am force-stop "$PKG"
 red off
-abrir; sleep 15; foto 15-sin-red-ya-guardada; conectar; cdp 15-info info
+abrir; sleep 15; sin_anr; foto 15-sin-red-ya-guardada; conectar; cdp 15-info info
 tocar '.app-card[data-launch="autos"]' && sleep 4
 tocar '.nav:not(.fz-nav) button[data-screen="scan"]' || tocar '#fab-scan'
 sleep 3; tocar '#btn-cam-start'; sleep 8; foto 16-sin-red-escaner; cdp 16-info info
