@@ -127,8 +127,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.nombre.outputs.tag }}
         run: |
-          gh release create "$TAG" salida/release/*.apk --target "$GITHUB_SHA" --title "App nativa $VERSION_NAME (versionCode $VERSION_CODE)" \
-            --notes "App de Android nativa (Capacitor) de Inventarios Grupo Witt: escáner de Google a pantalla completa, vibración nativa y pantalla encendida. Abre la versión publicada en GitHub Pages y trae una copia por si no hay internet. Mismo paquete y misma llave que el APK anterior (TWA): se instala encima como actualización. Antes de actualizar, sube los pendientes: los datos guardados en Chrome no pasan a la app nueva."
+          # Pre-release: no reemplaza al APK TWA como "Latest" hasta que la página publicada traiga la capa nativa.js.
+          gh release create "$TAG" salida/release/*.apk --prerelease --target "$GITHUB_SHA" --title "App nativa $VERSION_NAME (versionCode $VERSION_CODE)" \
+            --notes "App de Android nativa (Capacitor) de Inventarios Grupo Witt: escáner de Google a pantalla completa, vibración nativa y pantalla encendida. Abre la versión publicada en GitHub Pages y trae una copia por si no hay internet. Mismo paquete y misma llave que el APK anterior (TWA): se instala encima como actualización. Antes de actualizar, sube los pendientes: los datos guardados en Chrome no pasan a la app nueva. El escáner, la vibración y la pantalla encendida se activan cuando la página publicada incluye la capa nativa (nativa.js)."
 
   emulador:
     needs: apk
@@ -178,11 +179,12 @@ jobs:
           test "$(dig +short @127.0.0.2 prueba.supabase.co)" = "0.0.0.0"
           test -n "$(dig +short @127.0.0.2 juannvazquez7502-a11y.github.io)"
 
+      # Imagen con Play Store: el escáner de Google (ML Kit) se descarga por los servicios de Google Play, como en un teléfono.
       - name: Emulador (Android 15)
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
-          target: google_apis
+          target: google_apis_playstore
           arch: x86_64
           profile: pixel_6
           disable-animations: true
