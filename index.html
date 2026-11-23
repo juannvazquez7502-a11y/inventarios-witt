@@ -5512,6 +5512,19 @@ html body #intro-film{z-index:2147483600;}
    7.4 La intro detecta la apertura con un clic en .app-card[data-launch]: en el carrusel las tarjetas de lado y el arrastre
    tienen pointer-events:none, así que solo cuenta el clic que de verdad abre la app (la tarjeta del centro).
    7.5 Revisión del 21-nov-2026: la impresión del ticket no recorta ni oculta elementos reales; todas las escenas terminan solas. */
+
+/* Aviso de versión nueva (actualizar.js) */
+.witt-version{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h,74px) + 18px + env(safe-area-inset-bottom));z-index:2147483200;
+  display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);padding:8px 8px 8px 16px;border-radius:999px;
+  background:#0f1f1b;color:#fff;font:600 14px/1.2 var(--g-font,"Plus Jakarta Sans",system-ui,sans-serif);box-shadow:0 10px 30px rgba(0,0,0,.28);
+  animation:wv-entra .32s cubic-bezier(.2,.9,.25,1.15) both;}
+.witt-version span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.witt-version button{flex:none;white-space:nowrap;min-height:40px;padding:0 16px;border:0;border-radius:999px;background:#46dbb5;color:#00382f;font:700 14px/1 inherit;cursor:pointer;}
+.witt-version .wv-x{min-width:40px;padding:0;background:transparent;color:rgba(255,255,255,.75);font-size:16px;}
+.witt-version button:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+@media (min-width:980px){ .witt-version{bottom:24px;} }
+@keyframes wv-entra{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}}
+@media (prefers-reduced-motion:reduce){ .witt-version{animation:none;} }
 </style>
 </head>
 <body>
@@ -24725,6 +24738,77 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         }, 50);
       })();
     }
+  }catch(e){}
+})();
+
+/* Actualización sola (23-nov-2026). Solo revisa si hay una versión nueva publicada; no toca datos ni funciones.
+   - Al cargar guarda la "huella" de la página (ETag o Last-Modified del servidor).
+   - Al regresar a la app (visible otra vez) y cada 10 min mientras está abierta, la vuelve a pedir (HEAD, sin caché).
+   - Si cambió: en el selector de apps y sin ventanas abiertas, recarga sola; si estás trabajando, muestra un aviso
+     "Hay una versión nueva · Actualizar" para que no se recargue a la mitad de un conteo.
+   - Sin internet o abierta como archivo local, no hace nada. */
+(function(){
+  try{
+    if(!/^https?:$/.test(location.protocol)) return;
+    var URL_APP = location.href.split('#')[0];
+    var huella = null, avisado = false, revisando = false;
+
+    function leerHuella(){
+      return fetch(URL_APP, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' }).then(function(r){
+        if(!r || !r.ok) return null;
+        return r.headers.get('ETag') || r.headers.get('Last-Modified') || null;
+      }).catch(function(){ return null; });
+    }
+
+    function enSelectorLibre(){
+      var b = document.body;
+      if(!b) return false;
+      var selector = b.classList.contains('launcher-open') || !!document.querySelector('#app-launcher.show');
+      var modal = !!document.querySelector('.modal-bg.show, #intro-film, .wcr-intro-film');
+      var escribiendo = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      return selector && !modal && !escribiendo && !b.classList.contains('fisico-open');
+    }
+
+    function recargar(){
+      try{
+        if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+          navigator.serviceWorker.getRegistration().then(function(reg){ try{ reg && reg.update(); }catch(e){} location.reload(); }, function(){ location.reload(); });
+        } else location.reload();
+      }catch(e){ location.reload(); }
+    }
+
+    function aviso(){
+      if(avisado) return; avisado = true;
+      var d = document.createElement('div');
+      d.className = 'witt-version';
+      d.setAttribute('role', 'status');
+      d.innerHTML = '<span>Hay una versión nueva</span><button type="button">Actualizar</button><button type="button" class="wv-x" aria-label="Más tarde">✕</button>';
+      d.querySelector('button').addEventListener('click', recargar);
+      d.querySelector('.wv-x').addEventListener('click', function(){ d.remove(); });
+      document.body.appendChild(d);
+    }
+
+    function revisar(){
+      if(revisando || avisado || (navigator.onLine === false)) return;
+      revisando = true;
+      leerHuella().then(function(h){
+        revisando = false;
+        if(!h) return;
+        if(huella === null){ huella = h; return; }
+        if(h !== huella){
+          if(enSelectorLibre()) recargar(); else aviso();
+        }
+      });
+    }
+
+    // Huella de la versión que se está viendo
+    revisar();
+    document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') setTimeout(revisar, 400); }, { passive: true });
+    window.addEventListener('online', function(){ setTimeout(revisar, 800); }, { passive: true });
+    setInterval(function(){ if(document.visibilityState === 'visible') revisar(); }, 10 * 60 * 1000);
+    // Si el aviso salió y luego vuelves al selector sin nada abierto, se aplica solo
+    document.addEventListener('click', function(){ if(avisado) setTimeout(function(){ if(enSelectorLibre()) recargar(); }, 600); }, { capture: true, passive: true });
+    window.__wittRevisarVersion = revisar; // para pruebas
   }catch(e){}
 })();
 </script>
