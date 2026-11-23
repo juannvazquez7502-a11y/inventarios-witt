@@ -5587,7 +5587,27 @@ html.witt-nativa .wn-compartir{background:#00574a;color:#fff;}
 html.witt-nativa .wn-listo{background:rgba(0,0,0,.07);color:inherit;}
 html.witt-nativa:not([data-theme="light"]) .wn-archivo{background:#1b211f;color:#f3f5f4;}
 html.witt-nativa:not([data-theme="light"]) .wn-listo{background:rgba(255,255,255,.1);}
-@media (prefers-reduced-motion: reduce){ html.witt-nativa .wn-archivo{transition:none;} }
+/* «Abriendo el escáner…» mientras sale la pantalla de Google (no bloquea toques). */
+html.witt-nativa .wn-abriendo{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 40%);z-index:9100;display:flex;align-items:center;gap:10px;
+  padding:12px 18px;border-radius:999px;background:rgba(15,17,17,.92);color:#fff;font:600 15px/1.2 inherit;font-family:inherit;box-shadow:0 10px 30px rgba(0,0,0,.3);
+  opacity:0;transform:translate(-50%,8px);pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.85,.25,1);white-space:nowrap;}
+html.witt-nativa .wn-abriendo.show{opacity:1;transform:translate(-50%,0);}
+html.witt-nativa .wn-abriendo i{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;animation:wnGira .8s linear infinite;flex:0 0 auto;}
+@keyframes wnGira{to{transform:rotate(360deg);}}
+/* Escaneo continuo: barra para seguir (o detener) mientras se ve el aviso de la app con «Deshacer». */
+html.witt-nativa .wn-seguir{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + var(--nav-h, 62px) + 14px);z-index:8900;display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  padding:12px 12px 12px 16px;border-radius:18px;background:#1b211f;color:#f3f5f4;box-shadow:0 10px 34px rgba(0,0,0,.28);max-width:520px;margin:0 auto;
+  opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s ease,transform .25s cubic-bezier(.2,.85,.25,1);}
+html.witt-nativa .wn-seguir.show{opacity:1;transform:none;pointer-events:auto;}
+html.witt-nativa .wn-seguir-txt{flex:1 1 180px;min-width:0;font-size:14px;line-height:1.3;}
+html.witt-nativa .wn-seguir-btns{display:flex;gap:8px;flex:0 0 auto;margin-left:auto;}
+html.witt-nativa .wn-seguir button{border:0;border-radius:999px;padding:12px 16px;font:700 15px/1 inherit;font-family:inherit;min-height:44px;cursor:pointer;}
+html.witt-nativa .wn-seguir button[hidden]{display:none;}
+html.witt-nativa .wn-ya{background:#00574a;color:#fff;}
+html.witt-nativa .wn-detener{background:rgba(255,255,255,.12);color:inherit;}
+html.witt-nativa[data-theme="light"] .wn-seguir{background:#fff;color:#0f1111;}
+html.witt-nativa[data-theme="light"] .wn-detener{background:rgba(0,0,0,.07);}
+@media (prefers-reduced-motion: reduce){ html.witt-nativa .wn-archivo,html.witt-nativa .wn-seguir,html.witt-nativa .wn-abriendo{transition:none;} html.witt-nativa .wn-abriendo i{animation:none;} }
 </style>
 </head>
 <body>
@@ -25026,27 +25046,29 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
    1 Escáner nativo (ML Kit, pantalla completa de Google con linterna y zoom) en lugar de la cámara web. Entrega el código a
      cameraGotCode, la misma función que usa la cámara web, así que el continuo, Refacciones, el físico, REPUVE y los QR para
      unirse siguen igual. Placas y la pieza del Inventario físico (que guarda una foto chica del <video>) siguen con la cámara
-     web; la del físico, a pantalla completa (nativa.css).
+     web; la del físico, a pantalla completa (nativa.css). No pide el permiso de cámara antes del escáner de Google (no lo
+     necesita) y, si scan() dice que el módulo no está pero sí está, reintenta una vez. En el escaneo continuo espera el
+     aviso de la app (con «Deshacer») antes de reabrir, y no reabre solo si la app ignoró el código (mismo código o corto).
    2 Vibración con Haptics: toques ligeros y avisos por significado (éxito, ya registrada, no encontrada o error).
    3 Pantalla encendida mientras se escanea o se cuenta (KeepAwake).
    4 Barra de estado verde Witt y botón atrás de Android.
    5 Exportaciones: guarda el archivo con Filesystem (Documentos/Inventarios Witt) y ofrece Compartir.
-   6 navigator.share, voz (TextToSpeech) y dictado (SpeechRecognition) si el WebView no los trae y el plugin existe. */
+   6 navigator.share y voz (TextToSpeech) si el WebView no los trae; dictado SIEMPRE con el plugin SpeechRecognition. */
 (function(){
   "use strict";
   var W = window, D = document, C = W.Capacitor;
   try{ if(!(C && typeof C.isNativePlatform === "function" && C.isNativePlatform())) return; }catch(e){ return; }
 
-  var VERSION = "nativa 1.0 · 23-nov-2026";
+  var VERSION = "nativa 1.1 · 23-nov-2026";
   var ETIQUETA = "CÓDIGO (escáner del teléfono)";
   var FORMATOS = ["QR_CODE", "CODE_128", "CODE_39", "DATA_MATRIX", "PDF_417", "AZTEC", "EAN_13", "EAN_8", "UPC_A", "UPC_E", "ITF", "CODABAR"];
   var VERDE = "#00574a";
   var ls = function(k){ try{ return W.localStorage.getItem(k); }catch(e){ return null; } };
-  var lsSet = function(k, v){ try{ W.localStorage.setItem(k, v); }catch(e){} };
   // fisicoNativo: el escaneo de piezas del Inventario físico usa el escáner nativo (se pierde la foto chica de cada escaneo).
   // Por defecto NO: se queda la cámara web a pantalla completa para conservar la foto. Se cambia con
   // localStorage "witt-nativa-fisico" = "nativo".
-  var CFG = { fisicoNativo: ls("witt-nativa-fisico") === "nativo", continuoMs: 800, salirEnSelector: true };
+  // esperaMaxMs: en el escaneo continuo, lo más que se espera al aviso de la app (#cs-toast) antes de reabrir el escáner.
+  var CFG = { fisicoNativo: ls("witt-nativa-fisico") === "nativo", esperaMaxMs: 6000, salirEnSelector: true };
   var E = { abierto:false, entregando:false, stopEnEntrega:false, webHasta:0, pasarWebHasta:0, soportado:undefined, modulo:false,
     instalando:false, avisoModulo:false, despierta:null, reanudarFz:false, ultimoVib:{ t:0, n:0 }, log:[] };
   function anota(x){ try{ E.log.push(Date.now() + " " + x); if(E.log.length > 60) E.log.shift(); }catch(e){} }
@@ -25172,14 +25194,24 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         }, function(){ return (E.modulo = true); });   // sin ese método (otra versión): se intenta scan() directo
       });
     };
-    // El escáner de Google no necesita el permiso de cámara, pero la cámara web (placas, físico, respaldo) sí: se pide una vez.
-    var permisoUnaVez = function(){
-      if(ls("witt-nativa-permiso-camara")) return Promise.resolve();
-      lsSet("witt-nativa-permiso-camara", "1");
-      return llamar("BarcodeScanner", "checkPermissions").then(function(r){
-        if(r && r.camera !== "granted" && r.camera !== "limited") return llamar("BarcodeScanner", "requestPermissions");
-      }).catch(function(){});
+    // El escáner de Google NO necesita el permiso de cámara y no se pide antes de abrirlo: el diálogo de Android pausa y
+    // reanuda la app justo antes de scan() y ahí fallaba la primera apertura. La cámara web (placas, físico, respaldo)
+    // lo pide sola cuando se usa (el WebView de Capacitor pide el permiso de Android en getUserMedia).
+    // Aviso "Abriendo el escáner…" mientras la pantalla de Google tarda en salir (se quita al pausar la app o al volver).
+    var abriendo = null, tAbriendo = 0;
+    var avisoAbriendo = function(txt){
+      try{
+        clearTimeout(tAbriendo);
+        if(!txt){ if(abriendo) abriendo.classList.remove("show"); return; }
+        if(!abriendo){
+          abriendo = D.createElement("div"); abriendo.className = "wn-abriendo"; abriendo.setAttribute("role", "status"); abriendo.setAttribute("aria-live", "polite");
+          abriendo.innerHTML = '<i aria-hidden="true"></i><span></span>'; D.body.appendChild(abriendo);
+        }
+        abriendo.querySelector("span").textContent = txt;
+        tAbriendo = setTimeout(function(){ if(E.abierto) abriendo.classList.add("show"); }, 350);   // si abre rápido, ni se ve
+      }catch(e){}
     };
+    E.avisoAbriendo = avisoAbriendo;
     var usarCamaraWeb = function(porque){
       anota("camara web: " + porque);
       if(porque === "sin-mlkit" && E.instalando && !E.avisoModulo){ E.avisoModulo = true; aviso("Preparando el escáner del teléfono; mientras, se usa la cámara de la app.", 3200); }
@@ -25208,27 +25240,96 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         return true;
       }catch(e){ return false; }
     };
+    /* Escaneo continuo con el escáner de Google. La pantalla de Google tapa la página, así que NO se vuelve a abrir de golpe:
+       - si se registró una unidad, se espera a que se oculte su aviso (#cs-toast, con «Deshacer», 4.5 s) y luego se reabre;
+         una barra abajo deja «Escanear ya» o «Detener»; si se toca «Deshacer», ya no se reabre solo;
+       - si salió un aviso sin registrar (ya registrada, baja), igual: se reabre cuando se oculta el aviso (3 s);
+       - si no pasó nada (el mismo código otra vez o un código corto: la app lo ignora en silencio), NO se reabre: la barra
+         dice qué pasó y espera un toque. Así no hay un abrir-cerrar en bucle mientras el teléfono apunta al mismo código. */
+    var vCs = function(){ try{ return typeof csState !== "undefined" ? csState : null; }catch(e){ return null; } };   // eslint-disable-line no-undef
+    var csToastVisible = function(){ var t = $id("cs-toast"); return !!(t && !t.hidden); };
+    var seguir = null, tSeguir = 0;
+    var ocultarSeguir = function(){ clearInterval(tSeguir); tSeguir = 0; try{ if(seguir) seguir.classList.remove("show"); }catch(e){} };
+    var barraSeguir = function(txt, conDetener){
+      if(!seguir){
+        seguir = D.createElement("div"); seguir.className = "wn-seguir"; seguir.setAttribute("role", "status"); seguir.setAttribute("aria-live", "polite");
+        seguir.innerHTML = '<span class="wn-seguir-txt"></span><div class="wn-seguir-btns"><button type="button" class="wn-detener">Detener</button><button type="button" class="wn-ya">Escanear</button></div>';
+        D.body.appendChild(seguir);
+        seguir.querySelector(".wn-ya").addEventListener("click", function(){ ocultarSeguir(); escanear(); });
+        seguir.querySelector(".wn-detener").addEventListener("click", function(){ ocultarSeguir(); anota("continuo detenido"); });
+      }
+      seguir.querySelector(".wn-seguir-txt").textContent = txt;
+      seguir.querySelector(".wn-detener").hidden = !conDetener;
+      seguir.querySelector(".wn-ya").textContent = conDetener ? "Escanear ya" : "Seguir escaneando";
+      seguir.classList.add("show");
+    };
+    E.seguirVisible = function(){ return !!(seguir && seguir.classList.contains("show")); };
+    E.ocultarSeguir = ocultarSeguir;
+    // Tras un aviso: espera a que se oculte y reabre (máximo CFG.esperaMaxMs). Si se deshizo, se queda esperando un toque.
+    var seguirTrasAviso = function(n0){
+      var t0 = Date.now();
+      barraSeguir("Siguiente lectura en un momento…", true);
+      clearInterval(tSeguir);
+      tSeguir = setInterval(function(){
+        try{
+          if(!puedeSeguirContinuo()){ ocultarSeguir(); return; }
+          var cs = vCs();
+          if(cs && cs.round.length < n0){ clearInterval(tSeguir); tSeguir = 0; barraSeguir("Registro deshecho.", false); return; }
+          if(!csToastVisible() || Date.now() - t0 > CFG.esperaMaxMs){ ocultarSeguir(); escanear(); }
+        }catch(e){ ocultarSeguir(); }
+      }, 200);
+    };
+    var seguirManual = function(code){
+      var corto = String(code || "").replace(/[^0-9A-Za-z]/g, "").length < 4;
+      try{ E.vibrar && E.vibrar("toque2"); }catch(e){}
+      barraSeguir(corto ? "Ese código no es de una unidad. Apunta al VIN o a la etiqueta." : "Es el mismo código que acabas de leer. Apunta a otra unidad.", false);
+      clearInterval(tSeguir);
+      tSeguir = setInterval(function(){ if(!puedeSeguirContinuo()) ocultarSeguir(); }, 500);
+    };
+    var esNoDisponible = function(e){ return /not available|unavailable|no disponible/i.test(String((e && (e.message || e.code)) || e || "")); };
+    var pausa = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+    // scan() con UN reintento si dice que el módulo de Google no está, pero al revisarlo sí está (pasó tras una pausa de la app).
+    var abrirScan = function(reintento){
+      return llamar("BarcodeScanner", "scan", { formats:FORMATOS, autoZoom:true }).catch(function(e){
+        if(reintento || esCancelacion(e) || !esNoDisponible(e)) throw e;
+        anota("scan no disponible: reviso el modulo");
+        return llamar("BarcodeScanner", "isGoogleBarcodeScannerModuleAvailable").then(function(r){
+          if(!(r && r.available)) throw e;
+          anota("modulo disponible: reintento");
+          avisoAbriendo("Abriendo el escáner…");
+          return pausa(600).then(function(){ return abrirScan(true); });
+        }, function(){ throw e; });
+      });
+    };
     var escanear = function(){
       if(E.abierto) return Promise.resolve();
+      ocultarSeguir();
       E.abierto = true; despiertaRevisar();
       anota("abre escaner");
+      avisoAbriendo("Abriendo el escáner…");
       return mlkitListo().then(function(ok){
-        if(!ok){ E.abierto = false; usarCamaraWeb("sin-mlkit"); return; }
-        return permisoUnaVez().then(function(){ return llamar("BarcodeScanner", "scan", { formats:FORMATOS, autoZoom:true }); }).then(function(r){
-          E.abierto = false;
+        if(!ok){ E.abierto = false; avisoAbriendo(null); usarCamaraWeb("sin-mlkit"); return; }
+        return abrirScan(false).then(function(r){
+          E.abierto = false; avisoAbriendo(null);
           var bc = r && r.barcodes && r.barcodes[0];
           var code = bc ? (bc.rawValue != null && bc.rawValue !== "" ? bc.rawValue : bc.displayValue) : null;
           if(code == null || code === ""){ cancelar(); return; }
           anota("leido " + String(code).slice(0, 40));
+          var cs = vCs(), n0 = cs ? cs.round.length : 0, tt0 = cs ? cs.toastTimer : null;
           var cerro = entregar(String(code));
-          if(!cerro) setTimeout(function(){ if(puedeSeguirContinuo()) escanear(); }, CFG.continuoMs);   // continuo: vuelve a abrir
+          if(cerro) return;
+          // Continuo: la app lo manejó sin cerrar el lector (registró, avisó o lo ignoró).
+          var cs1 = vCs(), crecio = !!(cs1 && cs1.round.length > n0), aviso1 = !!(cs1 && cs1.toastTimer !== tt0 && csToastVisible());
+          anota("continuo " + (crecio ? "registro" : aviso1 ? "aviso" : "sin cambio"));
+          if(!puedeSeguirContinuo()) return;
+          if(crecio || aviso1) seguirTrasAviso(cs1 ? cs1.round.length : 0); else seguirManual(code);
         }, function(e){
-          E.abierto = false;
+          E.abierto = false; avisoAbriendo(null);
           if(esCancelacion(e)){ cancelar(); return; }
           anota("scan fallo: " + (e && e.message)); E.modulo = false; E.soportado = undefined;
           usarCamaraWeb("error");
         });
-      }).catch(function(e){ E.abierto = false; anota("escanear err " + e); }).then(function(){ E.abierto = false; despiertaRevisar(); });
+      }).catch(function(e){ E.abierto = false; anota("escanear err " + e); }).then(function(){ E.abierto = false; avisoAbriendo(null); despiertaRevisar(); });
     };
     E.escanear = escanear;
 
@@ -25294,6 +25395,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   function atras(){
     anota("atras");
     if(E.abierto) return "escaner";
+    try{ if(E.seguirVisible && E.seguirVisible()){ E.ocultarSeguir(); return "continuo-detenido"; } }catch(e){}
     try{ var api = W.__wittIntroAPI; if(api && api.estado && api.estado().abierta){ api.cerrar("saltar"); return "intro"; } }catch(e){}
     try{ if(typeof W.pvIsOpen === "function" && W.pvIsOpen() && typeof W.pvClose === "function"){ W.pvClose(); return "fotos"; } }catch(e){}
     var m = modalArriba();
@@ -25332,7 +25434,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       callado(Promise.resolve(A.addListener("backButton", function(){ try{ atras(); }catch(e){} })));
       callado(Promise.resolve(A.addListener("pause", function(){
         anota("pause");
-        if(E.abierto) return;   // la pantalla de Google también pausa la app: no se toca nada
+        if(E.abierto){ try{ E.avisoAbriendo && E.avisoAbriendo(null); }catch(e){} return; }   // la pantalla de Google también pausa la app: solo se quita «Abriendo…»
         try{ if(vScanActive()){ E.reanudarFz = !!W.fzScanning; W.stopCamera(); } }catch(e){}
         try{ E.despierta = false; callado(llamar("KeepAwake", "allowSleep")); }catch(e){}
       })));
@@ -25469,7 +25571,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   }catch(e){}
 
-  /* ======================= 6. Voz y dictado (solo si el WebView no los trae) ======================= */
+  /* ======================= 6. Voz (si el WebView no la trae) y dictado (siempre con el plugin) ======================= */
   try{
     if(P("TextToSpeech") && !W.speechSynthesis){
       var habla = { speaking:false, pending:false, paused:false, onvoiceschanged:null,
@@ -25484,29 +25586,78 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       try{ Object.defineProperty(W, "speechSynthesis", { value:habla, configurable:true, writable:true }); }catch(e){}
       if(typeof W.SpeechSynthesisUtterance !== "function") W.SpeechSynthesisUtterance = function(t){ this.text = t || ""; this.lang = "es-MX"; this.rate = 1; this.pitch = 1; this.volume = 1; };
     }
-    if(P("SpeechRecognition") && !W.SpeechRecognition && !W.webkitSpeechRecognition){
-      var Rec = function(){ this.lang = "es-MX"; this.interimResults = false; this.maxAlternatives = 5; this.continuous = false; this._vivo = false; this._abortado = false; };
+    /* Dictado: en la app SIEMPRE con el plugin (el reconocedor de Android), aunque el WebView traiga webkitSpeechRecognition:
+       en el WebView ese objeto existe pero no se comprobó que funcione (en el emulador no dio ni onstart ni onerror).
+       interimResults → partialResults: lo que se va oyendo llega por el listener "partialResults" y se muestra en el HUD como
+       hoy; se termina con "listeningState: stopped", con stop() o con el resultado final de start(). */
+    if(P("SpeechRecognition")){
+      var escucharSR = function(ev, cb){
+        try{ var p = P("SpeechRecognition"); if(!p || typeof p.addListener !== "function") return Promise.resolve(null);
+          return Promise.resolve(p.addListener(ev, cb)).catch(function(){ return null; }); }catch(e){ return Promise.resolve(null); }
+      };
+      var quitarSR = function(hs){ hs.forEach(function(h){ try{ Promise.resolve(h).then(function(x){ try{ x && x.remove && x.remove(); }catch(e){} }); }catch(e){} }); };
+      var codigoSR = function(e){
+        var m = String((e && (e.message || e.code)) || e || "");
+        return /permission|denied|not allowed/i.test(m) ? "not-allowed" : /network/i.test(m) ? "network" : /match|speech|timeout/i.test(m) ? "no-speech" : "audio-capture";
+      };
+      var Rec = function(){ this.lang = "es-MX"; this.interimResults = false; this.maxAlternatives = 5; this.continuous = false;
+        this.onstart = this.onresult = this.onerror = this.onend = null; this._vivo = false; this._abortado = false; };
+      Rec.prototype.addEventListener = function(t, f){ if(typeof f === "function" && /^(start|result|error|end)$/.test(t) && !this["on" + t]) this["on" + t] = f; };
+      Rec.prototype.removeEventListener = function(t, f){ if(this["on" + t] === f) this["on" + t] = null; };
       Rec.prototype.start = function(){
-        var self = this; if(self._vivo) throw new Error("ya escucha"); self._vivo = true; self._abortado = false;
-        var fin = function(){ if(!self._vivo) return; self._vivo = false; try{ self.onend && self.onend({}); }catch(e){} };
-        var err = function(c){ try{ self.onerror && self.onerror({ error:c }); }catch(e){} fin(); };
-        llamar("SpeechRecognition", "requestPermissions").catch(function(){}).then(function(r){
+        var self = this;
+        if(self._vivo){ var ex; try{ ex = new DOMException("Ya está escuchando", "InvalidStateError"); }catch(x){ ex = new Error("Ya está escuchando"); } throw ex; }
+        self._vivo = true; self._abortado = false; self._parando = false; self._ultimo = null;
+        var parcial = !!self.interimResults, max = Math.max(1, self.maxAlternatives || 1), hs = [], tFin = 0, tMax = 0;
+        var cerrar = function(){ if(!self._vivo) return; self._vivo = false; clearTimeout(tFin); clearTimeout(tMax); quitarSR(hs); anota("dictado fin");
+          try{ self.onend && self.onend({ type:"end" }); }catch(e){} };
+        var error = function(c){ if(!self._vivo) return; anota("dictado error " + c); try{ self.onerror && self.onerror({ type:"error", error:c }); }catch(e){} cerrar(); };
+        var emitir = function(ms, fin){
+          ms = (ms || []).map(String).filter(function(s){ return s.trim(); }); if(!ms.length) return false;
+          var alt = ms.slice(0, max).map(function(s){ return { transcript:s, confidence:fin ? 0.9 : 0.5 }; });
+          alt.isFinal = !!fin; alt.item = function(i){ return this[i]; };
+          var lista = [alt]; lista.item = function(i){ return this[i]; };
+          try{ self.onresult && self.onresult({ type:"result", resultIndex:0, results:lista }); }catch(e){}
+          return true;
+        };
+        var terminar = function(){
+          if(!self._vivo) return;
+          if(self._abortado){ try{ self.onerror && self.onerror({ type:"error", error:"aborted" }); }catch(e){} return cerrar(); }
+          if(self._ultimo && emitir(self._ultimo, true)) return cerrar();
+          error("no-speech");
+        };
+        var finEn = function(ms){ clearTimeout(tFin); tFin = setTimeout(terminar, ms); };
+        self._terminar = terminar; self._finEn = finEn;
+        tMax = setTimeout(function(){ callado(llamar("SpeechRecognition", "stop")); finEn(1200); }, 25000);   // por si el reconocedor no avisa nunca
+        llamar("SpeechRecognition", "requestPermissions").catch(function(){ return null; }).then(function(r){
+          if(!self._vivo) return;
           var p = r && (r.speechRecognition || r.microphone);
-          if(p === "denied") return err("not-allowed");
-          return llamar("SpeechRecognition", "start", { language:self.lang || "es-MX", maxResults:self.maxAlternatives || 5, partialResults:false, popup:false })
-            .then(function(res){
-              if(self._abortado) return fin();
-              var ms = (res && res.matches) || [];
-              if(!ms.length) return err("no-speech");
-              var alt = ms.map(function(m){ return { transcript:String(m), confidence:1 }; }); alt.isFinal = true;
-              try{ self.onresult && self.onresult({ resultIndex:0, results:[alt] }); }catch(e){}
-              fin();
-            }, function(e){ var m = String(e && e.message || e); err(self._abortado ? "aborted" : /permission|denied/i.test(m) ? "not-allowed" : /network/i.test(m) ? "network" : /match|speech/i.test(m) ? "no-speech" : "audio-capture"); });
+          if(p === "denied") return error("not-allowed");
+          if(parcial){
+            hs.push(escucharSR("partialResults", function(d){
+              if(!self._vivo) return; var ms = d && d.matches;
+              if(ms && ms.length){ self._ultimo = ms; emitir(ms, false); if(self._parando) finEn(350); }
+            }));
+            hs.push(escucharSR("listeningState", function(d){ if(self._vivo && d && d.status === "stopped") finEn(900); }));
+          }
+          return Promise.all(hs).then(function(){
+            if(!self._vivo) return;
+            anota("dictado inicia" + (parcial ? " (parcial)" : ""));
+            try{ self.onstart && self.onstart({ type:"start" }); }catch(e){}
+            return llamar("SpeechRecognition", "start", { language:self.lang || "es-MX", maxResults:max, partialResults:parcial, popup:false }).then(function(res){
+              var ms = res && res.matches;
+              if(ms && ms.length){ self._ultimo = ms; return terminar(); }
+              if(!parcial) return error("no-speech");
+              // Parcial: start() puede volver antes de que se hable; lo demás llega por los listeners.
+            }, function(e){ if(!self._vivo) return; if(self._ultimo || self._abortado) return terminar(); error(codigoSR(e)); });
+          });
         });
       };
-      Rec.prototype.stop = function(){ callado(llamar("SpeechRecognition", "stop")); };
-      Rec.prototype.abort = function(){ this._abortado = true; callado(llamar("SpeechRecognition", "stop")); };
-      W.SpeechRecognition = W.webkitSpeechRecognition = Rec;
+      Rec.prototype.stop = function(){ if(!this._vivo) return; this._parando = true; callado(llamar("SpeechRecognition", "stop")); if(this._finEn) this._finEn(1200); };
+      Rec.prototype.abort = function(){ if(!this._vivo) return; this._abortado = true; callado(llamar("SpeechRecognition", "stop")); if(this._terminar) this._terminar(); };
+      ["SpeechRecognition", "webkitSpeechRecognition"].forEach(function(n){
+        try{ Object.defineProperty(W, n, { value:Rec, configurable:true, writable:true }); }catch(e){ try{ W[n] = Rec; }catch(x){} }
+      });
     }
   }catch(e){}
 
