@@ -5594,6 +5594,9 @@ html.witt-nativa .wn-abriendo{position:fixed;left:50%;top:calc(env(safe-area-ins
 html.witt-nativa .wn-abriendo.show{opacity:1;transform:translate(-50%,0);}
 html.witt-nativa .wn-abriendo i{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;animation:wnGira .8s linear infinite;flex:0 0 auto;}
 @keyframes wnGira{to{transform:rotate(360deg);}}
+html.witt-nativa .wn-abriendo button{display:none;}
+html.witt-nativa .wn-abriendo.con-boton{flex-wrap:wrap;justify-content:center;white-space:normal;text-align:center;border-radius:20px;width:min(86vw,360px);pointer-events:auto;}
+html.witt-nativa .wn-abriendo.con-boton button{display:block;border:0;border-radius:999px;padding:12px 18px;min-height:44px;background:#00574a;color:#fff;font:700 15px/1 inherit;font-family:inherit;cursor:pointer;}
 /* Escaneo continuo: barra para seguir (o detener) mientras se ve el aviso de la app con «Deshacer». */
 html.witt-nativa .wn-seguir{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + var(--nav-h, 62px) + 14px);z-index:8900;display:flex;flex-wrap:wrap;align-items:center;gap:10px;
   padding:12px 12px 12px 16px;border-radius:18px;background:#1b211f;color:#f3f5f4;box-shadow:0 10px 34px rgba(0,0,0,.28);max-width:520px;margin:0 auto;
@@ -25068,7 +25071,9 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   // Por defecto NO: se queda la cámara web a pantalla completa para conservar la foto. Se cambia con
   // localStorage "witt-nativa-fisico" = "nativo".
   // esperaMaxMs: en el escaneo continuo, lo más que se espera al aviso de la app (#cs-toast) antes de reabrir el escáner.
-  var CFG = { fisicoNativo: ls("witt-nativa-fisico") === "nativo", esperaMaxMs: 6000, salirEnSelector: true };
+  // revisarMs: tiempo límite para revisar si el escáner de Google está listo. tardaMs: si su pantalla no sale en ese tiempo,
+  // el aviso «Abriendo…» ofrece usar la cámara de la app.
+  var CFG = { fisicoNativo: ls("witt-nativa-fisico") === "nativo", esperaMaxMs: 6000, revisarMs: 4000, tardaMs: 9000, salirEnSelector: true };
   var E = { abierto:false, entregando:false, stopEnEntrega:false, webHasta:0, pasarWebHasta:0, soportado:undefined, modulo:false,
     instalando:false, avisoModulo:false, despierta:null, reanudarFz:false, ultimoVib:{ t:0, n:0 }, log:[] };
   function anota(x){ try{ E.log.push(Date.now() + " " + x); if(E.log.length > 60) E.log.shift(); }catch(e){} }
@@ -25182,32 +25187,47 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       }catch(e){}
       llamar("BarcodeScanner", "installGoogleBarcodeScannerModule").catch(function(){ E.instalando = false; });
     };
+    // Servicios de Google ocupados (pasó en el emulador): la revisión del módulo puede no contestar nunca. Con tiempo límite,
+    // el botón no se queda muerto: se usa la cámara de la app y la próxima vez se vuelve a revisar.
+    var conTiempo = function(pr, ms){
+      return new Promise(function(res, rej){
+        var t = setTimeout(function(){ var e = new Error("tiempo agotado"); e.tiempo = true; rej(e); }, ms);
+        pr.then(function(v){ clearTimeout(t); res(v); }, function(e){ clearTimeout(t); rej(e); });
+      });
+    };
     var mlkitListo = function(){
       if(!BS()) return Promise.resolve(false);
       var paso1 = E.soportado !== undefined ? Promise.resolve(E.soportado)
-        : llamar("BarcodeScanner", "isSupported").then(function(r){ return (E.soportado = !!(r && r.supported)); }, function(){ return (E.soportado = false); });
+        : conTiempo(llamar("BarcodeScanner", "isSupported"), CFG.revisarMs).then(function(r){ return (E.soportado = !!(r && r.supported)); },
+            function(e){ if(e && e.tiempo){ anota("isSupported: tiempo agotado"); return false; } return (E.soportado = false); });
       return paso1.then(function(sop){
         if(!sop) return false;
         if(E.modulo) return true;
-        return llamar("BarcodeScanner", "isGoogleBarcodeScannerModuleAvailable").then(function(r){
+        return conTiempo(llamar("BarcodeScanner", "isGoogleBarcodeScannerModuleAvailable"), CFG.revisarMs).then(function(r){
           E.modulo = !!(r && r.available); if(!E.modulo) instalarModulo(); return E.modulo;
-        }, function(){ return (E.modulo = true); });   // sin ese método (otra versión): se intenta scan() directo
+        }, function(e){
+          if(e && e.tiempo){ anota("modulo: tiempo agotado"); return false; }
+          return (E.modulo = true);   // sin ese método (otra versión): se intenta scan() directo
+        });
       });
     };
     // El escáner de Google NO necesita el permiso de cámara y no se pide antes de abrirlo: el diálogo de Android pausa y
     // reanuda la app justo antes de scan() y ahí fallaba la primera apertura. La cámara web (placas, físico, respaldo)
     // lo pide sola cuando se usa (el WebView de Capacitor pide el permiso de Android en getUserMedia).
     // Aviso "Abriendo el escáner…" mientras la pantalla de Google tarda en salir (se quita al pausar la app o al volver).
-    var abriendo = null, tAbriendo = 0;
-    var avisoAbriendo = function(txt){
+    var abriendo = null, tAbriendo = 0, tTarda = 0;
+    var avisoAbriendo = function(txt, conBoton){
       try{
-        clearTimeout(tAbriendo);
-        if(!txt){ if(abriendo) abriendo.classList.remove("show"); return; }
+        clearTimeout(tAbriendo); if(!txt) clearTimeout(tTarda);
+        if(!txt){ if(abriendo) abriendo.classList.remove("show", "con-boton"); return; }
         if(!abriendo){
           abriendo = D.createElement("div"); abriendo.className = "wn-abriendo"; abriendo.setAttribute("role", "status"); abriendo.setAttribute("aria-live", "polite");
-          abriendo.innerHTML = '<i aria-hidden="true"></i><span></span>'; D.body.appendChild(abriendo);
+          abriendo.innerHTML = '<i aria-hidden="true"></i><span></span><button type="button">Usar la cámara de la app</button>'; D.body.appendChild(abriendo);
+          abriendo.querySelector("button").addEventListener("click", function(){ if(E.abandonar) E.abandonar(); });
         }
         abriendo.querySelector("span").textContent = txt;
+        abriendo.classList.toggle("con-boton", !!conBoton);
+        if(conBoton){ abriendo.classList.add("show"); return; }
         tAbriendo = setTimeout(function(){ if(E.abierto) abriendo.classList.add("show"); }, 350);   // si abre rápido, ni se ve
       }catch(e){}
     };
@@ -25293,26 +25313,48 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       return llamar("BarcodeScanner", "scan", { formats:FORMATOS, autoZoom:true }).catch(function(e){
         if(reintento || esCancelacion(e) || !esNoDisponible(e)) throw e;
         anota("scan no disponible: reviso el modulo");
-        return llamar("BarcodeScanner", "isGoogleBarcodeScannerModuleAvailable").then(function(r){
-          if(!(r && r.available)) throw e;
-          anota("modulo disponible: reintento");
+        // Disponible: reintenta enseguida. Si la revisión misma falla (servicios de Google todavía arrancando, pasó en el
+        // emulador: "ModuleInstall.API is not available"), espera un poco y reintenta una vez. Si dice que no está, cámara web.
+        var reintentar = function(ms, por){
+          anota(por + ": reintento");
           avisoAbriendo("Abriendo el escáner…");
-          return pausa(600).then(function(){ return abrirScan(true); });
-        }, function(){ throw e; });
+          return pausa(ms).then(function(){ return abrirScan(true); });
+        };
+        return conTiempo(llamar("BarcodeScanner", "isGoogleBarcodeScannerModuleAvailable"), CFG.revisarMs).then(function(r){
+          if(!(r && r.available)) throw e;
+          return reintentar(600, "modulo disponible");
+        }, function(x){ if(x && x.tiempo) throw e; return reintentar(1500, "revision fallo"); });
       });
+    };
+    // Cada apertura lleva un número. Si la pantalla de Google tarda (no pausa la app en CFG.tardaMs), el aviso ofrece la
+    // cámara de la app; esa apertura queda «abandonada»: si luego llega un código se entrega igual, si se cancela no pasa nada.
+    E.intento = 0; E.abandonado = 0; E.pausoEn = 0;
+    E.abandonar = function(){
+      var n = E.intento; if(!E.abierto || E.abandonado === n) return;
+      E.abandonado = n; E.abierto = false; avisoAbriendo(null); anota("escaner tarda: camara de la app");
+      usarCamaraWeb("tarda");
     };
     var escanear = function(){
       if(E.abierto) return Promise.resolve();
       ocultarSeguir();
+      var n = ++E.intento;
+      var actual = function(){ return n === E.intento && E.abandonado !== n; };
       E.abierto = true; despiertaRevisar();
       anota("abre escaner");
       avisoAbriendo("Abriendo el escáner…");
       return mlkitListo().then(function(ok){
+        if(!actual()) return;
         if(!ok){ E.abierto = false; avisoAbriendo(null); usarCamaraWeb("sin-mlkit"); return; }
+        var t0 = Date.now();
+        tTarda = setTimeout(function(){
+          if(actual() && E.abierto && E.pausoEn < t0) avisoAbriendo("El escáner del teléfono está tardando…", true);
+        }, CFG.tardaMs);
         return abrirScan(false).then(function(r){
-          E.abierto = false; avisoAbriendo(null);
+          clearTimeout(tTarda);
           var bc = r && r.barcodes && r.barcodes[0];
           var code = bc ? (bc.rawValue != null && bc.rawValue !== "" ? bc.rawValue : bc.displayValue) : null;
+          if(!actual()){ if(code) { anota("leido tarde " + String(code).slice(0, 40)); entregar(String(code)); } return; }
+          E.abierto = false; avisoAbriendo(null);
           if(code == null || code === ""){ cancelar(); return; }
           anota("leido " + String(code).slice(0, 40));
           var cs = vCs(), n0 = cs ? cs.round.length : 0, tt0 = cs ? cs.toastTimer : null;
@@ -25324,12 +25366,17 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
           if(!puedeSeguirContinuo()) return;
           if(crecio || aviso1) seguirTrasAviso(cs1 ? cs1.round.length : 0); else seguirManual(code);
         }, function(e){
+          clearTimeout(tTarda);
+          if(!actual()){ anota("escaner abandonado: " + (e && e.message)); return; }
           E.abierto = false; avisoAbriendo(null);
           if(esCancelacion(e)){ cancelar(); return; }
           anota("scan fallo: " + (e && e.message)); E.modulo = false; E.soportado = undefined;
           usarCamaraWeb("error");
         });
-      }).catch(function(e){ E.abierto = false; anota("escanear err " + e); }).then(function(){ E.abierto = false; avisoAbriendo(null); despiertaRevisar(); });
+      }).catch(function(e){ anota("escanear err " + e); }).then(function(){
+        if(n === E.intento){ if(E.abandonado !== n) avisoAbriendo(null); E.abierto = false; }
+        despiertaRevisar();
+      });
     };
     E.escanear = escanear;
 
@@ -25394,7 +25441,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   }
   function atras(){
     anota("atras");
-    if(E.abierto) return "escaner";
+    // Con la pantalla de Google al frente, el atrás lo recibe ella; si llega aquí es que todavía no sale: se deja de esperar.
+    if(E.abierto){ E.abandonado = E.intento; E.abierto = false; try{ E.avisoAbriendo(null); }catch(e){} anota("atras: deja de esperar el escaner"); return "escaner-espera"; }
     try{ if(E.seguirVisible && E.seguirVisible()){ E.ocultarSeguir(); return "continuo-detenido"; } }catch(e){}
     try{ var api = W.__wittIntroAPI; if(api && api.estado && api.estado().abierta){ api.cerrar("saltar"); return "intro"; } }catch(e){}
     try{ if(typeof W.pvIsOpen === "function" && W.pvIsOpen() && typeof W.pvClose === "function"){ W.pvClose(); return "fotos"; } }catch(e){}
@@ -25434,7 +25482,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       callado(Promise.resolve(A.addListener("backButton", function(){ try{ atras(); }catch(e){} })));
       callado(Promise.resolve(A.addListener("pause", function(){
         anota("pause");
-        if(E.abierto){ try{ E.avisoAbriendo && E.avisoAbriendo(null); }catch(e){} return; }   // la pantalla de Google también pausa la app: solo se quita «Abriendo…»
+        if(E.abierto){ E.pausoEn = Date.now(); try{ E.avisoAbriendo && E.avisoAbriendo(null); }catch(e){} return; }   // la pantalla de Google también pausa la app: solo se quita «Abriendo…»
         try{ if(vScanActive()){ E.reanudarFz = !!W.fzScanning; W.stopCamera(); } }catch(e){}
         try{ E.despierta = false; callado(llamar("KeepAwake", "allowSleep")); }catch(e){}
       })));
