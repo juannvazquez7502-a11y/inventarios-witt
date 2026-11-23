@@ -1,0 +1,206 @@
+name: App nativa (Capacitor)
+
+# App de Android "de verdad": el mismo código web dentro de Capacitor, con escáner de Google a pantalla completa,
+# vibración nativa y pantalla encendida. Abre la página publicada en GitHub Pages (se actualiza sola) y trae una
+# copia local por si no hay internet. Mismo paquete y misma llave que el APK TWA: se instala ENCIMA como actualización.
+# El flujo del TWA (apk.yml) no se toca.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión visible (por ejemplo 2.0.0)"
+        required: true
+        default: "2.0.0"
+      publicar:
+        description: "Publicar el APK en Releases"
+        type: boolean
+        default: true
+      emulador:
+        description: "Probar en el emulador (capturas de pantalla)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      tag: ${{ steps.nombre.outputs.tag }}
+    defaults:
+      run:
+        working-directory: app-nativa
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Versión
+        id: nombre
+        env:
+          VN: ${{ inputs.version }}
+        run: |
+          VC=$((100 + GITHUB_RUN_NUMBER))
+          echo "VERSION_CODE=$VC" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$VN" >> "$GITHUB_ENV"
+          echo "tag=app-nativa-v$VN-$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "versionCode $VC · versionName $VN"
+
+      - name: Dependencias
+        run: npm install --no-audit --no-fund
+
+      - name: Copia local (www)
+        run: node scripts/preparar-www.mjs
+
+      - name: Proyecto Android
+        run: |
+          npx cap add android
+          node scripts/recursos.mjs
+          npx capacitor-assets generate --android --iconBackgroundColor "$VERDE_ICONO" --iconBackgroundColorDark "$VERDE_ICONO" --splashBackgroundColor "$VERDE_ICONO" --splashBackgroundColorDark "$VERDE_ICONO"
+          node scripts/ajustar-android.mjs
+          npx cap sync android
+
+      - name: Compilar
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
+
+      - name: Llave de firma
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.APK_KEYSTORE_PASS }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then
+            echo "::error::Faltan los secretos APK_KEYSTORE_B64 / APK_KEYSTORE_PASS: sin la misma llave no se instala encima del TWA."
+            exit 1
+          fi
+          printf '%s' "$KS_B64" | tr -d '\r\n ' | base64 -d > android.keystore
+          P=$(printf '%s' "$KS_PASS" | tr -d '\r\n')
+          echo "::add-mask::$P"
+          echo "KS_PASS=$P" >> "$GITHUB_ENV"
+
+      - name: Firmar
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          SIN=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          NOMBRE="Inventarios-Witt-nativa-$VERSION_NAME.apk"
+          mkdir -p salida/release salida/debug
+          "$BT/zipalign" -f -p 4 "$SIN" alineado.apk
+          "$BT/apksigner" sign --ks android.keystore --ks-type PKCS12 --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
+            --out "salida/release/$NOMBRE" alineado.apk
+          rm -f android.keystore alineado.apk
+          "$BT/apksigner" verify --print-certs "salida/release/$NOMBRE" | tee salida/huella.txt
+          "$BT/aapt2" dump badging "salida/release/$NOMBRE" | grep -E "^package|uses-permission|sdkVersion|application-label:" | tee salida/paquete.txt
+          cp android/app/build/outputs/apk/debug/*.apk "salida/debug/Inventarios-Witt-nativa-$VERSION_NAME-depuracion.apk"
+          ls -la salida/release salida/debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-nativa-apk
+          path: |
+            app-nativa/salida/release/*.apk
+            app-nativa/salida/huella.txt
+            app-nativa/salida/paquete.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-nativa-depuracion
+          path: app-nativa/salida/debug/*.apk
+          retention-days: 7
+
+      - name: Publicar en Releases
+        if: ${{ inputs.publicar }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.nombre.outputs.tag }}
+        run: |
+          gh release create "$TAG" salida/release/*.apk --target "$GITHUB_SHA" --title "App nativa $VERSION_NAME (versionCode $VERSION_CODE)" \
+            --notes "App de Android nativa (Capacitor) de Inventarios Grupo Witt: escáner de Google a pantalla completa, vibración nativa y pantalla encendida. Abre la versión publicada en GitHub Pages y trae una copia por si no hay internet. Mismo paquete y misma llave que el APK anterior (TWA): se instala encima como actualización. Antes de actualizar, sube los pendientes: los datos guardados en Chrome no pasan a la app nueva."
+
+  emulador:
+    needs: apk
+    if: ${{ inputs.emulador }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-nativa-apk
+          path: apks/release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-nativa-depuracion
+          path: apks/debug
+
+      - name: Ordenar APK
+        run: |
+          find apks -name '*.apk' -print
+          f=$(find apks/release -name '*.apk' | head -1); [ "$(dirname "$f")" != apks/release ] && mv "$f" apks/release/ || true
+          ls -la apks/release apks/debug
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Bloquear supabase.co (DNS propio para el emulador)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dnsmasq-base dnsutils
+          sudo dnsmasq --listen-address=127.0.0.2 --bind-interfaces --port=53 --no-resolv --no-hosts \
+            --server=8.8.8.8 --server=1.1.1.1 \
+            --address=/supabase.co/0.0.0.0 --address=/supabase.co/:: --address=/supabase.in/0.0.0.0 --address=/supabase.in/:: \
+            --log-queries --log-facility=/tmp/dns.log --pid-file=/tmp/dnsmasq.pid
+          sleep 1
+          dig +short @127.0.0.2 juannvazquez7502-a11y.github.io | head -3
+          echo "supabase -> $(dig +short @127.0.0.2 prueba.supabase.co)"
+          test "$(dig +short @127.0.0.2 prueba.supabase.co)" = "0.0.0.0"
+          test -n "$(dig +short @127.0.0.2 juannvazquez7502-a11y.github.io)"
+
+      - name: Emulador (Android 15)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back emulated -dns-server 127.0.0.2
+          script: bash app-nativa/scripts/prueba-emulador.sh
+
+      - name: Registro de DNS (supabase bloqueado)
+        if: always()
+        run: |
+          mkdir -p capturas
+          sudo cat /tmp/dns.log | grep -iE "supabase" | sed -E 's/^.*dnsmasq\[[0-9]+\]: //' | sort | uniq -c > capturas/dns-supabase-bloqueado.txt || true
+          sudo cat /tmp/dns.log | grep -E "query\[" | sed -E 's/^.*query\[[A-Z]+\] ([^ ]+).*/\1/' | sort | uniq -c | sort -rn > capturas/dns-consultas.txt || true
+          sudo kill "$(cat /tmp/dnsmasq.pid)" || true
+          ls -la capturas
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-emulador
+          path: capturas/
