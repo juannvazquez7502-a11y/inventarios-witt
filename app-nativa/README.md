@@ -9,7 +9,11 @@ Es la misma app web, pero dentro de una app de Android real. Así puede usar el 
   - Con el puente inyectado no existe `Capacitor.Plugins.X`, porque no se carga `@capacitor/core`.
   - Los plugins se llaman así: `Capacitor.nativePromise("Haptics", "vibrate", { duration: 300 })`.
   - Los eventos se escuchan así: `Capacitor.addListener("App", "backButton", fn)`.
-  - Nombres de los plugins: `App`, `Haptics`, `StatusBar`, `SplashScreen`, `BarcodeScanner`, `KeepAwake`, `Filesystem` y `Share`.
+  - Nombres de los plugins: `App`, `AppLauncher`, `Haptics`, `StatusBar`, `SplashScreen`, `BarcodeScanner`, `KeepAwake`, `Filesystem`, `Share`, `TextToSpeech` y `SpeechRecognition`.
+    - `TextToSpeech` y `SpeechRecognition`: el WebView de Android no trae `speechSynthesis` (avisos con voz) ni un dictado que funcione.
+    - `AppLauncher`: abre WhatsApp (wa.me) y REPUVE fuera de la app.
+- **Barras del sistema:** la app sale del modo "borde a borde" de Android 15 (`windowOptOutEdgeToEdgeEnforcement`, en `scripts/ajustar-android.mjs`). Así la barra de estado toma el verde de la app y el teclado empuja la página, como en Chrome.
+- **`prueba/`:** copia de `nativa.js` y `nativa.css` que solo usa la prueba del emulador (`scripts/sonda.mjs` la pone a mano en la página). La app real usa la capa que va dentro del `index.html` publicado.
 - **Paquete:** `mx.grupowitt.inventarios`, firmado con la misma llave que el APK TWA, con `versionCode = 100 + corrida`. Se instala encima del TWA como actualización.
   - Los datos que el TWA guardó en Chrome no pasan a la app nueva. Antes de actualizar hay que subir los pendientes.
 - **Permisos:**
@@ -20,8 +24,8 @@ Es la misma app web, pero dentro de una app de Android real. Así puede usar el 
 
 ## Cómo armarla
 En Actions, corre **App nativa (Capacitor)** (`.github/workflows/app-nativa.yml`). El flujo:
-1. Arma el APK firmado y lo sube como artifact y como Release `app-nativa-v<versión>-<corrida>`.
-2. Si se marca **emulador**, lo prueba en un emulador con Android 15 y sube las capturas en el artifact `capturas-emulador`.
+1. Arma el APK firmado y lo sube como artifact y como Release `app-nativa-v<versión>-<corrida>` (pre-release, para no reemplazar al APK TWA como "Latest").
+2. Si se marca **emulador**, lo prueba en un emulador con Android 15 y Play Store, y sube las capturas en el artifact `capturas-emulador`.
    - En esa prueba, `*.supabase.co` está bloqueado por DNS.
 
 El proyecto `android/` no se guarda en el repositorio. Se genera en cada corrida con `npx cap add android` y `scripts/ajustar-android.mjs`.
