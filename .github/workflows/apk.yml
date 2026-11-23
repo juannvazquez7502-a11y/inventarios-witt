@@ -1,0 +1,87 @@
+name: Armar APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión (por ejemplo 1.0.0)"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Llave de firma
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.APK_KEYSTORE_PASS }}
+        run: |
+          cd apk
+          if [ -n "$KS_B64" ] && [ -n "$KS_PASS" ]; then
+            echo "$KS_B64" | base64 -d > android.keystore
+            echo "KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+            echo "KS_TYPE=PKCS12" >> "$GITHUB_ENV"
+            echo "Se usa la llave guardada en los secretos del repositorio."
+          else
+            PASS=$(openssl rand -hex 16)
+            echo "::add-mask::$PASS"
+            keytool -genkeypair -keystore android.keystore -storetype PKCS12 -alias android -keyalg RSA -keysize 2048 \
+              -validity 10000 -storepass "$PASS" -keypass "$PASS" -dname "CN=Inventarios Grupo Witt, O=Grupo Witt, C=MX"
+            echo "KS_PASS=$PASS" >> "$GITHUB_ENV"
+            echo "KS_TYPE=PKCS12" >> "$GITHUB_ENV"
+            echo "::warning::No hay llave guardada: se usó una llave temporal (para actualizar el APK habrá que desinstalar el anterior)."
+          fi
+
+      - name: Generar proyecto Android (TWA)
+        env:
+          APP_VERSION_NAME: ${{ github.event.inputs.version }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          cd apk
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund @bubblewrap/core@1
+          node generar.js
+
+      - name: Compilar
+        run: |
+          cd apk/twa
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Firmar
+        run: |
+          cd apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(ls twa/app/build/outputs/apk/release/*.apk | head -1)
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" alineado.apk
+          "$BT/apksigner" sign --ks android.keystore --ks-type "$KS_TYPE" --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
+            --out "Inventarios-Witt-${{ github.event.inputs.version }}.apk" alineado.apk
+          "$BT/apksigner" verify --print-certs "Inventarios-Witt-${{ github.event.inputs.version }}.apk" | tee huella.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: apk/Inventarios-Witt-*.apk
+
+      - name: Publicar en Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="apk-v${{ github.event.inputs.version }}-${{ github.run_number }}"
+          gh release create "$TAG" apk/Inventarios-Witt-*.apk --title "APK ${{ github.event.inputs.version }}" \
+            --notes "APK de Android que abre la versión web publicada en GitHub Pages."
