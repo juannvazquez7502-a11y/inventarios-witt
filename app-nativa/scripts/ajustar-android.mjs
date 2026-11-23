@@ -5,7 +5,8 @@
 // - ML Kit: descarga el escáner de Google (pantalla completa) al instalar la app.
 // - versionCode = 100 + número de corrida (mayor que el del TWA, para instalarse encima) y versionName de la corrida.
 // - App Link verificado (autoVerify) para la página de la app: la cámara del teléfono abre la app con la liga para unirse.
-import { readFileSync, writeFileSync } from "node:fs";
+// - MainActivity descarta la liga de arranque cuando Android recrea la Activity con el mismo intent (Recientes, proceso muerto).
+import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 
 const must = (cond, que) => { if (!cond) throw new Error("No encontré: " + que); };
 const VC = parseInt(process.env.VERSION_CODE || "", 10);
@@ -65,6 +66,57 @@ if (!man.includes('android:host="' + HOST_APP + '"')) {
 must(/android:launchMode="singleTask"/.test(man), 'android:launchMode="singleTask" en MainActivity (la liga con la app abierta llega por appUrlOpen)');
 writeFileSync(MAN, man, "utf8");
 
+// Liga ya usada (23-nov-2026). Si la app arrancó con la liga, el intent base de la tarea es ese VIEW con ?unirse=. Android
+// lo vuelve a entregar a una Activity NUEVA (y Capacitor lo da otra vez por getLaunchUrl y "appUrlOpen") cuando:
+//  - se sale con Atrás desde el selector (exitApp = finish()) y se vuelve a abrir desde Recientes (FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
+//  - Android mató el proceso en segundo plano y se vuelve a la app (savedInstanceState != null).
+// En esos casos MainActivity cambia el intent por uno MAIN antes de super.onCreate (Bridge lee getIntent().getData() al
+// crearse), así la unión vieja no se vuelve a abrir. Una liga NUEVA escaneada con el proceso muerto llega aparte por
+// onNewIntent y sí se abre. El arranque normal con la liga (cámara del teléfono) no trae ninguna de las dos marcas.
+const dirJava = "android/app/src/main/java";
+const actividades = readdirSync(dirJava, { recursive: true }).map(String).filter(f => /(^|[\\/])MainActivity\.java$/.test(f));
+must(actividades.length === 1, "un solo MainActivity.java en " + dirJava);
+const ACT = dirJava + "/" + actividades[0].replace(/\\/g, "/");
+let act = readFileSync(ACT, "utf8");
+let actividadLigaVieja = act.includes("witt-liga-vieja");
+if (!actividadLigaVieja) {
+  const paquete = (act.match(/^\s*package\s+([\w.]+)\s*;/m) || [])[1];
+  must(paquete, "package en " + ACT);
+  must(/public\s+class\s+MainActivity\s+extends\s+BridgeActivity\s*\{\s*\}/.test(act),
+    "MainActivity vacío de la plantilla de Capacitor (" + ACT + "); si ya tiene código, agregar a mano el onCreate de witt-liga-vieja");
+  act = [
+    "package " + paquete + ";",
+    "",
+    "import android.content.Intent;",
+    "import android.os.Bundle;",
+    "import android.util.Log;",
+    "import com.getcapacitor.BridgeActivity;",
+    "",
+    "public class MainActivity extends BridgeActivity {",
+    "",
+    "    // witt-liga-vieja: una liga para unirse que ya se uso no se vuelve a abrir cuando Android recrea la Activity con el",
+    "    // mismo intent (abrir desde Recientes tras salir con Atras, o volver despues de que Android mato el proceso).",    "    @Override",
+    "    protected void onCreate(Bundle savedInstanceState) {",
+    "        Intent i = getIntent();",
+    "        if (i != null && Intent.ACTION_VIEW.equals(i.getAction())) {",
+    "            boolean historial = (i.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0;",
+    "            if (historial || savedInstanceState != null) {",
+    "                Log.i(\"WittLiga\", \"liga vieja descartada: \" + (historial ? \"desde Recientes\" : \"Activity restaurada\"));",
+    "                Intent principal = new Intent(Intent.ACTION_MAIN);",
+    "                principal.addCategory(Intent.CATEGORY_LAUNCHER);",
+    "                principal.setClass(this, MainActivity.class);",
+    "                setIntent(principal);",
+    "            }",
+    "        }",
+    "        super.onCreate(savedInstanceState);",
+    "    }",
+    "}",
+    ""
+  ].join("\n");
+  writeFileSync(ACT, act, "utf8");
+  actividadLigaVieja = true;
+}
+
 // Barras del sistema: con targetSdk 35, Android 15 dibuja la app detrás de las barras (borde a borde) y no deja pintar la
 // barra de estado (salía blanca con íconos blancos) ni acomoda la pantalla al teclado. La app pide salir de ese modo
 // (windowOptOutEdgeToEdgeEnforcement): así la barra de estado toma el verde de la app (StatusBar.setBackgroundColor), el
@@ -110,6 +162,6 @@ const vars = readFileSync(VAR, "utf8");
 const sdk = k => (vars.match(new RegExp(k + "\\s*=\\s*(\\d+)")) || [])[1];
 console.log(JSON.stringify({
   versionCode: VC, versionName: VN, permisosAgregados: permisos.length, estilosBarras: estilos, fondoVentana: fondo,
-  appLink: man.includes('android:autoVerify="true"') && man.includes('android:host="' + HOST_APP + '"'),
+  appLink: man.includes('android:autoVerify="true"') && man.includes('android:host="' + HOST_APP + '"'), ligaVieja: actividadLigaVieja,
   minSdk: sdk("minSdkVersion"), compileSdk: sdk("compileSdkVersion"), targetSdk: sdk("targetSdkVersion")
 }));
