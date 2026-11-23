@@ -4,6 +4,11 @@ name: App nativa (Capacitor)
 # vibración nativa y pantalla encendida. Abre la página publicada en GitHub Pages (se actualiza sola) y trae una
 # copia local por si no hay internet. Mismo paquete y misma llave que el APK TWA: se instala ENCIMA como actualización.
 # El flujo del TWA (apk.yml) no se toca.
+#
+# Seguridad: el token de GitHub solo puede LEER en los trabajos que corren dependencias de npm, Gradle o la acción del
+# emulador (y checkout no lo deja guardado). Solo el trabajo "publicar", que no corre código de terceros, puede escribir
+# (crear el Release). Las dependencias se instalan con npm ci desde package-lock.json (versiones y hashes fijos) y la
+# acción del emulador va fijada por SHA.
 
 on:
   workflow_dispatch:
@@ -22,19 +27,24 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   apk:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      contents: read
     outputs:
       tag: ${{ steps.nombre.outputs.tag }}
+      version_code: ${{ steps.nombre.outputs.version_code }}
     defaults:
       run:
         working-directory: app-nativa
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -52,22 +62,28 @@ jobs:
         env:
           VN: ${{ inputs.version }}
         run: |
+          case "$VN" in ''|*[!0-9A-Za-z.-]*) echo "::error::Versión no válida: $VN"; exit 1;; esac
           VC=$((100 + GITHUB_RUN_NUMBER))
           echo "VERSION_CODE=$VC" >> "$GITHUB_ENV"
           echo "VERSION_NAME=$VN" >> "$GITHUB_ENV"
           echo "tag=app-nativa-v$VN-$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VC" >> "$GITHUB_OUTPUT"
           echo "versionCode $VC · versionName $VN"
 
-      - name: Dependencias
-        run: npm install --no-audit --no-fund
+      - name: Dependencias (npm ci, versiones fijas del package-lock.json)
+        run: npm ci --no-audit --no-fund
 
       - name: Copia local (www)
         run: node scripts/preparar-www.mjs
 
-      - name: Proyecto Android
+      - name: Íconos y splash
         run: |
           npx cap add android
           node scripts/recursos.mjs
+
+      - name: Proyecto Android
+        run: |
+          echo "verde del ícono: $VERDE_ICONO"
           npx capacitor-assets generate --android --iconBackgroundColor "$VERDE_ICONO" --iconBackgroundColorDark "$VERDE_ICONO" --splashBackgroundColor "$VERDE_ICONO" --splashBackgroundColorDark "$VERDE_ICONO"
           node scripts/ajustar-android.mjs
           npx cap sync android
@@ -78,30 +94,28 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
 
-      - name: Llave de firma
+      # La llave y su contraseña solo existen en este paso: la contraseña va por variable de entorno (env:KS_PASS),
+      # no en la línea de comandos, y la llave se borra al terminar.
+      - name: Firmar
         env:
           KS_B64: ${{ secrets.APK_KEYSTORE_B64 }}
-          KS_PASS: ${{ secrets.APK_KEYSTORE_PASS }}
+          KS_PASS_RAW: ${{ secrets.APK_KEYSTORE_PASS }}
         run: |
-          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ]; then
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS_RAW" ]; then
             echo "::error::Faltan los secretos APK_KEYSTORE_B64 / APK_KEYSTORE_PASS: sin la misma llave no se instala encima del TWA."
             exit 1
           fi
+          trap 'rm -f android.keystore alineado.apk' EXIT
           printf '%s' "$KS_B64" | tr -d '\r\n ' | base64 -d > android.keystore
-          P=$(printf '%s' "$KS_PASS" | tr -d '\r\n')
-          echo "::add-mask::$P"
-          echo "KS_PASS=$P" >> "$GITHUB_ENV"
-
-      - name: Firmar
-        run: |
+          KS_PASS=$(printf '%s' "$KS_PASS_RAW" | tr -d '\r\n'); export KS_PASS
+          echo "::add-mask::$KS_PASS"
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           SIN=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
           NOMBRE="Inventarios-Witt-nativa-$VERSION_NAME.apk"
           mkdir -p salida/release salida/debug
           "$BT/zipalign" -f -p 4 "$SIN" alineado.apk
-          "$BT/apksigner" sign --ks android.keystore --ks-type PKCS12 --ks-pass "pass:$KS_PASS" --key-pass "pass:$KS_PASS" \
+          "$BT/apksigner" sign --ks android.keystore --ks-type PKCS12 --ks-pass env:KS_PASS --key-pass env:KS_PASS \
             --out "salida/release/$NOMBRE" alineado.apk
-          rm -f android.keystore alineado.apk
           "$BT/apksigner" verify --print-certs "salida/release/$NOMBRE" | tee salida/huella.txt
           "$BT/aapt2" dump badging "salida/release/$NOMBRE" | grep -E "^package|uses-permission|sdkVersion|application-label:" | tee salida/paquete.txt
           cp android/app/build/outputs/apk/debug/*.apk "salida/debug/Inventarios-Witt-nativa-$VERSION_NAME-depuracion.apk"
@@ -121,14 +135,33 @@ jobs:
           path: app-nativa/salida/debug/*.apk
           retention-days: 7
 
+  # Único trabajo con permiso de escritura: no instala dependencias ni corre código del proyecto; solo baja el APK
+  # firmado del trabajo anterior y crea el Release con gh (que ya viene en ubuntu-latest).
+  publicar:
+    needs: apk
+    if: ${{ inputs.publicar }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-nativa-apk
+          path: salida
+
       - name: Publicar en Releases
-        if: ${{ inputs.publicar }}
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.nombre.outputs.tag }}
+          TAG: ${{ needs.apk.outputs.tag }}
+          VC: ${{ needs.apk.outputs.version_code }}
+          VN: ${{ inputs.version }}
         run: |
+          find salida -type f -print
+          APK=$(find salida -name '*.apk' | head -1)
+          test -n "$APK"
           # Pre-release: no reemplaza al APK TWA como "Latest" hasta que la página publicada traiga la capa nativa.js.
-          gh release create "$TAG" salida/release/*.apk --prerelease --target "$GITHUB_SHA" --title "App nativa $VERSION_NAME (versionCode $VERSION_CODE)" \
+          gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" --title "App nativa $VN (versionCode $VC)" \
             --notes "App de Android nativa (Capacitor) de Inventarios Grupo Witt: escáner de Google a pantalla completa, vibración nativa y pantalla encendida. Abre la versión publicada en GitHub Pages y trae una copia por si no hay internet. Mismo paquete y misma llave que el APK anterior (TWA): se instala encima como actualización. Antes de actualizar, sube los pendientes: los datos guardados en Chrome no pasan a la app nueva. El escáner, la vibración y la pantalla encendida se activan cuando la página publicada incluye la capa nativa (nativa.js)."
 
   emulador:
@@ -136,8 +169,12 @@ jobs:
     if: ${{ inputs.emulador }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v4
         with:
@@ -180,8 +217,9 @@ jobs:
           test -n "$(dig +short @127.0.0.2 juannvazquez7502-a11y.github.io)"
 
       # Imagen con Play Store: el escáner de Google (ML Kit) se descarga por los servicios de Google Play, como en un teléfono.
+      # Acción de terceros fijada por SHA (v2.38.0).
       - name: Emulador (Android 15)
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: 35
           target: google_apis_playstore
