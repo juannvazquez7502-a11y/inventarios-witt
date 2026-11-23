@@ -12,13 +12,15 @@
    3 Pantalla encendida mientras se escanea o se cuenta (KeepAwake).
    4 Barra de estado verde Witt y botón atrás de Android.
    5 Exportaciones: guarda el archivo con Filesystem (Documentos/Inventarios Witt) y ofrece Compartir.
-   6 navigator.share y voz (TextToSpeech) si el WebView no los trae; dictado SIEMPRE con el plugin SpeechRecognition. */
+   6 navigator.share y voz (TextToSpeech) si el WebView no los trae; dictado SIEMPRE con el plugin SpeechRecognition.
+   7 Ligas para unirse (23-nov-2026): la liga ?unirse= que abre Android (App Link desde la cámara del teléfono) se entrega a
+     enlaces.js, con la app abierta ("appUrlOpen") o cerrada (getLaunchUrl al arrancar). */
 (function(){
   "use strict";
   var W = window, D = document, C = W.Capacitor;
   try{ if(!(C && typeof C.isNativePlatform === "function" && C.isNativePlatform())) return; }catch(e){ return; }
 
-  var VERSION = "nativa 1.1 · 23-nov-2026";
+  var VERSION = "nativa 1.2 · 23-nov-2026";
   var ETIQUETA = "CÓDIGO (escáner del teléfono)";
   var FORMATOS = ["QR_CODE", "CODE_128", "CODE_39", "DATA_MATRIX", "PDF_417", "AZTEC", "EAN_13", "EAN_8", "UPC_A", "UPC_E", "ITF", "CODABAR"];
   var VERDE = "#00574a";
@@ -662,6 +664,39 @@
       ["SpeechRecognition", "webkitSpeechRecognition"].forEach(function(n){
         try{ Object.defineProperty(W, n, { value:Rec, configurable:true, writable:true }); }catch(e){ try{ W[n] = Rec; }catch(x){} }
       });
+    }
+  }catch(e){}
+
+  /* ======================= 7. Ligas para unirse (cámara del teléfono → App Link) ======================= */
+  /* La cámara normal del teléfono lee el QR (liga https://…github.io/inventarios-witt/?unirse=TIPO-CÓDIGO) y Android abre
+     esta app (App Link verificado con assetlinks.json). Con la app abierta llega por "appUrlOpen"; con la app cerrada, por
+     getLaunchUrl() al arrancar. Se entrega a la capa enlaces.js (window.__wittUnirse.desdeUrl), que espera a que la app
+     esté lista, quita el parámetro y llama openJoinFromQR, igual que en la web. La liga de arranque se usa una sola vez por
+     proceso (sessionStorage): si la página se recarga, no vuelve a unir. */
+  try{
+    var CLAVE_LIGAS = "witt-unirse-ligas";
+    var ligasUsadas = function(){ try{ return JSON.parse(W.sessionStorage.getItem(CLAVE_LIGAS) || "[]") || []; }catch(e){ return []; } };
+    var marcarLiga = function(u){ try{ var l = ligasUsadas(); if(l.indexOf(u) < 0){ l.push(u); W.sessionStorage.setItem(CLAVE_LIGAS, JSON.stringify(l.slice(-20))); } }catch(e){} };
+    var entregarLiga = function(url, origen){
+      url = String(url || ""); if(!/unirse/i.test(url)) return;
+      var n = 0;
+      (function intenta(){
+        var U = W.__wittUnirse;
+        if(U && typeof U.desdeUrl === "function"){ var r = "err"; try{ r = U.desdeUrl(url, origen); }catch(e){} anota("liga " + origen + ": " + r); return; }
+        if(++n < 60) setTimeout(intenta, 250); else anota("liga " + origen + ": sin enlaces.js");
+      })();
+    };
+    var AL = P("App");
+    if(AL){
+      if(typeof AL.addListener === "function") callado(Promise.resolve(AL.addListener("appUrlOpen", function(ev){
+        try{ var u = String((ev && ev.url) || ""); anota("appUrlOpen " + u.slice(0, 90)); marcarLiga(u); entregarLiga(u, "appUrlOpen"); }catch(e){}
+      })));
+      if(typeof AL.getLaunchUrl === "function") callado(Promise.resolve(AL.getLaunchUrl()).then(function(r){
+        var u = String((r && r.url) || ""); if(!u) return;
+        anota("getLaunchUrl " + u.slice(0, 90));
+        if(ligasUsadas().indexOf(u) >= 0){ anota("liga de arranque ya usada"); return; }
+        marcarLiga(u); entregarLiga(u, "arranque");
+      }));
     }
   }catch(e){}
 
