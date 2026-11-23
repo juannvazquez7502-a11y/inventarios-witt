@@ -108,15 +108,23 @@ LIMPIAR='(function(){ var r=[]; try{ if(document.body.classList.contains("fisico
   ["#collab-join-code","#parts-collab-join-code"].forEach(function(s){ var i=document.querySelector(s); if(i) i.value=""; });
   try{ if(!isLauncherOpen()){ openLauncher(); r.push("openLauncher"); } }catch(e){ r.push("err " + e.message); }
   return JSON.stringify({hecho:r, selector:isLauncherOpen()}); })()'
+# Registro del sistema de la app (inicio, fin, procesos muertos, fallas), sin datos personales.
+sistema() {
+  adb logcat -d -v time -b main,system,crash | tr -d '\r' \
+    | grep -iE "mx\.grupowitt|WittLiga|FATAL|AndroidRuntime|lowmemorykiller|lmkd|Force finishing|has died|Killing [0-9]+:mx" | tail -120 > "$OUT/$1.txt"
+  echo "--- $1"; tail -40 "$OUT/$1.txt"
+}
 # Atrás real (adb) hasta que la app sale con exitApp (finish de MainActivity). Guarda el intent base de la tarea en Recientes.
 salir_con_atras() {
   local n="$1" i
+  if ! foco | grep -q "$PKG/"; then echo "$n: la app no está al frente antes de Atrás (no se prueba exitApp)" | tee "$OUT/$n-tras-atras.txt"; return 1; fi
   for i in 1 2 3 4; do
     adb shell input keyevent 4; sleep 3
     foco | grep -q "$PKG/" || break
   done
   { echo "Atrás x$i | $(foco)"; echo "MainActivity viva:"; adb shell dumpsys activity activities | tr -d '\r' | grep -E "ActivityRecord\{[^}]*$PKG/\.MainActivity" | head -3; } > "$OUT/$n-tras-atras.txt"
   echo "--- $n tras Atrás"; cat "$OUT/$n-tras-atras.txt"
+  sistema "$n-registro-salir"
   adb shell dumpsys activity recents | tr -d '\r' | grep -A12 "$PKG" | grep -E "Recent #|intent=|baseIntent|realActivity" | head -8 > "$OUT/$n-recientes-intent.txt"
   echo "--- $n intent base en Recientes"; cat "$OUT/$n-recientes-intent.txt"
 }
@@ -226,9 +234,16 @@ paso "F. Liga en frío (FISICO-REL051), Atrás hasta salir y abrir desde Recient
 adb shell am force-stop "$PKG"; sleep 2
 liga F "${SITIO}?unirse=FISICO-REL051"
 sleep 18; sin_anr; foto F1-frio-union-REL051; quien F1
+if ! grep -q "ABRIO LA APP" "$OUT/F1-quien.txt"; then
+  echo "F1: la app no quedó al frente; guardo el registro del sistema y repito la liga una vez"
+  sistema F1-registro-sistema
+  adb shell am force-stop "$PKG"; sleep 3
+  liga F-reintento "${SITIO}?unirse=FISICO-REL051"
+  sleep 20; sin_anr; foto F1b-frio-union-REL051; quien F1
+fi
 conectar; cdp F1-union eval "$UNION"
 cdp F1-limpiar eval "$LIMPIAR"
-sleep 2; foto F2-selector-antes-de-salir
+sleep 2; foto F2-selector-antes-de-salir; quien F2
 salir_con_atras F
 recientes_volver F3
 sleep 15; sin_anr; foto F3-desde-recientes; quien F3
@@ -266,6 +281,7 @@ conectar; cdp G4-union eval "$UNION"
 if grep -q '"codigoRefacciones": "REL053"' "$OUT/cdp-G4-union.json"; then echo "G4: BIEN, la liga nueva abrió la unión con REL053" | tee "$OUT/G4-veredicto.txt"
 else echo "G4: MAL, la liga nueva no abrió la unión con REL053" | tee "$OUT/G4-veredicto.txt"; fi
 
+sistema logcat-sistema
 adb logcat -d -v time WittLiga:V '*:S' > "$OUT/logcat-wittliga.txt" || true
 echo "--- logcat WittLiga"; cat "$OUT/logcat-wittliga.txt"
 cat "$OUT"/*-veredicto.txt > "$OUT/veredictos.txt" 2>/dev/null || true
