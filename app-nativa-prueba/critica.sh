@@ -123,7 +123,8 @@ paso "D. Escanear: pestaña y botón Iniciar cámara (toques reales)"
 tocar '.nav:not(.fz-nav) button[data-screen="scan"]' || tocar '#fab-scan'
 sleep 3; foto 05-pantalla-escanear; cdp 05-info info
 cdp 05-modulo modulo
-tocar '#btn-cam-start'; sleep 4; foto 06-tras-iniciar-camara
+tocar '#btn-cam-start'; sleep 6; foto 06-tras-iniciar-camara
+if grep -q "com.google.android.gms" "$OUT/xml/06-tras-iniciar-camara.foco.txt"; then echo "PRIMER TOQUE: escáner de Google abierto" | tee "$OUT/06-primer-toque.txt"; else echo "PRIMER TOQUE: NO abrió el escáner de Google" | tee "$OUT/06-primer-toque.txt"; fi
 if tocar_nativo 'permission_allow_foreground_only_button|While using the app|Mientras la app'; then sleep 8; foto 07-tras-permiso; fi
 cdp 07-info info
 # Si cayó a la cámara web porque faltaba el módulo de Google, espera a que se instale y vuelve a tocar.
@@ -139,7 +140,7 @@ fi
 sleep 4; foto 08-mlkit-pantalla-completa
 
 paso "E. Atrás dentro del escáner de Google"
-adb shell input keyevent 4; sleep 3; foto 09-atras-cierra-escaner; cdp 09-info info
+adb shell input keyevent 4; sleep 1; foto 09a-atras-1s; sleep 2; foto 09-atras-cierra-escaner; cdp 09-info info
 
 paso "F. Código sintético y atrás cierra la ventana"
 cdp 10-codigo codigo; sleep 3; foto 10-unidad-encontrada
@@ -151,15 +152,13 @@ adb shell input keyevent 4; sleep 2; foto 13-atras-a-selector; cdp 13-info info
 adb shell input keyevent 4; sleep 3; foto 14-atras-sale-de-la-app
 echo "pid tras salir: $(adb shell pidof $PKG | tr -d '\r')" | tee "$OUT/14-pid.txt"
 
-paso "H0. Se abre otra vez CON red (la segunda vez el service worker guarda la página)"
-adb shell am force-stop "$PKG"
-abrir; sleep 20; sin_anr; foto 14b-segunda-vez-con-red; conectar; cdp 14b-info info
-cdp 14b-cache eval '(async()=>{const k=await caches.keys();const o={};for(const n of k){const c=await caches.open(n);o[n]=(await c.keys()).map(r=>r.url).slice(0,8);}return JSON.stringify(o);})()'
-
-paso "H. Sin red, con la página ya guardada por el service worker de /prueba-nativa/"
+# H0 (antes: segunda apertura con red) se quita a propósito: así H prueba el caso de quien abrió la app UNA sola vez con
+# internet (el service worker ya está, pero todavía no guardó la página) y luego trabaja sin señal.
+paso "H. Sin red tras UNA sola apertura con red (service worker sin la página guardada: debe abrir la copia del APK)"
 adb shell am force-stop "$PKG"
 red off
-abrir; sleep 15; sin_anr; foto 15-sin-red-ya-guardada; conectar; cdp 15-info info
+abrir; sleep 15; sin_anr; foto 15-sin-red-una-apertura; conectar; cdp 15-info info
+cdp 15-cache eval '(async()=>{const k=await caches.keys();const o={};for(const n of k){const c=await caches.open(n);o[n]=(await c.keys()).map(r=>r.url).slice(0,8);}return JSON.stringify(o);})()'
 tocar '.app-card[data-launch="autos"]' && sleep 4
 tocar '.nav:not(.fz-nav) button[data-screen="scan"]' || tocar '#fab-scan'
 sleep 3; tocar '#btn-cam-start'; sleep 8; foto 16-sin-red-escaner; cdp 16-info info
