@@ -4,7 +4,9 @@
 # nativa.js y enlaces.js) firmado con la MISMA llave del APK publicado, para que Android verifique el App Link con
 # https://juannvazquez7502-a11y.github.io/.well-known/assetlinks.json. *.supabase.co bloqueado por DNS; solo datos sintéticos.
 # Revisa: pm get-app-links = verified; "am start -a VIEW -d <liga>" abre LA APP (no Chrome) y muestra la unión, con la app
-# cerrada (arranque en frío), abierta y en segundo plano; recargar no vuelve a unir.
+# cerrada (arranque en frío), abierta y en segundo plano; recargar no vuelve a unir. Una liga ya usada no vuelve a unir al
+# abrir desde Recientes tras salir con Atrás (F) ni al volver después de que Android mató el proceso (G2, G3); una liga
+# nueva con el proceso muerto sí une (G4).
 set -u
 PKG=mx.grupowitt.inventarios
 OUT=capturas
@@ -83,7 +85,8 @@ UNION='JSON.stringify({url:location.href, nativa:window.__wittNativa&&__wittNati
   fisico:document.body.classList.contains("fisico-open"), joinCodeFisico:(function(){try{return FZ.joinCode||""}catch(e){return null}})(),
   codigoEnPantalla:(document.querySelector(".fz-joincode")||{}).textContent||null,
   modales:[].slice.call(document.querySelectorAll(".modal-bg.show")).map(function(m){return m.id}),
-  codigoVehiculos:(document.querySelector("#collab-join-code")||{}).value||"", codigoRefacciones:(document.querySelector("#parts-collab-join-code")||{}).value||""})'
+  codigoVehiculos:(document.querySelector("#collab-join-code")||{}).value||"", codigoRefacciones:(document.querySelector("#parts-collab-join-code")||{}).value||"",
+  ligasSesion:(function(){try{return sessionStorage.getItem("witt-unirse-ligas")}catch(e){return "err"}})(), paginaMs:Math.round(performance.now())})'
 # Abre la liga como lo hace la cámara del teléfono (intent VIEW + BROWSABLE) y dice qué app la recibió.
 liga() {
   local n="$1" u="$2"
@@ -97,6 +100,63 @@ quien() { # quién quedó al frente
   if echo "$f" | grep -q "$PKG/"; then echo "ABRIO LA APP | $f" | tee "$OUT/$n-quien.txt"
   elif echo "$f" | grep -qiE "chrome|browser"; then echo "ABRIO EL NAVEGADOR (MAL) | $f" | tee "$OUT/$n-quien.txt"
   else echo "OTRA COSA | $f" | tee "$OUT/$n-quien.txt"; fi
+}
+# Deja la app en el selector, sin unión abierta (para que Atrás llegue a exitApp y se vea si la unión vuelve sola).
+LIMPIAR='(function(){ var r=[]; try{ if(document.body.classList.contains("fisico-open")){ fzClose(); r.push("fzClose"); } }catch(e){}
+  try{ FZ.joinCode=""; }catch(e){}
+  [].slice.call(document.querySelectorAll(".modal-bg.show")).forEach(function(m){ m.classList.remove("show"); r.push("cierra " + m.id); });
+  ["#collab-join-code","#parts-collab-join-code"].forEach(function(s){ var i=document.querySelector(s); if(i) i.value=""; });
+  try{ if(!isLauncherOpen()){ openLauncher(); r.push("openLauncher"); } }catch(e){ r.push("err " + e.message); }
+  return JSON.stringify({hecho:r, selector:isLauncherOpen()}); })()'
+# Atrás real (adb) hasta que la app sale con exitApp (finish de MainActivity). Guarda el intent base de la tarea en Recientes.
+salir_con_atras() {
+  local n="$1" i
+  for i in 1 2 3 4; do
+    adb shell input keyevent 4; sleep 3
+    foco | grep -q "$PKG/" || break
+  done
+  { echo "Atrás x$i | $(foco)"; echo "MainActivity viva:"; adb shell dumpsys activity activities | tr -d '\r' | grep -E "ActivityRecord\{[^}]*$PKG/\.MainActivity" | head -3; } > "$OUT/$n-tras-atras.txt"
+  echo "--- $n tras Atrás"; cat "$OUT/$n-tras-atras.txt"
+  adb shell dumpsys activity recents | tr -d '\r' | grep -A12 "$PKG" | grep -E "Recent #|intent=|baseIntent|realActivity" | head -8 > "$OUT/$n-recientes-intent.txt"
+  echo "--- $n intent base en Recientes"; cat "$OUT/$n-recientes-intent.txt"
+}
+# Abre Recientes y toca la tarjeta de la app (la más reciente queda al centro). Si no queda al frente, prueba la miniatura.
+recientes_volver() {
+  local n="$1" W H
+  adb shell input keyevent KEYCODE_APP_SWITCH; sleep 4
+  foto "$n-recientes"
+  set -- $(adb shell wm size | tr -d '\r' | grep -oE '[0-9]+x[0-9]+' | tail -1 | tr 'x' ' ')
+  W=${1:-1080}; H=${2:-2400}
+  adb shell input tap $(( W / 2 )) $(( H / 2 )); echo "toque a la tarjeta en Recientes ($(( W / 2 )),$(( H / 2 )))"
+  sleep 4
+  if ! foco | grep -q "$PKG/"; then
+    adb shell input keyevent KEYCODE_APP_SWITCH; sleep 4
+    tocar_nativo 'id/snapshot' || true; sleep 4
+  fi
+  echo "$n: volvió desde Recientes | $(foco)" | tee "$OUT/$n-recientes-volver.txt"
+}
+# Android mata el proceso de la app en segundo plano (como cuando le falta memoria). La tarea sigue en Recientes.
+matar_en_fondo() {
+  local n="$1" antes despues
+  antes=$(adb shell pidof "$PKG" | tr -d '\r')
+  adb shell am kill "$PKG"; sleep 3
+  despues=$(adb shell pidof "$PKG" | tr -d '\r')
+  if [ -n "$despues" ]; then adb shell am kill-all; sleep 3; despues=$(adb shell pidof "$PKG" | tr -d '\r'); fi
+  echo "$n: proceso antes=$antes después=${despues:-ninguno}" | tee "$OUT/$n-proceso.txt"
+}
+# Veredicto: en la página nueva no debe aparecer el código viejo ni ninguna unión abierta o pendiente.
+evaluar_sin_union() {
+  local n="$1" c="$2"
+  node -e '
+    const [f, c, n] = process.argv.slice(1);
+    let j; try { j = JSON.parse(require("fs").readFileSync(f, "utf8")); } catch (e) { console.log(n + ": SIN DATOS (no se pudo leer la página)"); process.exit(0); }
+    const s = JSON.stringify(j), mal = [];
+    if (s.includes(c)) mal.push("aparece " + c);
+    if (j.fisico) mal.push("físico abierto");
+    if ((j.modales || []).some(m => /collab/.test(m))) mal.push("ventana de unirse abierta");
+    if (j.unirse && j.unirse.pendiente) mal.push("unión pendiente");
+    console.log(n + ": " + (mal.length ? "MAL, " + mal.join(", ") : "BIEN, no volvió a unir (" + c + ")") + " | página nueva hace " + j.paginaMs + " ms");
+  ' "$OUT/cdp-$n-union.json" "$c" "$n" | tee "$OUT/$n-veredicto.txt"
 }
 
 adb wait-for-device
@@ -158,6 +218,58 @@ paso "E. App en segundo plano (Inicio del teléfono): am start ?unirse=REFACCION
 adb shell input keyevent 3; sleep 3
 liga E "${SITIO}?unirse=REFACCIONES-DEMO44"
 sleep 8; foto E1-segundo-plano-union-refacciones; quien E1; cdp E1-union eval "$UNION"
+
+# ---------------------------------------------------------------- F. Liga ya usada: Atrás hasta salir (exitApp) y abrir desde Recientes
+# El intent base de la tarea es el VIEW con ?unirse=. Al abrir desde Recientes, Android crea una Activity y un WebView
+# nuevos con ese intent (FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) y sessionStorage empieza vacío: MainActivity debe descartarlo.
+paso "F. Liga en frío (FISICO-REL051), Atrás hasta salir y abrir desde Recientes: NO debe volver a unir"
+adb shell am force-stop "$PKG"; sleep 2
+liga F "${SITIO}?unirse=FISICO-REL051"
+sleep 18; sin_anr; foto F1-frio-union-REL051; quien F1
+conectar; cdp F1-union eval "$UNION"
+cdp F1-limpiar eval "$LIMPIAR"
+sleep 2; foto F2-selector-antes-de-salir
+salir_con_atras F
+recientes_volver F3
+sleep 15; sin_anr; foto F3-desde-recientes; quien F3
+conectar; cdp F3-union eval "$UNION"
+evaluar_sin_union F3 REL051
+
+# ---------------------------------------------------------------- G. Proceso muerto en segundo plano
+paso "G. Liga en frío (AUTOS-REL052), Inicio, Android mata el proceso y se vuelve desde Recientes: NO debe volver a unir"
+adb shell am force-stop "$PKG"; sleep 2
+liga G "${SITIO}?unirse=AUTOS-REL052"
+sleep 18; sin_anr; foto G1-frio-union-REL052; quien G1
+conectar; cdp G1-union eval "$UNION"
+cdp G1-limpiar eval "$LIMPIAR"
+adb shell input keyevent 3; sleep 4
+matar_en_fondo G2
+recientes_volver G2
+sleep 15; sin_anr; foto G2-proceso-muerto-desde-recientes; quien G2
+conectar; cdp G2-union eval "$UNION"
+evaluar_sin_union G2 REL052
+
+paso "G3. Otra vez proceso muerto, ahora se vuelve con el ícono de la app: NO debe volver a unir"
+adb shell input keyevent 3; sleep 4
+matar_en_fondo G3
+abrir
+sleep 15; sin_anr; foto G3-proceso-muerto-desde-icono; quien G3
+conectar; cdp G3-union eval "$UNION"
+evaluar_sin_union G3 REL052
+
+paso "G4. Proceso muerto y llega una liga NUEVA (REFACCIONES-REL053): SÍ debe unir con REL053"
+adb shell input keyevent 3; sleep 4
+matar_en_fondo G4
+liga G4 "${SITIO}?unirse=REFACCIONES-REL053"
+sleep 18; sin_anr; foto G4-proceso-muerto-liga-nueva; quien G4
+conectar; cdp G4-union eval "$UNION"
+if grep -q '"codigoRefacciones": "REL053"' "$OUT/cdp-G4-union.json"; then echo "G4: BIEN, la liga nueva abrió la unión con REL053" | tee "$OUT/G4-veredicto.txt"
+else echo "G4: MAL, la liga nueva no abrió la unión con REL053" | tee "$OUT/G4-veredicto.txt"; fi
+
+adb logcat -d -v time WittLiga:V '*:S' > "$OUT/logcat-wittliga.txt" || true
+echo "--- logcat WittLiga"; cat "$OUT/logcat-wittliga.txt"
+cat "$OUT"/*-veredicto.txt > "$OUT/veredictos.txt" 2>/dev/null || true
+echo "--- veredictos"; cat "$OUT/veredictos.txt"
 
 adb logcat -d -v time Capacitor:V Capacitor/Console:V Capacitor/Plugin:V chromium:I AndroidRuntime:E '*:S' > "$OUT/logcat-app.txt" || true
 adb logcat -d -v time | grep -iE "IntentFilter|DomainVerif|AppLink|statement|assetlinks" | tail -200 > "$OUT/logcat-verificacion.txt" || true
