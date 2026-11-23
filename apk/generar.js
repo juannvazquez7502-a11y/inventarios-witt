@@ -30,7 +30,8 @@ const BASE = `https://${HOST}/inventarios-witt/`;
   twa.fallbackType = 'customtabs';
   twa.appVersionName = process.env.APP_VERSION_NAME || '1.0.0';
   twa.appVersionCode = parseInt(process.env.APP_VERSION_CODE || '1', 10);
-  twa.signingKey = { path: path.resolve('android.keystore'), alias: 'android' };
+  twa.minSdkVersion = 24; // androidbrowserhelper 2.7 pide Android 7 o más
+  twa.signingKey ={ path: path.resolve('android.keystore'), alias: 'android' };
   twa.webManifestUrl = new URL(BASE + 'manifest.json');
   const dir = path.resolve('twa');
   await new TwaGenerator().createTwaProject(dir, twa, log);
