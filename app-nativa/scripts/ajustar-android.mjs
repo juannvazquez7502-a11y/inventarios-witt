@@ -52,6 +52,18 @@ st = st.replace(/(<style\s+name="AppTheme\.NoActionBar(?:Launch)?"[^>]*>)([\s\S]
   return b.includes("windowOptOutEdgeToEdgeEnforcement") ? m : a + b + "\n" + BARRAS + c;
 });
 must(estilos === 2, "los estilos AppTheme.NoActionBar y AppTheme.NoActionBarLaunch en styles.xml");
+// Fondo de la ventana de la app (no el de la pantalla de arranque, que es el splash verde): oscuro, igual que el del
+// WebView (backgroundColor en capacitor.config.json). Al volver del escáner de Google, mientras el WebView repinta, se ve
+// este fondo en lugar del blanco #fafafa que deslumbraba.
+writeFileSync("android/app/src/main/res/values/witt_fondo.xml",
+  '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="witt_fondo">#0f1111</color>\n</resources>\n', "utf8");
+let fondo = 0;
+st = st.replace(/(<style\s+name="AppTheme\.NoActionBar"[^>]*>)([\s\S]*?)(\s*<\/style>)/, (m, a, b, c) => {
+  fondo++;
+  return /android:windowBackground/.test(b) ? a + b.replace(/(<item name="android:windowBackground">)[^<]*(<\/item>)/, "$1@color/witt_fondo$2") + c
+    : a + b + '\n        <item name="android:windowBackground">@color/witt_fondo</item>' + c;
+});
+must(fondo === 1, "el estilo AppTheme.NoActionBar para el fondo de la ventana");
 writeFileSync(ST, st, "utf8");
 
 const GR = "android/app/build.gradle";
@@ -65,6 +77,6 @@ const VAR = "android/variables.gradle";
 const vars = readFileSync(VAR, "utf8");
 const sdk = k => (vars.match(new RegExp(k + "\\s*=\\s*(\\d+)")) || [])[1];
 console.log(JSON.stringify({
-  versionCode: VC, versionName: VN, permisosAgregados: permisos.length, estilosBarras: estilos,
+  versionCode: VC, versionName: VN, permisosAgregados: permisos.length, estilosBarras: estilos, fondoVentana: fondo,
   minSdk: sdk("minSdkVersion"), compileSdk: sdk("compileSdkVersion"), targetSdk: sdk("targetSdkVersion")
 }));
