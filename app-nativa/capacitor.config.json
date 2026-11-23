@@ -2,6 +2,7 @@
   "appId": "mx.grupowitt.inventarios",
   "appName": "Inventarios",
   "webDir": "www",
+  "backgroundColor": "#0f1111",
   "server": {
     "url": "https://juannvazquez7502-a11y.github.io/inventarios-witt/",
     "hostname": "juannvazquez7502-a11y.github.io",
