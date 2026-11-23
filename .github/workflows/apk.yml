@@ -33,8 +33,10 @@ jobs:
         run: |
           cd apk
           if [ -n "$KS_B64" ] && [ -n "$KS_PASS" ]; then
-            echo "$KS_B64" | base64 -d > android.keystore
-            echo "KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+            printf '%s' "$KS_B64" | tr -d '\r\n ' | base64 -d > android.keystore
+            P=$(printf '%s' "$KS_PASS" | tr -d '\r\n')
+            echo "::add-mask::$P"
+            echo "KS_PASS=$P" >> "$GITHUB_ENV"
             echo "KS_TYPE=PKCS12" >> "$GITHUB_ENV"
             echo "Se usa la llave guardada en los secretos del repositorio."
           else
