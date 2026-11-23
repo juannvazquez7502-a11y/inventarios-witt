@@ -45,7 +45,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      # El Android SDK ya viene en ubuntu-latest (ANDROID_HOME); Gradle baja lo que falte (API 35).
 
       - name: Versión
         id: nombre
