@@ -5437,13 +5437,12 @@ html[data-theme="light"] :is(.wt-sw-rayos,.wt-sw-sol){transition-delay:90ms;}
 }
 
 /* ################################################################
-   6. Intro de cada sub app (película)  (de anim\v2\intro\intro.css)
+   6. Intro de cada sub app (video MP4)  (antes anim\v2\intro\intro.css, con iframe)
    ################################################################ */
-/* ===== 6 · Intro de cada sub app (película) · 22-nov-2026 =====
-   Tomado de la copia de rediseño (19-nov-2026). Solo agrega UI aparte: el botón "Ver intro" (estilo G: cápsula de la banda verde,
-   ya definido en la capa G como .intro-btn) y la capa de pantalla completa con la película en un iframe.
-   Vehículos: pelicula-vehiculos.html · Refacciones: pelicula-refacciones.html · Inventario físico: pelicula-inventario-fisico.html.
-   Si el archivo de la película no está junto a la app, el botón no aparece. */
+/* ===== 6 · Intro de cada sub app (video MP4) · 23-nov-2026 =====
+   Solo agrega UI aparte: el botón "Ver intro" (estilo G: cápsula de la banda verde, ya definido en la capa G como .intro-btn)
+   y la capa de pantalla completa con el video. Archivos junto a la app: vehiculos-, refacciones- y fisico- +
+   vertical.mp4 / horizontal.mp4. Si el video no está junto a la app, el botón no aparece. */
 
 /* Botón "Ver intro" (el estilo G de .intro-btn ya viene en la capa; aquí solo lo que falta) */
 .intro-btn{white-space:nowrap;-webkit-tap-highlight-color:transparent;cursor:pointer;}
@@ -5457,42 +5456,77 @@ html[data-theme="light"] :is(.wt-sw-rayos,.wt-sw-sol){transition-delay:90ms;}
 /* En el físico solo se ofrece en su primera pantalla (como en Vehículos y Refacciones, que solo lo muestran en Inicio) */
 body:has(#fz-nav:not([hidden]) > button.active:not(:first-child)) #witt-intro-btn-fz{display:none !important;}
 
-/* Capa de la película */
-/* v2a: el fondo es el verde noche de las películas (#00201a), no negro: así la entrada y la carga no se ven como un hueco
-   negro sobre la app. Mientras carga, abajo del iframe (transparente hasta que la película pinta) va un cuadro fijo con el
-   título de la película; se desvanece en cuanto la película avisa que está lista. */
+/* Capa del video. Fondo verde noche de las películas (#00201a): es el marco cuando la pantalla no tiene la misma
+   proporción que el video (se ve completo, sin recortes). Mientras carga, abajo del video (transparente hasta su
+   primer cuadro) va un cuadro fijo con el título de la película, que hace de póster. */
 #intro-film{position:fixed;inset:0;z-index:2147483000;background:#00201a;display:flex;align-items:center;justify-content:center;
-  overscroll-behavior:contain;touch-action:none;opacity:1;}
-#intro-film iframe{position:relative;z-index:1;display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:normal;}
+  overscroll-behavior:contain;touch-action:none;opacity:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+#intro-film .intro-video{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;background:transparent;
+  border:0;outline:none;pointer-events:none;-webkit-touch-callout:none;}
 #intro-film .intro-espera{position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
   padding:24px;text-align:center;color:#fff;pointer-events:none;
   background:radial-gradient(120% 80% at 50% 38%,#0b4a3d 0%,#00332a 46%,#00201a 100%);}
 #intro-film .intro-espera-k{font:700 12px/1.2 var(--font,system-ui);letter-spacing:.14em;text-transform:uppercase;color:#7fe3c8;}
 #intro-film .intro-espera b{max-width:15ch;font:800 clamp(28px,7.4vw,56px)/1.05 var(--font,system-ui);letter-spacing:-.02em;text-wrap:balance;}
-#intro-film .intro-espera i{position:relative;display:block;width:120px;height:3px;border-radius:3px;margin-top:8px;overflow:hidden;background:rgba(255,255,255,.16);}
-#intro-film .intro-espera i::after{content:"";position:absolute;left:0;top:0;width:60px;height:100%;
+#intro-film .intro-espera i,#intro-film .intro-carga i{position:relative;display:block;width:120px;height:3px;border-radius:3px;margin-top:8px;overflow:hidden;background:rgba(255,255,255,.16);}
+#intro-film .intro-espera i::after,#intro-film .intro-carga i::after{content:"";position:absolute;left:0;top:0;width:60px;height:100%;
   background:linear-gradient(90deg,transparent,#3fd8b2,transparent);transform:translateX(-60px);
   animation:intro-espera-barra 1.1s cubic-bezier(.45,0,.55,1) infinite;}
 @keyframes intro-espera-barra{to{transform:translateX(120px);}}
-@media (prefers-reduced-motion: reduce){ #intro-film .intro-espera i::after{animation:none;transform:translateX(30px);} }
-#intro-film .intro-skip{position:absolute;z-index:2;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 12px);
+@media (prefers-reduced-motion: reduce){ #intro-film .intro-espera i::after,#intro-film .intro-carga i::after{animation:none;transform:translateX(30px);} }
+/* Se quedó sin datos a media película: barrita al centro hasta que vuelve a correr */
+#intro-film .intro-carga{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 16px;border-radius:999px;
+  background:rgba(0,0,0,.45);pointer-events:none;}
+#intro-film .intro-carga i{margin:0;}
+#intro-film .intro-carga[hidden]{display:none;}
+/* Botones sobre el video: Saltar (arriba a la derecha), Activar sonido (arriba a la izquierda) */
+#intro-film .intro-skip,#intro-film .intro-sonido{position:absolute;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);
   display:inline-flex;align-items:center;gap:6px;min-height:48px;padding:0 18px 0 20px;border-radius:999px;
   font:700 16px/1 var(--font,system-ui);letter-spacing:.01em;color:#fff;background:rgba(0,0,0,.58);
   border:1px solid rgba(255,255,255,.34);box-shadow:0 8px 24px -10px rgba(0,0,0,.9);cursor:pointer;-webkit-tap-highlight-color:transparent;
   backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);
-  transition:transform 160ms cubic-bezier(.2,.85,.25,1);}
+  transition:transform 160ms cubic-bezier(.2,.85,.25,1);touch-action:manipulation;}
+#intro-film .intro-skip{right:calc(env(safe-area-inset-right,0px) + 12px);}
+#intro-film .intro-sonido{left:calc(env(safe-area-inset-left,0px) + 12px);padding:0 18px 0 14px;gap:8px;color:#00201a;background:#3fd8b2;border-color:#3fd8b2;}
 #intro-film .intro-skip svg{width:18px;height:18px;flex:none;}
-#intro-film .intro-skip:active{transform:scale(.95);}
-#intro-film .intro-skip:focus-visible{outline:3px solid var(--g-menta,#3fd8b2);outline-offset:3px;}
-@media (hover:hover){ #intro-film .intro-skip:hover{background:rgba(0,0,0,.78);border-color:rgba(255,255,255,.6);} }
+#intro-film .intro-sonido svg{width:22px;height:22px;flex:none;}
+/* Botón grande "Ver intro": solo si el navegador no dejó arrancar el video ni sin sonido */
+#intro-film .intro-ver{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:inline-flex;align-items:center;gap:12px;min-height:64px;padding:0 30px 0 24px;border-radius:999px;border:0;
+  font:800 20px/1 var(--font,system-ui);letter-spacing:-.005em;color:#00201a;background:#3fd8b2;
+  box-shadow:0 0 0 8px rgba(63,216,178,.18),0 18px 40px -14px rgba(0,0,0,.85);cursor:pointer;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;transition:transform 160ms cubic-bezier(.2,.85,.25,1);}
+#intro-film .intro-ver svg{width:26px;height:26px;flex:none;}
+/* Con el botón grande, el título del cuadro de espera sube para no quedar debajo, y la barrita de carga se va */
+#intro-film.pide-toque .intro-espera{justify-content:flex-start;padding-top:max(18vh,96px);}
+#intro-film.pide-toque .intro-espera i{display:none;}
+/* Sin señal: el cuadro de espera avisa por qué se cierra (1.6 s) */
+#intro-film.sin-senal .intro-espera i{display:none;}
+#intro-film .intro-espera-p{font:500 16px/1.35 var(--font,system-ui);color:rgba(255,255,255,.82);max-width:28ch;}
+/* 23-nov (2): se cortó la señal con el video ya corriendo: el aviso va encima del último cuadro */
+#intro-film .intro-espera.intro-aviso{z-index:2;animation:intro-aviso-entra 220ms cubic-bezier(.2,.85,.25,1) both;}
+@keyframes intro-aviso-entra{from{opacity:0;}to{opacity:1;}}
+#intro-film.sin-senal .intro-carga{display:none;}
+/* Precarga: el video ya arrancó pero se pausa hasta tener unos segundos descargados; mientras, se ve el póster con su barrita */
+#intro-film.precarga .intro-video{opacity:0;}
+#intro-film .intro-skip[hidden],#intro-film .intro-sonido[hidden],#intro-film .intro-ver[hidden]{display:none;}
+#intro-film .intro-skip:active,#intro-film .intro-sonido:active{transform:scale(.95);}
+#intro-film .intro-ver:active{transform:translate(-50%,-50%) scale(.96);}
+#intro-film .intro-skip:focus-visible,#intro-film .intro-sonido:focus-visible{outline:3px solid var(--g-menta,#3fd8b2);outline-offset:3px;}
+#intro-film .intro-ver:focus-visible{outline:3px solid #fff;outline-offset:4px;}
+@media (hover:hover){
+  #intro-film .intro-skip:hover{background:rgba(0,0,0,.78);border-color:rgba(255,255,255,.6);}
+  #intro-film .intro-sonido:hover,#intro-film .intro-ver:hover{background:#6ae6c6;}
+}
 /* Topes invisibles para que Tab no saque el foco de la intro */
 #intro-film .intro-sent{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;}
 html[data-witt-intro] body{overflow:hidden;}
 @media (prefers-reduced-motion: reduce){
-  #intro-film .intro-skip{transition:none;}
-  #intro-film .intro-skip:active{transform:none;}
+  #intro-film .intro-skip,#intro-film .intro-sonido,#intro-film .intro-ver{transition:none;}
+  #intro-film .intro-skip:active,#intro-film .intro-sonido:active{transform:none;}
+  #intro-film .intro-ver:active{transform:translate(-50%,-50%);}
 }
-@media (forced-colors:active){ #intro-film .intro-skip,.intro-btn{border:1px solid ButtonText;} }
+@media (forced-colors:active){ #intro-film .intro-skip,#intro-film .intro-sonido,#intro-film .intro-ver,.intro-btn{border:1px solid ButtonText;} }
 /* ===== fin 6 · Intro ===== */
 
 /* ################################################################
@@ -24144,14 +24178,24 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   } catch (e) {}
 })();
 
-/* ===== 6 · Intro de cada sub app (película) · 22-nov-2026 =====
-   Tomado de la copia de rediseño (19-nov-2026), pero aparte: no cambia el JS de la app ni sus datos.
-   - La 1a vez que se abre una sub app en este dispositivo sale sola su película; después, con el botón "Ver intro".
-   - Siempre se puede saltar: botón "Saltar" o tecla Esc. Cierra sola al terminar.
+/* ===== 6 · Intro de cada sub app (video MP4) · 23-nov-2026 =====
+   Antes (22-nov) era una película HTML dentro de un iframe; ahora es un video MP4 (H.264 + AAC), en dos versiones por sub app,
+   junto a la app (MISMA carpeta): vehiculos-, refacciones- y fisico- + vertical.mp4 (1080×1920) / horizontal.mp4 (1920×1080).
+   - La 1a vez que se abre una sub app en este dispositivo sale sola; después, con el botón "Ver intro".
+   - La versión se elige por la orientación de la pantalla; si se gira el teléfono, cambia de versión en el mismo segundo.
+   - Arranca con sonido (sale justo después del toque). Si el navegador no lo deja, sigue sin sonido y aparece "Activar sonido";
+     si tampoco lo deja sin sonido, aparece un botón grande "Ver intro".
+   - Siempre se puede saltar: botón "Saltar" o Esc. Al terminar se cierra sola y queda como vista.
+   - Sin señal: si el video no carga en 6 s, se cierra SIN marcarla como vista (vuelve a salir la próxima vez).
+   - 23-nov (2): si se corta la red a media intro (el video no avanza 8 s, o 2 s si el teléfono dice que no hay red, o se va la
+     red y no queda video descargado), avisa «Se cortó la señal» / «Sin señal» y se cierra sin marcarla como vista, salvo que ya
+     hubiera pasado del 90 %. Saltar con el video trabado (barrita más de 1.5 s) tampoco la marca.
+   - Con ahorro de datos o red lenta (navigator.connection: saveData, slow-2g, 2g o 3g) no sale sola; queda el botón "Ver intro".
+   - No arranca hasta tener unos 5 s descargados (o canplaythrough): mientras, se ve el póster con su barrita (máx. 10 s).
    - Detecta la apertura sin tocar la app: clic en .app-card[data-launch] o #btn-open-fisico y el cambio de clase de <body>
      (sale "launcher-open" / entra "fisico-open").
-   - Recuerda lo visto en sus propias claves: witt-intro-visto-<modo> y witt-intro-existe-<modo>.
-   - Si la película no está junto a la app (p. ej. pelicula-refacciones.html todavía no existe), el botón no aparece. */
+   - Claves de siempre: witt-intro-visto-<modo> y witt-intro-existe-<modo>.
+   - sw.js no guarda los .mp4 (no son navegación ni librerías): van directo al servidor, con sus peticiones Range. */
 (function(){
   "use strict";
   var W = window, D = document;
@@ -24159,56 +24203,68 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(W.__wittIntro) return;
     W.__wittIntro = true;
 
-    var PELIS = { autos:"pelicula-vehiculos.html", refacciones:"pelicula-refacciones.html", fisico:"pelicula-inventario-fisico.html" };
+    var VIDEOS = { autos:"vehiculos", refacciones:"refacciones", fisico:"fisico" };
     var TITULOS = { autos:"Vehículos", refacciones:"Refacciones", fisico:"Inventario físico" };
-    // Si no se puede comprobar (archivo abierto como file://), se supone esto. Si el archivo falta, alCargar cierra sin
-    // marcarla como vista, así que suponer que existe no tiene riesgo (v2a: Refacciones ya tiene película).
+    // Si no se puede comprobar (archivo abierto como file://), se supone esto. Si el video falta, se cierra sin marcarla como vista.
     var SUPUESTO = { autos:true, refacciones:true, fisico:true };
     var TITULO_PELI = { autos:"Todo el inventario de autos en tu mano", refacciones:"Cada pieza cuenta", fisico:"Jubilamos las hojas" };
-    // v2a: por http la película se descarga con fetch() y se abre desde un blob: el iframe ya no es una navegación a
-    // pelicula-*.html, así que sw.js no la guarda como "__app__" (antes la película reemplazaba la copia de la app sin
-    // señal) ni guarda una copia de 4-7 MB por cada ?formato=…&t=…. Para verla sin señal se guarda UNA copia por película
-    // en una caché propia (witt-intro-v1), con la ruta fija del archivo.
-    var CACHE_PELI = "witt-intro-v1";
     var K = "witt-intro-";
     var EASE = "cubic-bezier(.2,.85,.25,1)";
+    var ESPERA_MAX = 6000;   // sin señal: tiempo máximo para que el video empiece a cargar
+    var TRABADO_MAX = 8000;  // con red: si el video no avanza en este tiempo, se cerró la conexión (wifi sin salida, señal que se va)
+    var TRABADO_SIN_RED = 2000;   // el teléfono ya dijo que no hay red
+    var PRECARGA = 5;        // segundos de video descargados antes de arrancar
+    var PRECARGA_MAX = 10000;     // si en este tiempo no junta esos segundos, arranca de todos modos
     var mem = {}, existe = {};
+    var has = function(o, k){ return Object.prototype.hasOwnProperty.call(o, k); };
 
     function lsGet(k){ try{ return W.localStorage.getItem(k); }catch(e){ return null; } }
     function lsSet(k, v){ try{ W.localStorage.setItem(k, v); }catch(e){} }
     function visto(m){ return !!mem[m] || lsGet(K + "visto-" + m) === "1"; }
     function marcarVisto(m){ mem[m] = true; lsSet(K + "visto-" + m, "1"); }
     function reducido(){ try{ return W.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } }
+    function sinSenal(){ try{ return W.navigator.onLine === false; }catch(e){ return false; } }
+    // Ahorro de datos o red lenta: la intro (1.2 a 1.5 Mbps) se vería a tirones, así que no sale sola.
+    function redLenta(){
+      try{
+        var c = W.navigator.connection || W.navigator.mozConnection || W.navigator.webkitConnection;
+        if(!c) return false;
+        if(c.saveData) return true;
+        return /^(slow-2g|2g|3g)$/.test(String(c.effectiveType || ""));
+      }catch(e){ return false; }
+    }
+    // Segundos ya descargados desde la posición actual
+    function adelante(v){
+      try{ var b = v.buffered, t = v.currentTime; for(var i = 0; i < b.length; i++){ if(b.start(i) <= t + 0.2 && b.end(i) >= t) return b.end(i) - t; } }catch(e){}
+      return 0;
+    }
+    function hastaElFin(v){ try{ var d = v.duration; return isFinite(d) && d > 0 && adelante(v) >= d - v.currentTime - 0.3; }catch(e){ return false; } }
+    function esVertical(){ return W.innerHeight > W.innerWidth; }
+    function archivo(m, vertical){ var b = VIDEOS[m]; return b ? b + "-" + (vertical ? "vertical" : "horizontal") + ".mp4" : null; }
     function disponible(m){
-      if(!PELIS[m]) return false;
-      if(Object.prototype.hasOwnProperty.call(existe, m)) return existe[m];
+      if(!VIDEOS[m]) return false;
+      if(has(existe, m)) return existe[m];
       var g = lsGet(K + "existe-" + m);
       if(g === "1") return true;
       if(g === "0") return false;
       return !!SUPUESTO[m];
     }
     var esHttp = /^https?:$/.test(location.protocol);
-    // ¿Está la película junto a la app? En línea: HEAD al archivo. Sin señal: solo si ya está en la caché del navegador.
-    function enCache(m){
-      try{
-        if(!W.caches || !W.caches.match) return Promise.resolve(false);
-        return W.caches.match(PELIS[m], { ignoreSearch:true }).then(function(r){ return !!r; }).catch(function(){ return false; });
-      }catch(e){ return Promise.resolve(false); }
-    }
+    // ¿Está el video junto a la app? En línea: HEAD al archivo vertical (sw.js deja pasar todo lo que no es GET).
     function comprobar(m){
       try{
-        if(!PELIS[m] || !esHttp || !W.fetch) return Promise.resolve(disponible(m));
-        if(Object.prototype.hasOwnProperty.call(existe, m)) return Promise.resolve(existe[m]);   // una sola consulta por visita
-        if(navigator.onLine === false) return enCache(m).then(function(ok){ return ok && disponible(m); });
-        return W.fetch(PELIS[m], { method:"HEAD", cache:"no-store" }).then(function(r){
+        if(!VIDEOS[m] || !esHttp || !W.fetch) return Promise.resolve(disponible(m));
+        if(has(existe, m)) return Promise.resolve(existe[m]);   // una sola consulta por visita
+        if(sinSenal()) return Promise.resolve(disponible(m));
+        return W.fetch(archivo(m, true), { method:"HEAD", cache:"no-store" }).then(function(r){
           if(r && r.ok){ existe[m] = true; lsSet(K + "existe-" + m, "1"); return true; }
           if(r && (r.status === 404 || r.status === 410)){ existe[m] = false; lsSet(K + "existe-" + m, "0"); return false; }
           return disponible(m);
-        }).catch(function(){
-          return enCache(m).then(function(ok){ return ok && disponible(m); });
-        });
+        }).catch(function(){ return disponible(m); });
       }catch(e){ return Promise.resolve(false); }
     }
+    // Limpieza: la caché propia de las películas HTML (witt-intro-v1, 4-7 MB por película) ya no se usa.
+    try{ if(W.caches && W.caches.delete) W.caches.delete("witt-intro-v1").catch(function(){}); }catch(e){}
 
     // Modo de la app principal leído de la pantalla (no de State): el título del módulo dice "Vehículos" o "Refacciones".
     function modoApp(){
@@ -24218,6 +24274,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
     /* ---------- Botones "Ver intro" (estilo G: cápsula en la banda verde) ---------- */
     var ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5Z" fill="currentColor"/></svg>';
+    var ICO_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z" fill="currentColor"/></svg>';
+    var ICO_SONIDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" fill="currentColor"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.2 6.5a8 8 0 0 1 0 11"/></svg>';
     var btnApp = null, btnFz = null;
     function hacerBoton(id){
       var b = D.createElement("button");
@@ -24252,26 +24310,15 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         if(btnFz){ btnFz.hidden = !disponible("fisico"); btnFz.setAttribute("aria-label", "Ver la introducción de " + TITULOS.fisico); }
       }catch(e){}
     }
+    // Dentro del clic: el video se crea y se le da play() en el mismo toque, así puede sonar.
     function desdeBoton(m, btn){
-      prepararAudio();   // dentro del clic, para que la película pueda sonar
       var r = null;
       try{ var b = btn.getBoundingClientRect(); r = [b.left + b.width / 2, b.top + b.height / 2]; }catch(e){}
       abrir(m, r);
     }
 
-    // La película usa el AudioContext del padre (window.__peliAC) si existe; crearlo dentro del clic la deja sonar sola.
-    function prepararAudio(){
-      try{
-        var AC = W.AudioContext || W.webkitAudioContext;
-        if(!AC) return;
-        if(!W.__peliAC || W.__peliAC.state === "closed") W.__peliAC = new AC({ latencyHint:"playback" });
-        if(W.__peliAC.state === "suspended") W.__peliAC.resume().catch(function(){});
-      }catch(e){}
-    }
-
     /* ---------- Apertura de cada sub app (sin tocar la app) ---------- */
     var pend = null;   // { modo, t }: clic reciente en una tarjeta del selector
-    function debeSalirSola(m){ return !!PELIS[m] && disponible(m) && !visto(m) && !reducido(); }
     D.addEventListener("click", function(e){
       try{
         var t = e.target;
@@ -24279,9 +24326,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         var c = t.closest(".app-card[data-launch]"), m = null;
         if(c) m = c.getAttribute("data-launch");
         else if(t.closest("#btn-open-fisico")) m = "fisico";
-        if(!m || !PELIS[m]) return;
+        if(!m || !VIDEOS[m]) return;
         pend = { modo:m, t:Date.now() };
-        if(debeSalirSola(m)) prepararAudio();
       }catch(err){}
     }, { capture:true, passive:true });
 
@@ -24290,7 +24336,9 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         refrescarBotones();
         comprobar(m).then(function(ok){
           refrescarBotones();
-          if(ok && !visto(m) && !reducido()) abrir(m, null);
+          // Sin señal no sale sola (el video no está guardado en el teléfono); el botón sí la intenta.
+          // Con ahorro de datos o red lenta tampoco: se vería a tirones. Queda el botón "Ver intro".
+          if(ok && !visto(m) && !reducido() && !sinSenal() && !redLenta()) abrir(m, null);
         }).catch(function(){});
       }catch(e){}
     }
@@ -24311,64 +24359,165 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         .observe(mt, { childList:true, characterData:true, subtree:true });
     }catch(e){}
 
-    /* ---------- Capa de la película ---------- */
-    var I = { el:null, fr:null, skip:null, modo:null, prevFocus:null, poll:0, vioPlay:false, cerrando:false, listo:false,
-      reabrir:null, vertical:null, orient:null, resume:true, onResize:null, rzT:0, inertAntes:false, sale:null,
-      blob:null, espera:null, sondeo:0, carga:0 };
-    function paramsDe(vertical, t){
-      var q = [];
-      if(vertical) q.push("formato=vertical");
-      if(t != null && isFinite(t)) q.push("t=" + t);
-      return q.join("&");
-    }
-    function urlDe(m, vertical, t){
-      var f = PELIS[m]; if(!f) return null;
-      var q = paramsDe(vertical, t);
-      return q ? f + "?" + q : f;
-    }
-    // Texto de la película: de internet (sin pasar por sw.js: no es navegación) y, sin señal, de la copia propia.
-    function textoPeli(m){
-      var f = PELIS[m];
-      var deCache = function(){
-        try{
-          if(!W.caches) return Promise.reject(new Error("sin caché"));
-          return W.caches.open(CACHE_PELI).then(function(c){ return c.match(f); }).then(function(r){ if(!r) throw new Error("sin copia"); return r.text(); });
-        }catch(e){ return Promise.reject(e); }
-      };
-      try{
-        return W.fetch(f, { cache:"no-cache", credentials:"same-origin" }).then(function(r){
-          if(!r || !r.ok) throw new Error("HTTP " + (r && r.status));
-          try{ if(W.caches) { var cp = r.clone(); W.caches.open(CACHE_PELI).then(function(c){ return c.put(f, cp); }).catch(function(){}); } }catch(e){}
-          return r.text();
-        }).catch(deCache);
-      }catch(e){ return deCache(); }
-    }
-    var usarBlob = esHttp && !!(W.fetch && W.Blob && W.URL && URL.createObjectURL);
-    // Pone la película en el iframe. Por http: blob con los parámetros en el hash (#formato=vertical&t=…), que las
-    // películas leen igual que ?formato=…&t=…; en file:// (sin service worker) la ruta de siempre.
-    function cargarPeli(m, vertical, t){
-      var fr = I.fr; if(!fr) return;
-      var h = paramsDe(vertical, t);
-      if(I.blob){
-        try{ var cw = fr.contentWindow; cw.location.hash = h; cw.location.reload(); return; }
-        catch(e){ fr.src = I.blob + (h ? "#" + h : ""); return; }
+    /* ---------- Capa del video ---------- */
+    var I = { el:null, v:null, skip:null, sonido:null, ver:null, carga:null, espera:null, modo:null, prevFocus:null,
+      cerrando:false, listo:false, reabrir:null, vertical:null, onResize:null, rzT:0, inertAntes:false,
+      tEspera:0, n:0, silencio:false, pausaOculta:false, onVis:null,
+      vig:0, ultT:-1, ultMov:0, sinRed:false, onRed:null, precarga:false, precargaHecha:false, cargaDesde:0 };
+
+    function mostrar(b){ try{ if(b) b.hidden = false; }catch(e){} }
+    function ocultar(b){ try{ if(b) b.hidden = true; }catch(e){} }
+    function enfocar(b){ try{ if(b && !b.hidden) b.focus({ preventScroll:true }); }catch(e){} }
+
+    // Pone el archivo de la orientación dada; si t > 0, salta a ese segundo en cuanto conoce la duración.
+    function cargar(vertical, t, seguir){
+      var v = I.v; if(!v) return;
+      var n = ++I.n;
+      I.vertical = vertical;
+      I.precarga = false;
+      clearTimeout(I.tEspera);
+      I.tEspera = setTimeout(function(){ if(n === I.n) noCargo(); }, ESPERA_MAX);
+      if(t > 0){
+        var alMeta = function(){
+          v.removeEventListener("loadedmetadata", alMeta);
+          if(n !== I.n || I.cerrando) return;
+          try{ var d = v.duration; v.currentTime = isFinite(d) && d > 0 ? Math.min(t, d - 0.1) : t; }catch(e){}
+          if(seguir) reproducir();
+        };
+        v.addEventListener("loadedmetadata", alMeta);
+        v.src = archivo(I.modo, vertical);
+        try{ v.load(); }catch(e){}
+      }else{
+        v.src = archivo(I.modo, vertical);
+        if(seguir) reproducir();
+        else{ try{ v.load(); }catch(e){} }
       }
-      if(!usarBlob){ fr.src = urlDe(m, vertical, t); return; }
-      var n = ++I.carga;
-      textoPeli(m).then(function(txt){
-        if(n !== I.carga || I.fr !== fr || I.cerrando) return;
-        I.blob = URL.createObjectURL(new Blob([txt], { type:"text/html;charset=utf-8" }));
-        fr.src = I.blob + (h ? "#" + h : "");
-      }).catch(function(){
-        if(n !== I.carga || I.fr !== fr || I.cerrando) return;
-        // Sin señal y sin copia propia: con service worker no se navega a la película (sw.js daría la app); se cierra
-        // sin marcarla como vista. Sin service worker, la ruta de siempre.
-        if(W.navigator && navigator.serviceWorker){ existe[m] = false; refrescarBotones(); cerrar("sin-pelicula"); }
-        else fr.src = urlDe(m, vertical, t);
+    }
+    // Primero con sonido; si el navegador no deja, sin sonido + "Activar sonido"; si tampoco, el botón grande "Ver intro".
+    function reproducir(){
+      var v = I.v; if(!v || I.cerrando) return;
+      var n = I.n;
+      v.muted = !!I.silencio;
+      var p; try{ p = v.play(); }catch(e){ p = null; }
+      if(!p || !p.then) return;
+      p.then(function(){
+        if(n !== I.n || !I.el) return;
+        ocultar(I.ver); I.el.classList.remove("pide-toque");
+        if(!v.muted) ocultar(I.sonido);
+      }).catch(function(err){
+        if(n !== I.n || I.cerrando || !I.v) return;
+        var nombre = err && err.name;
+        if(nombre !== "NotAllowedError") return;   // AbortError: se cambió el archivo o se cerró; los demás los atiende "error"
+        if(!v.muted){
+          v.muted = true; I.silencio = true;
+          v.play().then(function(){ if(n === I.n && I.el) mostrar(I.sonido); }).catch(function(e2){
+            if(n !== I.n || I.cerrando || (e2 && e2.name !== "NotAllowedError")) return;
+            pedirToque();
+          });
+        }else pedirToque();
       });
     }
-    function post(msg){ try{ I.fr && I.fr.contentWindow && I.fr.contentWindow.postMessage(msg, "*"); }catch(e){} }
-    function film(){ try{ return (I.fr && I.fr.contentWindow && I.fr.contentWindow.FILM) || null; }catch(e){ return null; } }
+    function pedirToque(){
+      if(!I.el) return;
+      ocultar(I.sonido);
+      I.el.classList.add("pide-toque");
+      mostrar(I.ver); enfocar(I.ver);
+    }
+    // Sin señal (o el archivo no responde): si en 6 s no llegó ni la duración, se cierra sin marcarla como vista.
+    function noCargo(){
+      if(!I.el || I.cerrando || !I.v) return;
+      if(I.v.readyState >= 1) return;
+      avisarYCerrar(sinSenal() ? "Sin señal" : "No se pudo cargar");
+    }
+    function alError(){
+      if(!I.el || I.cerrando || !I.v) return;
+      var e = I.v.error;
+      if(sinSenal() || (e && e.code === 2)){ avisarYCerrar("Sin señal"); return; }
+      // Con señal y el archivo no sirve (no existe o este teléfono no lo reproduce): el botón se esconde en esta visita.
+      if(e && e.code === 4){ existe[I.modo] = false; refrescarBotones(); }
+      cerrar("sin-video");
+    }
+    // Antes de cerrar sin video, un cuadro dice por qué (1.6 s; 2.2 s si el video ya corría). Si el video ya se veía,
+    // el cuadro de espera ya no está: se pone uno nuevo encima del último cuadro.
+    function avisarYCerrar(titulo){
+      var el = I.el;
+      if(!el || I.cerrando || el.classList.contains("sin-senal")) return;
+      var e = I.espera, aMedias = !e;
+      clearTimeout(I.tEspera); I.n++;
+      try{ I.v.pause(); }catch(x){}
+      ocultar(I.sonido); ocultar(I.ver); el.classList.remove("pide-toque"); el.classList.remove("precarga");
+      try{ I.carga.hidden = true; }catch(x){}
+      if(aMedias){
+        e = D.createElement("div");
+        e.className = "intro-espera intro-aviso";
+        e.innerHTML = '<span class="intro-espera-k"></span><b></b>';
+        el.appendChild(e); I.espera = e;
+      }
+      el.classList.add("sin-senal");
+      try{
+        e.querySelector(".intro-espera-k").textContent = "Intro de " + (TITULOS[I.modo] || "la app");
+        e.querySelector("b").textContent = titulo;
+        var p = D.createElement("span"); p.className = "intro-espera-p";
+        p.textContent = "La verás cuando haya internet.";
+        e.appendChild(p);
+        e.setAttribute("aria-hidden", "false"); e.setAttribute("role", "status");
+      }catch(x){}
+      I.tEspera = setTimeout(function(){ if(I.el === el) cerrar("sin-video"); }, aMedias ? 2200 : 1600);
+    }
+
+    // Vigía: si el video debería avanzar y no avanza, la conexión se cayó (aunque navigator.onLine siga en true y no haya "error").
+    function vigilar(){
+      clearInterval(I.vig);
+      I.ultT = -1; I.ultMov = Date.now();
+      I.vig = setInterval(function(){
+        try{
+          var v = I.v, el = I.el;
+          if(!el || I.cerrando || !v) return;
+          var ahora = Date.now(), t = +v.currentTime || 0;
+          var debeAvanzar = !v.paused && !v.ended && !D.hidden && !I.precarga && !el.classList.contains("sin-senal");
+          if(!debeAvanzar || Math.abs(t - I.ultT) > 0.04){ I.ultT = t; I.ultMov = ahora; return; }
+          var sinRed = I.sinRed || sinSenal();
+          if(ahora - I.ultMov >= (sinRed ? TRABADO_SIN_RED : TRABADO_MAX))
+            avisarYCerrar(sinRed ? "Sin señal" : (I.listo ? "Se cortó la señal" : "No se pudo cargar"));
+        }catch(e){}
+      }, 500);
+    }
+    // Se fue la red con la intro abierta: si no queda video descargado, avisa y cierra; si queda, sigue y se cierra al trabarse.
+    function alCambiarRed(e){
+      try{
+        if(e && e.type === "online"){ I.sinRed = false; return; }
+        I.sinRed = true;
+        var v = I.v;
+        if(!I.el || I.cerrando || !v || hastaElFin(v)) return;
+        if(I.precarga || adelante(v) < 1.5) avisarYCerrar("Sin señal");
+      }catch(x){}
+    }
+    // Precarga: el video ya arrancó (dentro del toque, para que pueda sonar), pero si hay poco descargado se pausa y se
+    // queda el póster con su barrita hasta tener PRECARGA segundos (o canplaythrough), máximo PRECARGA_MAX.
+    function bastante(v){ return v.readyState >= 4 || adelante(v) >= PRECARGA || hastaElFin(v); }
+    function precargar(v){
+      var n = I.n, t0 = Date.now(), iv = 0;
+      I.precarga = true;
+      try{ v.preload = "auto"; v.pause(); }catch(e){}
+      try{ if(v.getAnimations) v.getAnimations().forEach(function(a){ a.cancel(); }); }catch(e){}   // que la entrada no lo muestre
+      if(I.el) I.el.classList.add("precarga");
+      var quitar = function(){ clearInterval(iv); v.removeEventListener("progress", chk); v.removeEventListener("canplaythrough", chk); };
+      var chk = function(){
+        if(n !== I.n || I.v !== v || I.cerrando || !I.precarga){ quitar(); return; }
+        if(bastante(v) || Date.now() - t0 >= PRECARGA_MAX){ quitar(); I.precarga = false; reproducir(); }
+      };
+      iv = setInterval(chk, 400);
+      v.addEventListener("progress", chk); v.addEventListener("canplaythrough", chk);
+    }
+
+    function quitarEspera(){
+      try{
+        var e = I.espera; if(!e) return; I.espera = null;
+        if(!e.animate || reducido()){ e.remove(); return; }
+        var a = e.animate([{ opacity:1 }, { opacity:0 }], { duration:260, easing:"linear", fill:"forwards" });
+        a.onfinish = function(){ try{ e.remove(); }catch(x){} };
+      }catch(err){}
+    }
 
     function animEntrada(origen){
       try{
@@ -24382,174 +24531,193 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
           { clipPath:"circle(" + (origen ? 18 : 0) + "px at " + x + "px " + y + "px)" },
           { clipPath:"circle(" + rmax + "px at " + x + "px " + y + "px)" }
         ], { duration:origen ? 560 : 420, easing:EASE });
-        I.fr.animate([{ transform:"scale(1.06)", opacity:.4 }, { transform:"scale(1)", opacity:1 }], { duration:620, easing:EASE });
+        I.v.animate([{ transform:"scale(1.06)", opacity:.4 }, { transform:"scale(1)", opacity:1 }], { duration:620, easing:EASE });
         I.skip.animate([{ opacity:0, transform:"translateY(-10px) scale(.96)" }, { opacity:1, transform:"none" }],
           { duration:320, delay:260, easing:EASE, fill:"backwards" });
       }catch(e){}
     }
 
+    function boton(cls, html, etiqueta, accion){
+      var b = D.createElement("button");
+      b.type = "button"; b.className = cls; b.innerHTML = html;
+      if(etiqueta) b.setAttribute("aria-label", etiqueta);
+      b.addEventListener("click", function(e){ try{ e.stopPropagation(); accion(); }catch(x){} });
+      return b;
+    }
+
     function abrir(m, origen){
       try{
         if(I.cerrando){ I.reabrir = { m:m, o:origen }; return; }   // tocó "Ver intro" mientras se desvanecía: se abre al terminar
-        if(I.el || !PELIS[m]) return;
-        var vertical = W.innerHeight > W.innerWidth;
-        I.modo = m; I.cerrando = false; I.vioPlay = false; I.listo = false; I.resume = true;
-        I.vertical = vertical; I.orient = vertical;
+        if(I.el || !VIDEOS[m]) return;
+        I.modo = m; I.cerrando = false; I.listo = false; I.silencio = false; I.pausaOculta = false;
+        I.precarga = false; I.precargaHecha = false; I.sinRed = sinSenal(); I.cargaDesde = 0;
         I.prevFocus = D.activeElement;
+        var nombre = TITULOS[m] || "la app";
         var el = D.createElement("div");
         el.id = "intro-film";
         el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
-        el.setAttribute("aria-label", "Introducción de " + (TITULOS[m] || "la app"));
-        var fr = D.createElement("iframe");
-        fr.title = "Introducción de " + (TITULOS[m] || "la app");
-        fr.setAttribute("allow", "autoplay; fullscreen");
-        var skip = D.createElement("button");
-        skip.type = "button"; skip.className = "intro-skip";
-        skip.setAttribute("aria-label", "Saltar la introducción");
-        skip.innerHTML = 'Saltar<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
-        skip.addEventListener("click", function(){ cerrar("saltar"); });
-        fr.addEventListener("load", alCargar);
-        fr.addEventListener("error", function(){ try{ skip.focus({ preventScroll:true }); }catch(e){} });
-        // Topes invisibles: Tab desde Saltar entra a la película; Shift+Tab desde el inicio regresa a Saltar.
-        var sIni = D.createElement("span"), sFin = D.createElement("span");
-        sIni.className = sFin.className = "intro-sent"; sIni.tabIndex = sFin.tabIndex = 0;
-        sIni.addEventListener("focus", function(){ try{ skip.focus({ preventScroll:true }); }catch(e){} });
-        sFin.addEventListener("focus", function(){ try{ fr.focus({ preventScroll:true }); }catch(e){} });
-        // Cuadro fijo mientras carga (v2a): el fondo verde noche de la película con su título, en lugar de negro vacío
+        el.setAttribute("aria-label", "Introducción de " + nombre);
+        // Cuadro fijo mientras carga: el fondo verde noche de la película con su título (hace de póster)
         var esp = D.createElement("div");
         esp.className = "intro-espera"; esp.setAttribute("aria-hidden", "true");
         esp.innerHTML = '<span class="intro-espera-k">Grupo Witt · ' + (TITULOS[m] || "") + '</span><b></b><i></i>';
         esp.querySelector("b").textContent = TITULO_PELI[m] || "";
-        el.appendChild(esp); I.espera = esp;
-        el.appendChild(sIni); el.appendChild(fr); el.appendChild(skip); el.appendChild(sFin);
-        I.el = el; I.fr = fr; I.skip = skip; I.blob = null;
+        var v = D.createElement("video");
+        v.className = "intro-video";
+        v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", ""); v.playsInline = true;
+        v.preload = "metadata";
+        v.setAttribute("disablepictureinpicture", ""); v.setAttribute("disableremoteplayback", "");
+        v.setAttribute("controlslist", "nodownload nofullscreen noremoteplayback noplaybackrate");
+        try{ v.disablePictureInPicture = true; v.disableRemotePlayback = true; }catch(e){}
+        v.setAttribute("aria-label", "Video de introducción de " + nombre);
+        v.tabIndex = -1;
+        var carga = D.createElement("div");
+        carga.className = "intro-carga"; carga.hidden = true; carga.setAttribute("aria-hidden", "true");
+        carga.innerHTML = "<i></i>";
+        var skip = boton("intro-skip", 'Saltar<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+          "Saltar la introducción", function(){ cerrar("saltar"); });
+        var sonido = boton("intro-sonido", ICO_SONIDO + "<span>Activar sonido</span>", null, function(){
+          I.silencio = false; ocultar(sonido);
+          try{ v.muted = false; }catch(e){}
+          if(v.paused) reproducir();
+          enfocar(skip);
+        });
+        sonido.hidden = true;
+        var ver = boton("intro-ver", ICO_PLAY + "<span>Ver intro</span>", "Ver la introducción de " + nombre, function(){
+          I.silencio = false; ocultar(ver); el.classList.remove("pide-toque");
+          enfocar(skip);
+          reproducir();
+        });
+        ver.hidden = true;
+        // Topes invisibles: Tab no saca el foco de la intro (Saltar → Activar sonido / Ver intro → Saltar)
+        var sIni = D.createElement("span"), sFin = D.createElement("span");
+        sIni.className = sFin.className = "intro-sent"; sIni.tabIndex = sFin.tabIndex = 0;
+        sIni.addEventListener("focus", function(){ if(!ver.hidden) enfocar(ver); else if(!sonido.hidden) enfocar(sonido); else enfocar(skip); });
+        sFin.addEventListener("focus", function(){ enfocar(skip); });
+
+        v.addEventListener("loadedmetadata", function(){ if(I.v === v) clearTimeout(I.tEspera); });
+        v.addEventListener("playing", function(){
+          if(I.v !== v || I.cerrando) return;
+          // Primera vez que corre: si hay poco descargado, espera con el póster (no arranca a tirones).
+          if(!I.listo && !I.precargaHecha){ I.precargaHecha = true; if(!bastante(v)){ precargar(v); return; } }
+          I.listo = true; carga.hidden = true; el.classList.remove("precarga"); quitarEspera(); ocultar(ver); el.classList.remove("pide-toque");
+        });
+        v.addEventListener("waiting", function(){
+          if(I.v !== v || !I.listo || I.cerrando) return;
+          if(carga.hidden){ carga.hidden = false; I.cargaDesde = Date.now(); }
+          if(I.sinRed || sinSenal()) avisarYCerrar("Sin señal");   // sin red no va a llegar más video
+        });
+        v.addEventListener("seeked", function(){ if(I.v === v && !v.paused) carga.hidden = true; });
+        v.addEventListener("ended", function(){ if(I.v === v) cerrar("fin"); });
+        v.addEventListener("error", function(){ if(I.v === v) alError(); });
+        // Toque largo, doble toque o clic derecho: no abren menús, ni pantalla completa, ni zoom.
+        ["contextmenu", "dblclick", "selectstart", "dragstart"].forEach(function(t){
+          el.addEventListener(t, function(e){ try{ e.preventDefault(); }catch(x){} });
+        });
+
+        el.appendChild(esp); el.appendChild(v); el.appendChild(carga);
+        el.appendChild(sIni); el.appendChild(skip); el.appendChild(sonido); el.appendChild(ver); el.appendChild(sFin);
+        I.el = el; I.v = v; I.skip = skip; I.sonido = sonido; I.ver = ver; I.carga = carga; I.espera = esp;
         D.body.appendChild(el);
         D.documentElement.setAttribute("data-witt-intro", m);
         var app = D.getElementById("app");
         if(app){ I.inertAntes = !!app.inert; app.inert = true; }
-        cargarPeli(m, vertical, null);
-        // Lista en cuanto el motor de la película existe (sin esperar el load de un archivo de varios MB)
-        clearInterval(I.sondeo);
-        I.sondeo = setInterval(function(){
-          try{ if(!I.fr || I.cerrando){ clearInterval(I.sondeo); return; } if(I.fr.contentWindow && I.fr.contentWindow.FILM){ I.listo = true; clearInterval(I.sondeo); } }catch(e){}
-        }, 150);
-        try{ skip.focus({ preventScroll:true }); }catch(e){}
+        enfocar(skip);
         animEntrada(origen);
-        // Si se gira el teléfono con la intro abierta, se recarga en el otro formato desde el mismo segundo.
+        cargar(esVertical(), 0, true);   // play() aquí mismo: si vino de un toque, sigue dentro de la activación del usuario
+        // Si se gira el teléfono con la intro abierta, cambia de versión desde el mismo segundo.
         I.onResize = function(){ clearTimeout(I.rzT); I.rzT = setTimeout(alGirar, 250); };
         W.addEventListener("resize", I.onResize, { passive:true });
         W.addEventListener("orientationchange", I.onResize, { passive:true });
+        // Si el usuario sale de la app (otra app, pantalla apagada), el video se pausa y sigue al volver.
+        I.onVis = function(){
+          try{
+            if(!I.v || I.cerrando) return;
+            if(D.hidden){ if(!I.v.paused){ I.v.pause(); I.pausaOculta = true; } }
+            else if(I.pausaOculta){ I.pausaOculta = false; reproducir(); }
+          }catch(e){}
+        };
+        D.addEventListener("visibilitychange", I.onVis);
+        // Red: aviso si se va a media intro, y vigía por si se corta sin que el teléfono lo note.
+        I.onRed = alCambiarRed;
+        W.addEventListener("offline", I.onRed); W.addEventListener("online", I.onRed);
+        vigilar();
       }catch(e){ try{ cerrar("error"); }catch(x){} }
     }
 
     function alGirar(){
       try{
-        var fr = I.fr; if(!I.el || I.cerrando || !fr) return;
-        var o = W.innerHeight > W.innerWidth;
-        if(o === I.orient) return;            // solo cuando de verdad cambia la orientación
-        I.orient = o;
-        var F = film();
-        var cur = F ? !!F.vertical : I.vertical;
-        if(cur === o) return;                 // ya está en ese formato (lo cambió con el botón de la película)
-        var t = null, resume = true;
-        if(F){
-          if(typeof F.isEnded === "function" && F.isEnded()) return;
-          var playing = !!F.playing;
-          if(playing || I.vioPlay){ t = Math.round((+F.now() || 0) * 100) / 100; resume = playing; }
-        }else if(I.vioPlay){
-          return;                             // file:// sin acceso al segundo: se queda como está
-        }
-        I.resume = resume;
-        post({ type:"film-pause" });
-        try{ if(F && F.playing && typeof F.pause === "function") F.pause(); }catch(e){}
-        clearInterval(I.poll); I.poll = 0;
-        I.vertical = o;
-        cargarPeli(I.modo, o, t);
+        var v = I.v; if(!I.el || I.cerrando || !v) return;
+        var o = esVertical();
+        if(o === I.vertical) return;            // solo cuando de verdad cambia la orientación
+        if(v.ended) return;
+        var t = Math.round((+v.currentTime || 0) * 100) / 100;
+        // Sigue reproduciendo, salvo que esté esperando el toque de "Ver intro" o pausado por estar en segundo plano.
+        var seguir = I.ver.hidden && !I.pausaOculta;
+        try{ v.pause(); }catch(e){}
+        cargar(o, t, seguir);
       }catch(e){}
     }
 
-    function quitarEspera(){
-      try{
-        var e = I.espera; if(!e) return; I.espera = null;
-        if(!e.animate || reducido()){ e.remove(); return; }
-        var a = e.animate([{ opacity:1 }, { opacity:0 }], { duration:260, easing:"linear", fill:"forwards" });
-        a.onfinish = function(){ try{ e.remove(); }catch(x){} };
-      }catch(err){}
-    }
-    function alCargar(){
-      var fr = I.fr; if(!fr || I.cerrando) return;
-      // Misma carpeta (http): si lo que cargó no es la película (sin señal y sin copia, o el archivo no existe), se cierra
-      // SIN marcarla como vista, para que vuelva a salir la próxima vez.
-      var noEs = false;
-      try{
-        var doc = fr.contentWindow.document;
-        if(!doc || doc.URL === "about:blank") return;
-        noEs = !fr.contentWindow.FILM || !!doc.getElementById("app-launcher");
-        if(!noEs) I.listo = true;
-      }catch(e){}
-      if(noEs){ existe[I.modo] = false; refrescarBotones(); cerrar("sin-pelicula"); return; }
-      quitarEspera();
-      if(I.resume) post({ type:"film-play" });
-      // Misma carpeta: Esc también con el foco dentro de la película, y si la película no avisa "film-ended"
-      // (la del físico no avisa), el final se detecta leyendo su estado.
-      try{
-        var cw = fr.contentWindow;
-        cw.document.addEventListener("keydown", function(e){ if(e.key === "Escape" || e.key === "Esc") cerrar("saltar"); });
-        clearInterval(I.poll);
-        I.poll = setInterval(function(){
-          try{
-            var F = cw.FILM; if(!F) return;
-            if(F.playing){ I.vioPlay = true; I.listo = true; }
-            else if(I.vioPlay && typeof F.isEnded === "function" && F.isEnded()) cerrar("fin");
-          }catch(e){}
-        }, 500);
-      }catch(e){}
-    }
-
-    W.addEventListener("message", function(e){
-      try{
-        if(!I.fr || e.source !== I.fr.contentWindow) return;
-        var d = e.data; if(!d || typeof d !== "object") return;
-        if(d.type === "film-ended") cerrar("fin");
-        else if(d.type === "film-ready"){ I.listo = true; quitarEspera(); if(I.resume) post({ type:"film-play" }); }
-        else if(d.type === "film-state"){ I.listo = true; if(d.playing) I.vioPlay = true; }
-      }catch(err){}
-    });
     D.addEventListener("keydown", function(e){
-      try{ if(I.el && (e.key === "Escape" || e.key === "Esc")) cerrar("saltar"); }catch(err){}
+      try{ if(I.el && (e.key === "Escape" || e.key === "Esc")){ e.preventDefault(); cerrar("saltar"); } }catch(err){}
     }, true);
     // El foco no se sale de la intro mientras está abierta.
     D.addEventListener("focusin", function(e){
-      try{ if(I.el && !I.cerrando && !I.el.contains(e.target)) I.skip.focus({ preventScroll:true }); }catch(err){}
+      try{ if(I.el && !I.cerrando && !I.el.contains(e.target)) enfocar(I.skip); }catch(err){}
     });
+
+    // Baja el volumen en el desvanecido de salida (sin corte seco del audio).
+    function bajarVolumen(v, ms){
+      try{
+        if(!v || v.paused || v.muted) return;
+        var v0 = v.volume, t0 = 0;
+        var paso = function(ts){
+          try{
+            if(!t0) t0 = ts;
+            var k = Math.min(1, (ts - t0) / ms);
+            v.volume = Math.max(0, v0 * (1 - k));
+            if(k < 1 && !v.paused) W.requestAnimationFrame(paso); else v.pause();
+          }catch(e){}
+        };
+        W.requestAnimationFrame(paso);
+      }catch(e){ try{ v.pause(); }catch(x){} }
+    }
 
     function cerrar(motivo){
       if(!I.el || I.cerrando) return;
       I.cerrando = true;
-      var el = I.el, fr = I.fr, m = I.modo, blob = I.blob; I.blob = null;
-      // v2a: cualquier cierre del usuario (Saltar o Esc) cuenta como vista, aunque la película no hubiera terminado de cargar
-      // (con datos móviles, quien siempre salta rápido la veía salir sola en cada apertura y la volvía a descargar).
-      // Solo no cuentan "sin-pelicula" (no está o no cargó la película) y "error".
-      try{ if(motivo === "fin" || motivo === "saltar" || I.listo) marcarVisto(m); }catch(e){}
-      clearInterval(I.sondeo); I.sondeo = 0; I.carga++;
+      var el = I.el, v = I.v, m = I.modo;
+      if(el.classList.contains("sin-senal")) motivo = "sin-video";   // Saltar/Esc sobre el aviso "Sin señal": no la vio
+      // Cualquier cierre del usuario (Saltar o Esc) cuenta como vista, aunque el video no hubiera empezado
+      // (con datos móviles, quien siempre salta rápido la veía salir sola en cada apertura y la volvía a descargar),
+      // salvo que salte porque el video se trabó (barrita de carga visible más de 1.5 s).
+      // No cuentan "sin-video" (no está, no cargó o se cortó la señal) ni "error", salvo que ya se hubiera visto casi toda (90 %).
       try{
+        var dur = v && isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
+        var casiToda = dur > 0 && (+v.currentTime || 0) >= 0.9 * dur;
+        var trabado = !!(I.carga && !I.carga.hidden && I.cargaDesde && Date.now() - I.cargaDesde > 1500);
+        if(motivo === "fin" || casiToda || (motivo === "saltar" && !trabado)) marcarVisto(m);
+      }catch(e){}
+      I.n++;
+      clearTimeout(I.tEspera); I.tEspera = 0;
+      clearInterval(I.vig); I.vig = 0; I.precarga = false;
+      try{
+        if(I.onRed){ W.removeEventListener("offline", I.onRed); W.removeEventListener("online", I.onRed); I.onRed = null; }
         if(I.onResize){ W.removeEventListener("resize", I.onResize); W.removeEventListener("orientationchange", I.onResize); I.onResize = null; }
         clearTimeout(I.rzT); I.rzT = 0;
-        post({ type:"film-pause" });
-        var F = film(); if(F && F.playing && typeof F.pause === "function") F.pause();
+        if(I.onVis){ D.removeEventListener("visibilitychange", I.onVis); I.onVis = null; }
       }catch(e){}
-      clearInterval(I.poll); I.poll = 0;
-      var ac = W.__peliAC; W.__peliAC = null;
-      try{ if(ac && ac.state === "running") ac.suspend().catch(function(){}); }catch(e){}
+      var suave = !!el.animate && !reducido();
+      try{ if(suave) bajarVolumen(v, 300); else v.pause(); }catch(e){}
       try{ var app = D.getElementById("app"); if(app) app.inert = I.inertAntes; }catch(e){}
       var hecho = false;
       function fin(){
         if(hecho) return; hecho = true;
-        try{ fr.src = "about:blank"; }catch(e){}
+        // Suelta el archivo: deja de descargar y libera el decodificador.
+        try{ v.pause(); v.removeAttribute("src"); v.load(); }catch(e){}
         try{ el.remove(); }catch(e){}
-        try{ if(blob) URL.revokeObjectURL(blob); }catch(e){}
-        try{ if(ac && ac.state !== "closed") ac.close().catch(function(){}); }catch(e){}
-        I.el = I.fr = I.skip = I.espera = null; I.cerrando = false;
+        I.el = I.v = I.skip = I.sonido = I.ver = I.carga = I.espera = null; I.cerrando = false;
         try{ D.documentElement.removeAttribute("data-witt-intro"); }catch(e){}
         // El foco regresa a la sub app: a donde estaba, o al botón "Ver intro". En el físico (panel encima de #app) solo
         // vale un foco que esté dentro de #fisico-app; si no, va a su botón "Ver intro".
@@ -24566,10 +24734,10 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       try{
         if(!el.animate){ fin(); return; }
         var a;
-        if(reducido()) a = el.animate([{ opacity:1 }, { opacity:0 }], { duration:120, easing:"linear", fill:"forwards" });
+        if(!suave) a = el.animate([{ opacity:1 }, { opacity:0 }], { duration:120, easing:"linear", fill:"forwards" });
         else{
           a = el.animate([{ opacity:1 }, { opacity:0 }], { duration:320, easing:"cubic-bezier(.4,0,1,1)", fill:"forwards" });
-          fr.animate([{ transform:"scale(1)" }, { transform:"scale(.97)" }], { duration:320, easing:"cubic-bezier(.4,0,1,1)", fill:"forwards" });
+          v.animate([{ transform:"scale(1)" }, { transform:"scale(.97)" }], { duration:320, easing:"cubic-bezier(.4,0,1,1)", fill:"forwards" });
           I.skip && I.skip.animate([{ opacity:1 }, { opacity:0 }], { duration:160, fill:"forwards" });
         }
         el.style.pointerEvents = "none";
@@ -24584,7 +24752,17 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     ["autos", "fisico", "refacciones"].forEach(function(m, i){
       setTimeout(function(){ comprobar(m).then(refrescarBotones).catch(function(){}); }, 400 + i * 150);
     });
-    W.__wittIntroAPI = { abrir:function(m){ abrir(m, null); }, cerrar:cerrar, estado:function(){ return { abierta:!!I.el, modo:I.modo, listo:I.listo, vioPlay:I.vioPlay, existe:existe }; } };
+    W.__wittIntroAPI = {
+      abrir:function(m){ abrir(m, null); }, cerrar:cerrar,
+      estado:function(){
+        var v = I.v;
+        return { abierta:!!I.el, modo:I.modo, listo:I.listo, existe:existe, vertical:I.vertical,
+          archivo:v ? (v.currentSrc || v.getAttribute("src") || "").split("/").pop() : null,
+          t:v ? v.currentTime : null, pausado:v ? v.paused : null, silencio:v ? v.muted : null,
+          pideSonido:!!(I.sonido && !I.sonido.hidden), pideToque:!!(I.ver && !I.ver.hidden),
+          precarga:!!I.precarga, aviso:!!(I.el && I.el.classList.contains("sin-senal")), redLenta:redLenta() };
+      }
+    };
   }catch(e){}
 })();
 
