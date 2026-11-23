@@ -2,7 +2,7 @@
 // Súbelo en la MISMA carpeta que el archivo de la app, con el nombre "sw.js".
 // No guarda nada del inventario (eso ya lo guarda la app en el teléfono): solo la
 // página de la app y las herramientas (Excel, PDF, lector de códigos) para abrirlas sin internet.
-const CACHE = "inventario-app-v4";
+const CACHE = "inventario-app-v5";
 const LIB_HOSTS = /(^|\.)(cdn\.jsdelivr\.net|cdn\.sheetjs\.com|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
 
 self.addEventListener("install", ()=> self.skipWaiting());
@@ -26,7 +26,10 @@ self.addEventListener("fetch", (e)=>{
   if(req.mode === "navigate"){
     e.respondWith((async ()=>{
       try{
-        const res = await fetch(req);
+        // "no-cache": siempre le pregunta al servidor si hay versión nueva (si no cambió, la respuesta es mínima).
+        let res;
+        try{ res = await fetch(req.url, { cache: "no-cache", credentials: "same-origin" }); }
+        catch(err){ if(!navigator.onLine) throw err; res = await fetch(req); }
         if(res && res.ok){ const c = await caches.open(CACHE); c.put(req, res.clone()); c.put("__app__", res.clone()); }
         return res;
       }catch(_){
