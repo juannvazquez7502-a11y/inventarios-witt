@@ -32,6 +32,9 @@ html.witt-nativa .wn-abriendo{position:fixed;left:50%;top:calc(env(safe-area-ins
 html.witt-nativa .wn-abriendo.show{opacity:1;transform:translate(-50%,0);}
 html.witt-nativa .wn-abriendo i{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;animation:wnGira .8s linear infinite;flex:0 0 auto;}
 @keyframes wnGira{to{transform:rotate(360deg);}}
+html.witt-nativa .wn-abriendo button{display:none;}
+html.witt-nativa .wn-abriendo.con-boton{flex-wrap:wrap;justify-content:center;white-space:normal;text-align:center;border-radius:20px;width:min(86vw,360px);pointer-events:auto;}
+html.witt-nativa .wn-abriendo.con-boton button{display:block;border:0;border-radius:999px;padding:12px 18px;min-height:44px;background:#00574a;color:#fff;font:700 15px/1 inherit;font-family:inherit;cursor:pointer;}
 /* Escaneo continuo: barra para seguir (o detener) mientras se ve el aviso de la app con «Deshacer». */
 html.witt-nativa .wn-seguir{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + var(--nav-h, 62px) + 14px);z-index:8900;display:flex;flex-wrap:wrap;align-items:center;gap:10px;
   padding:12px 12px 12px 16px;border-radius:18px;background:#1b211f;color:#f3f5f4;box-shadow:0 10px 34px rgba(0,0,0,.28);max-width:520px;margin:0 auto;
