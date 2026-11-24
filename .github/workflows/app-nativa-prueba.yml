@@ -8,16 +8,19 @@ name: App nativa (prueba en emulador)
 # prueba = qr: ligas para unirse con la CÁMARA del teléfono (App Link, app-nativa-prueba/qr.sh). El APK de prueba se firma
 #   con la misma llave del APK publicado (secretos APK_KEYSTORE_*) para que Android verifique el App Link con assetlinks.json;
 #   la llave solo existe en el paso "Firmar" y se borra al terminar. Ese APK no se publica: solo se instala en el emulador.
+# prueba = camara: cámara Witt (v2.2, plugin propio con CameraX y ML Kit empaquetado) abierta directo desde Escanear, ajustes,
+#   colores verde/amarillo/rojo con imágenes SINTÉTICAS de assets/witt-prueba (solo en este APK de prueba) y fps (app-nativa-prueba/camara.sh).
 
 on:
   workflow_dispatch:
     inputs:
       prueba:
-        description: "Qué probar: critica (escáner, atrás, sin red) o qr (ligas para unirse con la cámara del teléfono)"
+        description: "Qué probar: critica (escáner, atrás, sin red), qr (ligas para unirse con la cámara del teléfono) o camara (cámara Witt)"
         type: choice
         options:
           - critica
           - qr
+          - camara
         default: critica
 
 permissions:
@@ -67,6 +70,8 @@ jobs:
           npx cap add android
           node scripts/recursos.mjs
           npx capacitor-assets generate --android --iconBackgroundColor "#00574a" --iconBackgroundColorDark "#00574a" --splashBackgroundColor "#00574a" --splashBackgroundColorDark "#00574a"
+          # Imágenes sintéticas para probar la cámara Witt sin cámara real: SOLO en la prueba camara (el APK publicado no las trae).
+          if [ "$PRUEBA" = camara ]; then export WITT_CAMARA_PRUEBA=1; fi
           node scripts/ajustar-android.mjs
           npx cap sync android
           grep -c "witt-nativa" www/inventarios-witt/sin-conexion.html || true
@@ -101,7 +106,7 @@ jobs:
           curl -fsSL https://juannvazquez7502-a11y.github.io/.well-known/assetlinks.json | tee capturas/assetlinks.json
 
       - name: APK publicados (TWA y nativa firmada) para la prueba de actualización
-        if: ${{ env.PRUEBA != 'qr' }}
+        if: ${{ env.PRUEBA == 'critica' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
