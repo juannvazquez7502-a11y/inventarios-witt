@@ -14,13 +14,19 @@
    5 Exportaciones: guarda el archivo con Filesystem (Documentos/Inventarios Witt) y ofrece Compartir.
    6 navigator.share y voz (TextToSpeech) si el WebView no los trae; dictado SIEMPRE con el plugin SpeechRecognition.
    7 Ligas para unirse (23-nov-2026): la liga ?unirse= que abre Android (App Link desde la cámara del teléfono) se entrega a
-     enlaces.js, con la app abierta ("appUrlOpen") o cerrada (getLaunchUrl al arrancar). */
+     enlaces.js, con la app abierta ("appUrlOpen") o cerrada (getLaunchUrl al arrancar).
+   8 Cámara Witt (v2.2, 23-nov-2026): si el APK trae el plugin nativo WittCamara (CameraX + ML Kit empaquetado), tocar
+     Escanear (pestaña, botón verde, Iniciar cámara, Leer placa y los del Inventario físico) abre DIRECTO la cámara a pantalla
+     completa con los ajustes dentro (Normal / Continuo / Placa, linterna, zoom, voz, ubicación, Escribir, Foto, Dictar), sin
+     pasar por la pantalla «Escáner Multimodal». Cuando la app decide qué pasó con la unidad, la cámara respira en verde
+     (disponible, se marca), amarillo (ya encontrada, baja) o rojo (fuera de inventario), con pitido y vibración nativos
+     de distinta intensidad. Sin el plugin (APK anterior) o si falla, sigue el escáner de Google y la cámara web. */
 (function(){
   "use strict";
   var W = window, D = document, C = W.Capacitor;
   try{ if(!(C && typeof C.isNativePlatform === "function" && C.isNativePlatform())) return; }catch(e){ return; }
 
-  var VERSION = "nativa 1.2 · 23-nov-2026";
+  var VERSION = "nativa 2.2 · 23-nov-2026 · cámara Witt";
   var ETIQUETA = "CÓDIGO (escáner del teléfono)";
   var FORMATOS = ["QR_CODE", "CODE_128", "CODE_39", "DATA_MATRIX", "PDF_417", "AZTEC", "EAN_13", "EAN_8", "UPC_A", "UPC_E", "ITF", "CODABAR"];
   var VERDE = "#00574a";
@@ -88,6 +94,7 @@
     // uno igual o más débil justo después (menos de 320 ms) no se repite.
     var vibrar = function(tipo){
       if(!NIVEL[tipo]) return;
+      try{ if(E.silencioso && E.silencioso()) return; }catch(e){}   // la cámara Witt da su propia vibración por color
       if(!pend || NIVEL[tipo] > NIVEL[pend]) pend = tipo;
       if(tPend) return;
       tPend = setTimeout(function(){
@@ -341,6 +348,7 @@
     // Un solo punto: el clic en #btn-cam-start (lo usan el botón, #fab-scan, fzOpenScan y readPlate).
     D.addEventListener("click", function(ev){
       try{
+        if(E.camaraClic && E.camaraClic(ev)) return;                                          // cámara Witt (sección 8)
         var t = ev.target; if(!t || !t.closest) return;
         if(t.closest("#btn-plate, #pp-retry")){ E.webHasta = Date.now() + 1500; return; }   // placas: el OCR lee el <video> web
         if(!t.closest("#btn-cam-start")) return;
@@ -360,6 +368,7 @@
   function despiertaDebe(){
     try{
       if(E.abierto || vScanActive()) return true;
+      if(E.camara && (E.camara.abierta || E.camara.abriendo)) return true;   // si no, allowSleep le quitaría la pantalla encendida
       if(D.visibilityState === "hidden") return false;
       var s = $id("screen-scan"); if(s && s.classList.contains("active") && !launcherAbierto()) return true;
       var fz = vFZ();
@@ -703,9 +712,414 @@
     }
   }catch(e){}
 
+  /* ======================= 8. Cámara Witt (v2.2): cámara nativa propia, directa ======================= */
+  /* El plugin WittCamara (app-nativa/android-extra/camara, Kotlin) abre una cámara a pantalla completa ENCIMA de la página,
+     en la misma Activity: la página sigue viva, recibe cada lectura al instante y contesta con el color.
+     Eventos del plugin: "codigo" {texto, formato, modo, foto?}, "placa" {texto, tipo, candidatos}, "accion" {tipo, valor},
+     "cerrada" {motivo}. La página contesta con feedback({color, titulo, detalle, cerrar, deshacer, contador}).
+     - Lectura de código → cameraGotCode (la misma función de la cámara web: continuo, Refacciones, físico, REPUVE, QR para
+       unirse). Placa → finishPlate / handleDetectedCode(placa, "PLACA (lectura con cámara)").
+     - Color: se anota lo que la app decide mientras procesa la lectura (unitAlert, csToast, físico, Refacciones) y gana el
+       más serio: rojo (fuera de inventario) > amarillo (ya encontrada, baja, otra ubicación) > verde (disponible).
+       Mientras tanto los pitidos y vibraciones de la página se callan: suena y vibra la cámara, con su intensidad.
+     - Si la app abre una ventana (unidad encontrada, fuera de inventario, varias unidades…) la cámara muestra el color un
+       momento y se cierra; al cerrar la ventana vuelve sola a la cámara (Vehículos), en el mismo modo.
+     - Sin el plugin, con localStorage "witt-camara" = "google", o si falla dos veces: escáner de Google y cámara web. */
+  try{
+    var WC = "WittCamara";
+    CFG.camaraWitt = ls("witt-camara") !== "google";
+    CFG.volverTrasVentana = ls("witt-camara-volver") !== "0";
+    CFG.fueraRegistradaRojo = ls("witt-camara-fuera") !== "amarillo";   // ya registrada como fuera de inventario: rojo
+    CFG.avisosNativos = ls("witt-avisos") !== "web";
+    // Cuánto se ve el color en la cámara antes de cerrarla cuando la app abre su ventana (modo Normal).
+    CFG.cerrarMs = Math.min(4000, Math.max(300, parseInt(ls("witt-camara-cerrar-ms") || "900", 10) || 900));
+    var K = { abierta:false, abriendo:false, modo:"normal", ctx:"vehiculos", volver:null, tVolver:0, fallos:0, foto:null,
+      silencioHasta:0, ultimoAviso:0, webHasta:0, avisos:[] };
+    E.camara = K;
+    var camHay = function(){ try{ return !!(typeof C.isPluginAvailable === "function" && C.isPluginAvailable(WC)); }catch(e){ return false; } };
+    var camUsable = function(){ return CFG.camaraWitt && camHay() && K.fallos < 2; };
+    var PESO = { neutro:0, verde:1, amarillo:2, rojo:3 };
+    var R = null;   // lectura en proceso: lo que la app decidió mientras la procesaba
+    var sinEmoji = function(s){
+      try{ return String(s == null ? "" : s).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}]/gu, "").replace(/\s{2,}/g, " ").replace(/^[\s·]+|[\s·]+$/g, ""); }
+      catch(e){ return String(s || ""); }
+    };
+    var pantallaActual = function(){ var a = D.querySelector(".screen.active"); return a ? a.id : ""; };
+    var vCs2 = function(){ try{ return typeof csState !== "undefined" ? csState : null; }catch(e){ return null; } };   // eslint-disable-line no-undef
+    var rondaN = function(){ var cs = vCs2(); return cs && cs.round ? cs.round.length : 0; };
+    var nota = function(color, titulo, detalle, extra){
+      var r = R; if(!r || !r.activo) return false;
+      r.notas.push({ c:color, t:sinEmoji(titulo), d:sinEmoji(detalle), x:extra || {} });
+      return true;
+    };
+    E.silencioso = function(){ return !!(R && R.activo) || Date.now() < K.silencioHasta; };
+    // Fuera de la cámara (búsqueda, ventana de la unidad): el mismo pitido y vibración nativos por color.
+    var avisoNativo = function(color){
+      if(!(CFG.avisosNativos && camHay())) return false;
+      K.silencioHasta = Date.now() + 450; K.ultimoAviso = Date.now();
+      callado(llamar(WC, "aviso", { color:color }));
+      return true;
+    };
+    var detalleLog = function(log){
+      try{
+        if(!log) return "";
+        var p = [];
+        if(log.user_name) p.push("por " + log.user_name);
+        if(log.timestamp && typeof W.timeAgoTxt === "function") p.push(W.timeAgoTxt(log.timestamp));
+        if(log.status === "BAJA" && typeof W.bajaReasonOf === "function") p.push(W.bajaReasonOf(log));
+        return p.join(" · ");
+      }catch(e){ return ""; }
+    };
+
+    /* ---- 8.1 Lo que decide la app → color */
+    if(typeof W.unitAlert === "function"){
+      var ua0 = W.unitAlert;
+      W.unitAlert = function(kind, log){
+        try{
+          var fuera = !!(log && log.status === "NO_ENCONTRADO");
+          var c = kind === "ok" ? "verde" : kind === "bad" ? "rojo" : (fuera && CFG.fueraRegistradaRojo) ? "rojo" : "amarillo";
+          var t = kind === "ok" ? "Disponible: se puede marcar" : kind === "bad" ? "No está en el inventario" : kind === "baja" ? "Dada de baja" : fuera ? "Ya registrada fuera de inventario" : "Ya registrada";
+          if(!nota(c, t, detalleLog(log) || (R && R.codigo) || "")) avisoNativo(c);
+        }catch(e){}
+        return ua0.apply(this, arguments);
+      };
+    }
+    if(typeof W.csToast === "function"){
+      var ct0 = W.csToast;
+      W.csToast = function(kind, rec, detail, created){
+        try{
+          var c = (kind === "ok" || kind === "crit") ? "verde" : "amarillo";
+          var serie = rec ? String(rec.serie || rec.vin || "").slice(-8) : "";
+          var t = (kind === "ok" ? "Registrada" : kind === "crit" ? "Registrada · crítica" : kind === "baja" ? "Dada de baja" : "Ya registrada") + (serie ? " · " + serie : "");
+          if(!nota(c, t, detail, { deshacer:!!created })) avisoNativo(c);
+        }catch(e){}
+        return ct0.apply(this, arguments);
+      };
+    }
+    // Inventario físico (la cámara entrega a fzOnScan por cameraGotCode → handleDetectedCode).
+    var notaSi = function(nombre, fnColor){
+      var f0 = W[nombre]; if(typeof f0 !== "function") return;
+      W[nombre] = function(){
+        var r = f0.apply(this, arguments);
+        try{ if(R && R.activo){ var x = fnColor(r, arguments); if(x) nota(x[0], x[1], x[2] || ""); } }catch(e){}
+        return r;
+      };
+    };
+    notaSi("fzWrongPlace", function(r, a){ return r ? ["amarillo", "Está en otra ubicación", a[0]] : null; });
+    notaSi("fzAlreadyCheck", function(r, a){ return r ? ["amarillo", "Pieza ya contada", a[0]] : null; });
+    notaSi("fzOpenPart", function(r, a){ return ["verde", "Pieza encontrada", typeof a[0] === "string" ? a[0] : ""]; });
+    notaSi("fzOpenExtra", function(r, a){ return ["rojo", "No está en el listado", typeof a[0] === "string" ? a[0] : ""]; });
+    // Refacciones: verde = en el catálogo y sin contar; amarillo = ya contada; rojo = no está o es fuera de inventario.
+    if(typeof W.handlePartsDetectedCode === "function"){
+      var hp0 = W.handlePartsDetectedCode;
+      W.handlePartsDetectedCode = function(str){
+        if(R && R.activo){
+          try{
+            var st = vState(), part = typeof W.findPart === "function" ? W.findPart(str) : null, pn = part && part.partNumber;
+            var ooi = !!(st && st.partsOOI && st.partsOOI.has && (st.partsOOI.has(pn) || st.partsOOI.has(String(str))));
+            if(!part) nota("rojo", "No está en el catálogo", str);
+            else if(ooi) nota("rojo", "Fuera de inventario", pn);
+            else if(st && st.partFound && st.partFound.has && st.partFound.has(pn)) nota("amarillo", "Pieza ya contada", pn);
+            else nota("verde", "Pieza en el catálogo", pn);
+          }catch(e){}
+        }
+        return hp0.apply(this, arguments);
+      };
+    }
+    // Sonidos de la página: callados mientras se procesa una lectura (suena la cámara) y justo después de un aviso nativo.
+    // beep() se espera 60 ms: si en ese tiempo llega un aviso de color, ya no suena (no hay doble pitido).
+    var SONIDO_COLOR = { playSuccessSound:"verde", playNotFoundSound:"rojo", playErrorSound:"rojo", beep:"neutro", _playTone:"" };
+    Object.keys(SONIDO_COLOR).forEach(function(n){
+      var f0 = W[n]; if(typeof f0 !== "function") return;
+      W[n] = function(){
+        if(R && R.activo){ if(SONIDO_COLOR[n]) R.sonidos.push(SONIDO_COLOR[n]); return; }
+        if(Date.now() < K.silencioHasta) return;
+        if(n === "beep" && CFG.avisosNativos && camHay()){
+          var self = this, args = arguments, t0 = Date.now();
+          setTimeout(function(){ if(K.ultimoAviso >= t0 || Date.now() < K.silencioHasta) return; try{ f0.apply(self, args); }catch(e){} }, 60);
+          return;
+        }
+        return f0.apply(this, arguments);
+      };
+    });
+
+    /* ---- 8.2 Entregar una lectura y contestar con el color */
+    var entregarNativo = function(fn, codigo){
+      var r = R = { activo:true, notas:[], sonidos:[], cerrar:false, codigo:String(codigo || "") };
+      try{ fn(); }catch(e){ anota("camara: entrega err " + (e && e.message)); }
+      r.activo = false;
+      K.silencioHasta = Date.now() + 450;
+      setTimeout(function(){ responder(r); }, 30);
+    };
+    var responder = function(r){
+      var m = null;
+      r.notas.forEach(function(n){ if(!m || PESO[n.c] > PESO[m.c]) m = n; });
+      var color = m ? m.c : "neutro";
+      if(!m){ r.sonidos.forEach(function(x){ if(PESO[x] > PESO[color]) color = x; }); }
+      var ventana = !!D.querySelector(".modal-bg.show");
+      var cerrar = r.cerrar || ventana || !K.abierta;
+      var f = {
+        color:color,
+        titulo: m ? m.t : (color === "verde" ? "Listo" : color === "rojo" ? "Revisa en la app" : (cerrar && r.codigo ? "Leído" : "")),
+        detalle: m ? (m.d || r.codigo) : (cerrar || r.sonidos.length ? r.codigo : ""),
+        deshacer: !!(m && m.x && m.x.deshacer) && !cerrar,
+        contador: rondaN(), cerrar: cerrar, cerrarEn: cerrar ? (color === "neutro" ? 150 : CFG.cerrarMs) : 0,
+        sonido: color !== "neutro" || r.sonidos.length > 0, vibrar: color !== "neutro"
+      };
+      if(cerrar && K.abierta) prepararVolver();
+      anota("camara: " + color + (cerrar ? " y cierra" : ""));
+      try{ K.avisos.push({ t:Date.now(), codigo:r.codigo.slice(0, 40), color:color, titulo:f.titulo, cerrar:cerrar, deshacer:f.deshacer }); if(K.avisos.length > 12) K.avisos.shift(); }catch(e){}
+      callado(llamar(WC, "feedback", f));
+    };
+    var onCodigo = function(d){
+      var txt = String((d && d.texto) || ""); if(!txt) return;
+      K.foto = d.foto ? { url:d.foto, t:Date.now() } : null;
+      try{ if(typeof W.noteLocActivity === "function") W.noteLocActivity(); }catch(e){}
+      anota("camara: codigo " + (d.formato || "") + " " + txt.slice(0, 40));
+      entregarNativo(function(){ W.cameraGotCode(txt, ETIQUETA); }, txt);
+    };
+    var onPlaca = function(d){
+      var txt = String((d && d.texto) || "").toUpperCase(); if(!txt) return;
+      try{ if(typeof W.noteLocActivity === "function") W.noteLocActivity(); }catch(e){}
+      anota("camara: " + (d.tipo || "placa") + " " + txt);
+      entregarNativo(function(){
+        R.cerrar = true;
+        if(d.tipo === "vin" || typeof W.finishPlate !== "function"){ try{ W.stopCamera(); }catch(e){} W.handleDetectedCode(txt, d.tipo === "vin" ? "VIN (lectura con cámara)" : "PLACA (lectura con cámara)"); return; }
+        // Igual que la lectura con la cámara web: se compara contra las placas del inventario con tolerancia.
+        var cands = [txt].concat(d.candidatos || []).map(function(x){ return String(x).toUpperCase().replace(/[^A-Z0-9]/g, ""); }).filter(Boolean);
+        var rk = []; try{ rk = typeof W.rankPlates === "function" ? W.rankPlates(cands) : []; }catch(e){}
+        var conocida = !!(rk.length && (rk[0][1] === 0 || (rk[0][1] <= 1.5 && (!rk[1] || rk[1][1] - rk[0][1] >= 0.5))));
+        W.finishPlate(conocida ? rk[0][0] : txt, conocida);
+      }, txt);
+    };
+
+    /* ---- 8.3 Ajustes que regresan a la página */
+    var ponerContinuo = function(on){
+      var c = $id("cs-toggle"); if(!c || c.checked === on) return;
+      c.checked = on; c.dispatchEvent(new Event("change", { bubbles:true }));
+    };
+    var deshacerUltimo = function(){
+      var cs = vCs2(); if(!cs || !cs.round || !cs.round.length) return;
+      var ult = cs.round[cs.round.length - 1];
+      try{ W.csUndo(ult.logs); }catch(e){ anota("camara: deshacer err " + e); }
+      try{ var tt = $id("cs-toast"); if(tt) tt.hidden = true; }catch(e){}
+      callado(llamar(WC, "feedback", { color:"neutro", titulo:"Registro deshecho", detalle:String(ult.vin || "").slice(-8), contador:rondaN(), sonido:false, vibrar:false }));
+    };
+    var irAInicio = function(){
+      var st = vState(), parts = st && st.appMode === "refacciones";
+      var scr = $id(parts ? "screen-parts" : "screen-home");
+      if(scr && !scr.classList.contains("active")){ var h = D.querySelector('.nav:not(.fz-nav) button[data-screen="home"]'); if(h) h.click(); }
+      return parts;
+    };
+    var teclado = function(){ setTimeout(function(){ callado(llamar(WC, "teclado")); }, 220); };
+    var escribirAMano = function(){
+      try{
+        if(W.fzScanning){ var b = $id("fz-scan-type"); if(b && !b.hidden){ b.click(); teclado(); } else if(typeof W.fzCloseScan === "function") W.fzCloseScan(); return; }
+        var parts = irAInicio();
+        var inp = $id(parts ? "parts-search" : "home-search");
+        if(inp){ inp.scrollIntoView({ block:"center" }); inp.focus(); teclado(); }
+      }catch(e){}
+    };
+    var dictar = function(){ try{ irAInicio(); if(typeof W.voiceSearch === "function") W.voiceSearch(); }catch(e){} };
+    var fotoAWeb = function(url){
+      if(!url) return;
+      var st = vState(), parts = st && st.appMode === "refacciones";
+      var inp = $id(parts ? "parts-photo-scan-input" : "photo-scan-input"); if(!inp) return;
+      fetch(url).then(function(r){ return r.blob(); }).then(function(b){
+        var dt = new DataTransfer(); dt.items.add(new File([b], "foto-camara.jpg", { type:"image/jpeg" }));
+        inp.files = dt.files; inp.dispatchEvent(new Event("change", { bubbles:true }));
+      }).catch(function(e){ anota("camara: foto err " + e); aviso("No se pudo revisar la foto.", 2600); });
+    };
+    var onAccion = function(d){
+      var t = d && d.tipo; anota("camara: accion " + t);
+      if(t === "modo"){ K.modo = d.valor; if(K.ctx === "vehiculos" && (d.valor === "normal" || d.valor === "continuo")) ponerContinuo(d.valor === "continuo"); return; }
+      if(t === "voz"){
+        var v = $id("voice-alert-toggle");
+        if(v){ if(v.checked !== !!d.valor){ v.checked = !!d.valor; v.dispatchEvent(new Event("change", { bubbles:true })); } }
+        else { try{ W.localStorage.setItem("gw_voice_alerts", d.valor ? "1" : "0"); }catch(e){} }
+        return;
+      }
+      if(t === "deshacer"){ deshacerUltimo(); return; }
+      if(t === "ubicacion"){ prepararVolver(); setTimeout(function(){ var c = $id("scan-loc-chip"); if(c) c.click(); }, 60); return; }
+      K.volver = null;
+      if(t === "escribir"){ setTimeout(escribirAMano, 60); return; }
+      if(t === "dictar"){ setTimeout(dictar, 60); return; }
+      if(t === "foto"){ fotoAWeb(d.foto); return; }
+    };
+    var onCerrada = function(d){
+      var m = (d && d.motivo) || "";
+      K.abierta = false; K.abriendo = false;
+      anota("camara: cerrada (" + m + ")");
+      if(m === "usuario" || m === "atras" || m === "error"){
+        K.volver = null;
+        if(W.fzScanning && typeof W.fzCloseScan === "function"){ try{ W.fzCloseScan(); }catch(e){} }
+      }
+      despiertaRevisar(true);
+      if(K.volver) vigilarVolver();
+    };
+
+    /* ---- 8.4 Volver a la cámara al cerrar la ventana (Vehículos) */
+    var prepararVolver = function(){
+      if(!CFG.volverTrasVentana || K.ctx !== "vehiculos") return;
+      K.volver = { modo:K.modo, pantalla:pantallaActual(), desde:Date.now(), hasta:Date.now() + 600000 };
+    };
+    var hayVentana = function(){
+      try{
+        if(D.querySelector(".modal-bg.show")) return true;
+        if(typeof W.pvIsOpen === "function" && W.pvIsOpen()) return true;
+        if(D.body.classList.contains("fisico-open")) return true;
+      }catch(e){}
+      return false;
+    };
+    var vigilarVolver = function(){
+      clearInterval(K.tVolver);
+      K.tVolver = setInterval(function(){
+        var v = K.volver;
+        if(!v){ clearInterval(K.tVolver); return; }
+        if(K.abierta || K.abriendo || D.visibilityState === "hidden") return;       // fuera de la app (foto de evidencia): se espera
+        if(Date.now() > v.hasta || pantallaActual() !== v.pantalla || launcherAbierto()){ K.volver = null; clearInterval(K.tVolver); return; }
+        if(Date.now() - v.desde < 700 || hayVentana()) return;
+        K.volver = null; clearInterval(K.tVolver);
+        abrirCamara(v.modo, "volver");
+      }, 350);
+    };
+
+    /* ---- 8.5 Abrir */
+    var contexto = function(){
+      if(W.fzScanning){ var fz = vFZ(); return fz && fz.scanMode === "join" ? "fisico-unirse" : "fisico"; }
+      var st = vState(); return st && st.appMode === "refacciones" ? "refacciones" : "vehiculos";
+    };
+    var opciones = function(pedido){
+      var ctx = contexto(), st = vState();
+      var modos = ctx === "vehiculos" ? ["normal", "continuo", "placa"] : ["normal"];
+      var modo = pedido || (ctx === "vehiculos" && typeof W.continuousOn === "function" && W.continuousOn() ? "continuo" : "normal");
+      if(modos.indexOf(modo) < 0) modo = "normal";
+      var voz = null;
+      if(ctx === "vehiculos"){ try{ voz = typeof W.voiceAlertsOn === "function" ? !!W.voiceAlertsOn() : true; }catch(e){ voz = true; } }
+      return {
+        modo:modo, modos:modos, contexto:ctx,
+        titulo:{ vehiculos:"Vehículos", refacciones:"Refacciones", fisico:"Inventario físico", "fisico-unirse":"Entrar al inventario físico" }[ctx],
+        pista:{ refacciones:"Apunta al código de la pieza", fisico:"Apunta al QR o al código de la etiqueta", "fisico-unirse":"Apunta al QR que muestra el administrador" }[ctx] || "",
+        ubicacion: ctx === "vehiculos" ? String((st && st.myLocation) || "") : null,
+        voz:voz, conFoto: ctx === "fisico", contador: ctx === "vehiculos" ? rondaN() : 0,
+        acciones: ctx === "vehiculos" ? ["escribir", "foto", "dictar"] : ctx === "refacciones" ? ["escribir", "foto"] : ctx === "fisico" ? ["escribir"] : [],
+        ocultarWeb: ls("witt-camara-web") !== "visible"
+      };
+    };
+    var respaldo = function(op){
+      anota("camara: respaldo " + op.modo + " · " + op.contexto);
+      if(op.modo === "placa" && typeof W.readPlate === "function"){
+        K.webHasta = Date.now() + 2500;
+        var nb = D.querySelector('.nav:not(.fz-nav) button[data-screen="scan"]'); if(nb) nb.click();
+        setTimeout(function(){ try{ W.readPlate(); }catch(e){} }, 120);
+        return;
+      }
+      if(op.contexto === "fisico" || op.contexto === "fisico-unirse"){
+        E.pasarWebHasta = Date.now() + 1500; var b = $id("btn-cam-start"); if(b && !b.disabled) b.click(); return;
+      }
+      if(E.escanear) E.escanear();
+    };
+    var abrirCamara = function(modo, origen){
+      if(K.abierta || K.abriendo) return Promise.resolve(true);
+      var op = opciones(modo);
+      K.abriendo = true; K.modo = op.modo; K.ctx = op.contexto; K.volver = null; clearInterval(K.tVolver);
+      try{ if(typeof W.noteLocActivity === "function") W.noteLocActivity(); }catch(e){}
+      try{ if(E.ocultarSeguir) E.ocultarSeguir(); }catch(e){}
+      anota("camara: abre " + op.modo + " · " + op.contexto + " (" + origen + ")");
+      return llamar(WC, "abrir", op).then(function(){
+        K.abriendo = false; K.abierta = true; K.fallos = 0; despiertaRevisar(true); return true;
+      }, function(e){
+        K.abriendo = false; K.abierta = false;
+        var msg = String((e && (e.code || e.message)) || e || "");
+        anota("camara: no abrió · " + msg);
+        if(/permiso/i.test(msg)){
+          aviso("Sin permiso de cámara: actívalo en Ajustes › Apps › Inventarios › Permisos.", 4500);
+          if(W.fzScanning && typeof W.fzCloseScan === "function"){ try{ W.fzCloseScan(); }catch(x){} }
+          return false;
+        }
+        K.fallos++;
+        respaldo(op);
+        return false;
+      });
+    };
+    // Un solo punto para todos los botones de escanear (se llama primero desde el listener de la sección 1).
+    E.camaraClic = function(ev){
+      try{
+        if(!camUsable() || Date.now() < K.webHasta) return false;
+        var t = ev.target; if(!t || !t.closest) return false;
+        var plate = t.closest("#btn-plate"), fab = t.closest("#fab-scan"), tab = t.closest('.nav:not(.fz-nav) button[data-screen="scan"]'), start = t.closest("#btn-cam-start");
+        if(!plate && !fab && !tab && !start) return false;
+        if(start && (start.disabled || Date.now() < E.pasarWebHasta || Date.now() < E.webHasta)) return false;   // respaldo y placas con la cámara web
+        ev.preventDefault(); ev.stopImmediatePropagation();
+        if(plate){
+          var st = vState();
+          if(!st || !st.recordsList || !st.recordsList.length){ try{ if(typeof W.toastError === "function") W.toastError("Primero carga el inventario."); else aviso("Primero carga el inventario."); }catch(e){} return true; }
+          abrirCamara("placa", "leer placa");
+          return true;
+        }
+        if(fab){ try{ E.vibrar && E.vibrar("toque"); }catch(e){} }
+        abrirCamara(null, fab ? "boton verde" : tab ? "pestaña" : (W.fzScanning ? "fisico" : "iniciar camara"));
+        return true;
+      }catch(e){ return false; }
+    };
+    // Si la app pide apagar la cámara (otro módulo, selector, ventana), se cierra también la nativa.
+    if(typeof W.stopCamera === "function"){
+      var sc2 = W.stopCamera;
+      W.stopCamera = function(){
+        if(K.abierta || K.abriendo){
+          if(R && R.activo) R.cerrar = true;
+          else { anota("camara: stopCamera de la app"); callado(llamar(WC, "cerrar", {})); }
+        }
+        return sc2.apply(this, arguments);
+      };
+    }
+    // Inventario físico: la foto chica de la pieza sale del cuadro en que la cámara nativa leyó el código.
+    if(typeof W.fzGrabFrame === "function"){
+      var fg0 = W.fzGrabFrame;
+      W.fzGrabFrame = function(){
+        var f = K.foto;
+        if(f && Date.now() - f.t < 5000){
+          K.foto = null;
+          try{
+            var fz = vFZ(); if(!fz || !fz.sid) return;
+            var path = fz.sid + "/" + Date.now() + "_" + Math.random().toString(36).slice(2, 8) + ".jpg";
+            var shot = { path:path, t:Date.now(), part:null, used:false };
+            fz.shot = shot;
+            fetch(f.url).then(function(r){ return r.blob(); }).then(function(blob){
+              if(!blob) return;
+              try{ if(typeof fzPhotoUrls !== "undefined") fzPhotoUrls.set(path, URL.createObjectURL(blob)); }catch(e){}   // eslint-disable-line no-undef
+              if(typeof W.fzSb === "function"){
+                shot.upload = W.fzSb().then(function(sb){ return sb.storage.from("fisico-fotos").upload(path, blob, { contentType:"image/jpeg", upsert:true }); })
+                  .then(function(r){ if(r && r.error) throw r.error; return path; }).catch(function(){ return null; });
+              }
+            }).catch(function(){});
+          }catch(e){}
+          return;
+        }
+        return fg0.apply(this, arguments);
+      };
+    }
+
+    if(camHay()){
+      var pc = P(WC);
+      if(pc && pc.addListener){
+        callado(Promise.resolve(pc.addListener("codigo", function(d){ try{ onCodigo(d); }catch(e){ anota("camara: codigo err " + e); } })));
+        callado(Promise.resolve(pc.addListener("placa", function(d){ try{ onPlaca(d); }catch(e){ anota("camara: placa err " + e); } })));
+        callado(Promise.resolve(pc.addListener("accion", function(d){ try{ onAccion(d); }catch(e){ anota("camara: accion err " + e); } })));
+        callado(Promise.resolve(pc.addListener("cerrada", function(d){ try{ onCerrada(d); }catch(e){} })));
+      }
+      callado(llamar(WC, "cerrar", {}));   // si la página se recargó con la cámara abierta, se cierra (nadie la escucharía)
+      try{ D.documentElement.classList.add("witt-camara"); }catch(e){}
+    }
+    E.abrirCamara = abrirCamara;
+  }catch(e){ anota("camara: init err " + e); }
+
   try{
     W.__wittNativa = { version:VERSION, config:CFG, log:E.log,
-      estado:function(){ return { abierto:E.abierto, despierta:E.despierta, modulo:E.modulo, soportado:E.soportado, fisicoNativo:CFG.fisicoNativo }; },
-      escanear:function(){ return E.escanear && E.escanear(); }, atras:function(){ return E.atras(); }, despierta:function(){ despiertaRevisar(true); } };
+      estado:function(){ return { abierto:E.abierto, despierta:E.despierta, modulo:E.modulo, soportado:E.soportado, fisicoNativo:CFG.fisicoNativo,
+        camara: E.camara ? { abierta:E.camara.abierta, modo:E.camara.modo, contexto:E.camara.ctx, volver:!!E.camara.volver, fallos:E.camara.fallos, avisos:E.camara.avisos,
+          plugin: (function(){ try{ return !!C.isPluginAvailable("WittCamara"); }catch(e){ return false; } })() } : null }; },
+      escanear:function(){ return E.escanear && E.escanear(); }, atras:function(){ return E.atras(); }, despierta:function(){ despiertaRevisar(true); },
+      camara:function(modo){ return E.abrirCamara ? E.abrirCamara(modo || null, "consola") : Promise.resolve(false); } };
   }catch(e){}
 })();
