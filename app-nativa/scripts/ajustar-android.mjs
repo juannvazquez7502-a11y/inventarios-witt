@@ -6,7 +6,10 @@
 // - versionCode = 100 + número de corrida (mayor que el del TWA, para instalarse encima) y versionName de la corrida.
 // - App Link verificado (autoVerify) para la página de la app: la cámara del teléfono abre la app con la liga para unirse.
 // - MainActivity descarta la liga de arranque cuando Android recrea la Activity con el mismo intent (Recientes, proceso muerto).
-import { readFileSync, writeFileSync, readdirSync } from "node:fs";
+// - Cámara Witt (v2.2): plugin local en Kotlin (android-extra/camara) con CameraX y ML Kit empaquetado; MainActivity lo
+//   registra. WITT_CAMARA=0 lo quita. WITT_CAMARA_PRUEBA=1 (solo el flujo de prueba) agrega las imágenes de prueba.
+import { readFileSync, writeFileSync, readdirSync, copyFileSync, mkdirSync, existsSync } from "node:fs";
+import { dirname } from "node:path";
 
 const must = (cond, que) => { if (!cond) throw new Error("No encontré: " + que); };
 const VC = parseInt(process.env.VERSION_CODE || "", 10);
@@ -155,6 +158,74 @@ let gr = readFileSync(GR, "utf8");
 must(/versionCode\s+\d+/.test(gr), "versionCode en build.gradle");
 must(/versionName\s+"[^"]*"/.test(gr), "versionName en build.gradle");
 gr = gr.replace(/versionCode\s+\d+/, "versionCode " + VC).replace(/versionName\s+"[^"]*"/, `versionName "${VN}"`);
+
+// Cámara Witt (23-nov-2026, v2.2). Cámara propia a pantalla completa, más rápida que el escáner de Google:
+// - fuentes Kotlin de android-extra/camara junto a MainActivity (paquete mx.grupowitt.inventarios.camara);
+// - Kotlin en el módulo app (la plantilla de Capacitor es solo Java) con jvmTarget 21, igual que Java en Capacitor 7;
+// - CameraX 1.4.2 y ML Kit EMPAQUETADO (barcode-scanning 17.3.0 y text-recognition 16.0.1: los modelos van dentro del
+//   APK, no se descargan de Google Play);
+// - MainActivity registra el plugin antes de super.onCreate (registerPlugin).
+const CAMARA = process.env.WITT_CAMARA !== "0";
+const CAMARA_PRUEBA = process.env.WITT_CAMARA_PRUEBA === "1";
+const KOTLIN = "2.0.21", CAMERAX = "1.4.2";
+const camara = { activa: CAMARA, fuentes: 0, prueba: 0 };
+if (CAMARA) {
+  const EXTRA = "android-extra/camara";
+  must(existsSync(EXTRA), EXTRA + " (fuentes de la cámara Witt)");
+  const dirCam = dirname(ACT) + "/camara";
+  mkdirSync(dirCam, { recursive: true });
+  for (const f of readdirSync(EXTRA).filter(f => f.endsWith(".kt"))) { copyFileSync(EXTRA + "/" + f, dirCam + "/" + f); camara.fuentes++; }
+  must(camara.fuentes >= 5, "las 5 fuentes .kt de la cámara Witt");
+
+  let ma = readFileSync(ACT, "utf8");
+  if (!ma.includes("WittCamaraPlugin")) {
+    must(ma.includes("super.onCreate(savedInstanceState);"), "super.onCreate en MainActivity");
+    ma = ma.replace("super.onCreate(savedInstanceState);",
+      "registerPlugin(mx.grupowitt.inventarios.camara.WittCamaraPlugin.class);   // witt-camara\n        super.onCreate(savedInstanceState);");
+    writeFileSync(ACT, ma, "utf8");
+  }
+
+  const RAIZ = "android/build.gradle";
+  let raiz = readFileSync(RAIZ, "utf8");
+  if (!raiz.includes("kotlin-gradle-plugin")) {
+    must(/classpath\s+['"]com\.android\.tools\.build:gradle:[^'"]+['"]/.test(raiz), "classpath del Android Gradle Plugin en android/build.gradle");
+    raiz = raiz.replace(/(classpath\s+['"]com\.android\.tools\.build:gradle:[^'"]+['"])/,
+      `$1\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:${KOTLIN}'`);
+    writeFileSync(RAIZ, raiz, "utf8");
+  }
+
+  if (!gr.includes("kotlin-android")) {
+    must(/apply plugin:\s*['"]com\.android\.application['"]/.test(gr), "apply plugin com.android.application");
+    gr = gr.replace(/(apply plugin:\s*['"]com\.android\.application['"])/, "$1\napply plugin: 'kotlin-android'");
+    must(/\nandroid\s*\{/.test(gr), "bloque android { } en app/build.gradle");
+    gr = gr.replace(/\nandroid\s*\{/, "\nandroid {\n    kotlinOptions { jvmTarget = '21' }   // witt-camara");
+    must(/\ndependencies\s*\{/.test(gr), "bloque dependencies { } en app/build.gradle");
+    gr = gr.replace(/\ndependencies\s*\{/, [
+      "\ndependencies {",
+      "    // witt-camara: CameraX y ML Kit empaquetado (códigos y texto para placas)",
+      `    implementation "androidx.camera:camera-core:${CAMERAX}"`,
+      `    implementation "androidx.camera:camera-camera2:${CAMERAX}"`,
+      `    implementation "androidx.camera:camera-lifecycle:${CAMERAX}"`,
+      `    implementation "androidx.camera:camera-view:${CAMERAX}"`,
+      '    implementation "com.google.mlkit:barcode-scanning:17.3.0"',
+      '    implementation "com.google.mlkit:text-recognition:16.0.1"'
+    ].join("\n"));
+  }
+
+  // Si Java y Kotlin no compilan para la misma versión, avisa en lugar de detener la compilación.
+  const GP = "android/gradle.properties";
+  let gp = existsSync(GP) ? readFileSync(GP, "utf8") : "";
+  if (!gp.includes("kotlin.jvm.target.validation.mode")) writeFileSync(GP, gp.replace(/\s*$/, "\n") + "kotlin.jvm.target.validation.mode=warning\n", "utf8");
+
+  // Solo en el APK de prueba del emulador: imágenes sintéticas para probar la lectura sin cámara real (probar()).
+  if (CAMARA_PRUEBA) {
+    const ORIGEN = "../app-nativa-prueba/camara";
+    must(existsSync(ORIGEN), ORIGEN + " (imágenes de prueba)");
+    const DEST = "android/app/src/main/assets/witt-prueba";
+    mkdirSync(DEST, { recursive: true });
+    for (const f of readdirSync(ORIGEN).filter(f => /\.(png|jpe?g)$/i.test(f))) { copyFileSync(ORIGEN + "/" + f, DEST + "/" + f); camara.prueba++; }
+  }
+}
 writeFileSync(GR, gr, "utf8");
 
 const VAR = "android/variables.gradle";
@@ -162,6 +233,6 @@ const vars = readFileSync(VAR, "utf8");
 const sdk = k => (vars.match(new RegExp(k + "\\s*=\\s*(\\d+)")) || [])[1];
 console.log(JSON.stringify({
   versionCode: VC, versionName: VN, permisosAgregados: permisos.length, estilosBarras: estilos, fondoVentana: fondo,
-  appLink: man.includes('android:autoVerify="true"') && man.includes('android:host="' + HOST_APP + '"'), ligaVieja: actividadLigaVieja,
+  appLink: man.includes('android:autoVerify="true"') && man.includes('android:host="' + HOST_APP + '"'), ligaVieja: actividadLigaVieja, camara,
   minSdk: sdk("minSdkVersion"), compileSdk: sdk("compileSdkVersion"), targetSdk: sdk("targetSdkVersion")
 }));
