@@ -5566,6 +5566,22 @@ html body #intro-film{z-index:2147483600;}
 @keyframes wv-entra{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}}
 @media (prefers-reduced-motion:reduce){ .witt-version{animation:none;} }
 
+/* 25-nov-2026: versión nueva → el logo Witt del selector respira en verde y blanco; se toca para actualizar */
+html.witt-nueva-version #app-launcher .launcher-brand .logo{cursor:pointer;position:relative;
+  animation:wv-respira 1.8s ease-in-out infinite;-webkit-tap-highlight-color:transparent;}
+html.witt-nueva-version #app-launcher .launcher-brand .logo svg{animation:wv-respira-ico 1.8s ease-in-out infinite;}
+html.witt-nueva-version #app-launcher .launcher-brand .logo::after{content:"";position:absolute;inset:-5px;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 0 2px #46dbb5;animation:wv-anillo 1.8s ease-out infinite;}
+html.witt-nueva-version #app-launcher .launcher-brand .logo:active{scale:.92;}
+@keyframes wv-respira{0%,100%{background:#00574a;scale:1;}50%{background:#ffffff;scale:1.08;}}
+@keyframes wv-respira-ico{0%,100%{stroke:#ffffff;}50%{stroke:#00574a;}}
+@keyframes wv-anillo{0%{opacity:.9;scale:1;}100%{opacity:0;scale:1.35;}}
+@media (prefers-reduced-motion:reduce){
+  html.witt-nueva-version #app-launcher .launcher-brand .logo{animation:none;background:#ffffff;}
+  html.witt-nueva-version #app-launcher .launcher-brand .logo svg{animation:none;stroke:#00574a;}
+  html.witt-nueva-version #app-launcher .launcher-brand .logo::after{animation:none;}
+}
+
 /* ===== Puente nativo (23-nov-2026): solo dentro de la app nativa (html.witt-nativa lo pone nativa.js). En la web no aplica nada. ===== */
 /* Inventario físico: el lector de piezas usa la cámara web (guarda la foto chica de cada escaneo) a pantalla completa. */
 html.witt-nativa #modal-fz-scan.show{padding:0 !important;align-items:stretch !important;justify-content:stretch !important;background:#000 !important;}
@@ -5762,6 +5778,16 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 /* ---------- 6. will-change ----------
    La gota de la barra en modo ligero solo mueve la cabeza y el ícono; el cuerpo y el borde ya no se animan. */
 :root:is(.lite,.witt-nativa) :is(.wg-liq-cuerpo,.wg-liq-borde){will-change:auto;}
+
+/* v2.3 (25-nov-2026) · carrusel en teléfono: la foto se pintaba DOS veces por tarjeta (arriba en ::before y otra vez
+   de fondo para el 20 % de abajo, que en teléfono ya no lleva desenfoque). Abajo queda un color sólido: menos pintura
+   al deslizar. La foto de arriba no cambia. */
+:root:is(.lite,.witt-nativa) #app-launcher .wcr .wcr-track > .app-card{background:#0d1110;}
+:root:is(.lite,.witt-nativa)[data-theme="light"] #app-launcher .wcr .wcr-track > .app-card{background:#eef2f1;}
+#modal-witt-salir .modal{max-width:360px;}
+/* Inventario físico · CÓDIGO: el servidor genera códigos de 6 letras (fisico_generate_code): 6 casillas, no 8, y centradas */
+#fisico-app #fz-code.fz-input.code{width:calc(6 * (1ch + var(--wa-ls)) + var(--wa-ls) / 2 + 1px);margin-left:auto;margin-right:auto;}
+#fisico-app .fz-row:has(> #fz-code.fz-input.code){justify-content:center;}
 </style>
 </head>
 <body>
@@ -25212,8 +25238,27 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       }catch(e){ location.reload(); }
     }
 
+    // 25-nov-2026 (pedido del usuario): con versión nueva el logo Witt del selector "respira" en verde y blanco y se
+    // actualiza AL TOCARLO (ya no se recarga sola). Dentro de un módulo sigue saliendo el aviso de abajo.
+    function logo(){
+      try{
+        document.documentElement.classList.add('witt-nueva-version');
+        var l = document.querySelector('#app-launcher .launcher-brand .logo');
+        if(!l || l.__wittAct) return;
+        l.__wittAct = 1;
+        l.setAttribute('role', 'button');
+        l.setAttribute('tabindex', '0');
+        l.setAttribute('aria-label', 'Hay una versión nueva: toca para actualizar');
+        l.title = 'Hay una versión nueva: toca para actualizar';
+        l.addEventListener('click', recargar);
+        l.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ recargar(); } });
+      }catch(e){}
+    }
+
     function aviso(){
       if(avisado) return; avisado = true;
+      logo();
+      if(enSelectorLibre() || document.querySelector('#app-launcher.show')) return;   // en el selector basta el logo
       var d = document.createElement('div');
       d.className = 'witt-version';
       d.setAttribute('role', 'status');
@@ -25230,9 +25275,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         revisando = false;
         if(!h) return;
         if(huella === null){ huella = h; return; }
-        if(h !== huella){
-          if(enSelectorLibre()) recargar(); else aviso();
-        }
+        if(h !== huella) aviso();
       });
     }
 
@@ -25241,8 +25284,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') setTimeout(revisar, 400); }, { passive: true });
     window.addEventListener('online', function(){ setTimeout(revisar, 800); }, { passive: true });
     setInterval(function(){ if(document.visibilityState === 'visible') revisar(); }, 10 * 60 * 1000);
-    // Si el aviso salió y luego vuelves al selector sin nada abierto, se aplica solo
-    document.addEventListener('click', function(){ if(avisado) setTimeout(function(){ if(enSelectorLibre()) recargar(); }, 600); }, { capture: true, passive: true });
+    // (25-nov) Ya no se aplica sola al volver al selector: se toca el logo Witt que respira.
     window.__wittRevisarVersion = revisar; // para pruebas
   }catch(e){}
 })();
@@ -25692,6 +25734,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       }
     }catch(e){}
     if(launcherAbierto()){
+      // v2.3: en la raíz se pregunta "¿Salir de la app?" con vibración (capa salir-fluido.js); "Salir" usa App.exitApp.
+      try{ if(typeof W.__wittPreguntarSalir === "function"){ W.__wittPreguntarSalir(); return "preguntar-salir"; } }catch(e){}
       if(CFG.salirEnSelector){ callado(llamar("App", "exitApp")); return "salir"; }
       return "nada";
     }
@@ -27426,6 +27470,170 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       info.partes.push("has " + conv + "/" + tot);
     })();
   }catch(e){ info.partes.push("has: error " + e); }
+})();
+
+/* ===== v2.3 (25-nov-2026): "¿Salir de la app?" con vibración + carrusel sin tirones =====
+   Va AL FINAL de las capas JS (después de ligero.js). No toca el JS original ni datos; todo en try/catch.
+   1. SALIR  En el selector de apps (la raíz), el "atrás" del teléfono ya no se queda mudo ni cierra la app de golpe:
+             sale una ventana "¿Salir de la app?" con vibración. Atrás otra vez (o "Quedarme") la cierra; "Salir" sale.
+             - App nativa: nativa.js llama a window.__wittPreguntarSalir() y "Salir" usa App.exitApp().
+             - Navegador / APK web: el "atrás" del original (popstate) vuelve a poner su guardia; aquí se pregunta
+               y "Salir" deja pasar los "atrás" hasta salir de la página.
+   2. FLUIDO El selector se redibujaba solo cada 2-3 s (cifras de las tarjetas) aunque nada cambiara: cada vez
+             recalculaba estilos y la capa de íconos revisaba todo, y si caía mientras se deslizaba el carrusel, se trababa.
+             Ahora: (a) si el texto nuevo es igual al que ya está, no se toca la página; (b) mientras el dedo mueve el
+             carrusel, el redibujo espera a que se detenga. */
+(function(){
+  "use strict";
+  var W = window, D = document;
+  var $ = function(s){ try{ return D.querySelector(s); }catch(e){ return null; } };
+
+  /* ---------------- 2. FLUIDO ---------------- */
+  var moviendo = false, quietoT = 0, pendienteRL = false;
+  try{
+    var track = $("#app-launcher .wcr-track");
+    var quieto = function(){
+      moviendo = false;
+      if(pendienteRL){ pendienteRL = false; try{ if(typeof W.renderLauncher === "function") W.renderLauncher(); }catch(e){} }
+    };
+    var mueve = function(){ moviendo = true; clearTimeout(quietoT); quietoT = setTimeout(quieto, 260); };
+    if(track){
+      track.addEventListener("touchstart", mueve, { passive:true });
+      track.addEventListener("pointerdown", mueve, { passive:true });
+      track.addEventListener("scroll", mueve, { passive:true });
+      track.addEventListener("touchend", mueve, { passive:true });
+    }
+    // (b) renderLauncher se llama por su nombre (setInterval cada 3 s): si el carrusel se mueve, espera.
+    var rlOrig = W.renderLauncher;
+    if(typeof rlOrig === "function"){
+      W.renderLauncher = function(){
+        if(moviendo){ pendienteRL = true; return; }
+        return rlOrig.apply(this, arguments);
+      };
+    }
+    // (a) Mismo texto = no se toca. Solo en estas cajas del selector (las cifras que se reescriben cada 2-3 s).
+    var dHTML = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+    var dTXT = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
+    var guardar = function(el, prop, d){
+      if(!el || !d || !d.set || !d.get) return;
+      var ultimo = null;
+      try{
+        Object.defineProperty(el, prop, { configurable:true, enumerable:true,
+          get: function(){ return d.get.call(this); },
+          set: function(v){ v = String(v); if(v === ultimo) return; ultimo = v; d.set.call(this, v); } });
+      }catch(e){}
+    };
+    ["#launch-stats-autos", "#launch-stats-refacciones", "#launch-stats-fisico"].forEach(function(s){ guardar($(s), "innerHTML", dHTML); });
+    guardar($("#launcher-date"), "textContent", dTXT);
+  }catch(e){}
+
+  /* ---------------- 4. Físico: el código es de 6 letras (6 casillas) ---------------- */
+  try{
+    var seis = function(){ var c = D.getElementById("fz-code"); if(c && c.type !== "hidden" && c.getAttribute("maxlength") !== "6") c.setAttribute("maxlength", "6"); };
+    D.addEventListener("focusin", function(e){ if(e.target && e.target.id === "fz-code") seis(); }, { passive:true });
+    D.addEventListener("beforeinput", function(e){ if(e.target && e.target.id === "fz-code") seis(); }, { passive:true, capture:true });
+    D.addEventListener("input", function(e){ var c = e.target; if(c && c.id === "fz-code"){ seis(); if(c.value.length > 6) c.value = c.value.slice(0, 6); } }, { passive:true, capture:true });
+    D.addEventListener("pointerdown", function(e){ if(e.target && e.target.id === "fz-code") seis(); }, { passive:true, capture:true });
+  }catch(e){}
+
+  /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
+  var VERSION_WEB = "2.3", FECHA_WEB = "25-nov-2026";
+  W.__wittVersion = VERSION_WEB;
+  try{
+    var inner = $("#app-launcher .launcher-inner");
+    if(inner && !D.getElementById("witt-version")){
+      var v = D.createElement("p");
+      v.id = "witt-version";
+      v.style.cssText = "margin:14px 0 4px;text-align:center;font:500 12px/1.4 var(--font,inherit);opacity:.62;letter-spacing:.2px;grid-column:1/-1;";
+      v.textContent = "Versión " + VERSION_WEB + " · " + FECHA_WEB;
+      inner.appendChild(v);
+      // En la app nativa se agrega la versión del APK instalado (App.getInfo).
+      try{
+        var A0 = W.Capacitor && W.Capacitor.Plugins && W.Capacitor.Plugins.App;
+        if(A0 && A0.getInfo){
+          A0.getInfo().then(function(i){ if(i && i.version) v.textContent = "Versión " + VERSION_WEB + " · APK " + i.version + " · " + FECHA_WEB; }).catch(function(){});
+        }
+      }catch(e){}
+    }
+  }catch(e){}
+
+  /* ---------------- 1. SALIR ---------------- */
+  try{
+    var esNativa = function(){ try{ return !!(W.Capacitor && W.Capacitor.isNativePlatform && W.Capacitor.isNativePlatform()); }catch(e){ return false; } };
+    var launcherAbierto = function(){ var l = $("#app-launcher"); return !!(l && l.classList.contains("show")); };
+    var hayVentana = function(){ return !!D.querySelector(".modal-bg.show"); };
+
+    var bg = D.createElement("div");
+    bg.className = "modal-bg";
+    bg.id = "modal-witt-salir";
+    bg.setAttribute("role", "dialog");
+    bg.setAttribute("aria-modal", "true");
+    bg.setAttribute("aria-labelledby", "witt-salir-t");
+    bg.innerHTML =
+      '<div class="modal">' +
+        '<h3 id="witt-salir-t">Estás saliendo de la aplicación. ¿Estás seguro?</h3>' +
+        '<p class="hint" style="margin-top:0;">Lo que llevas registrado queda guardado en este teléfono.</p>' +
+        '<div class="btn-row" style="margin-top:16px;display:flex;gap:10px;">' +
+          '<button type="button" class="btn sm ghost" id="witt-salir-no" style="flex:1;">Quedarme</button>' +
+          '<button type="button" class="btn sm danger" id="witt-salir-si" style="flex:1;">Salir</button>' +
+        '</div>' +
+      '</div>';
+    (D.body || D.documentElement).appendChild(bg);
+
+    var vibrar = function(){
+      try{ if(typeof W.__wittHapticsColor === "function"){ W.__wittHapticsColor("amarillo"); return; } }catch(e){}
+      try{ if(navigator.vibrate) navigator.vibrate([60, 80, 60]); }catch(e){}
+    };
+    var abrir = function(){
+      if(bg.classList.contains("show")){ bg.classList.remove("show"); return; }   // atrás otra vez: se cierra
+      bg.classList.add("show");
+      vibrar();
+      // voz (pedido del usuario): la misma voz de la app (sayAloud; en la app nativa va por TextToSpeech)
+      try{ if(typeof W.sayAloud === "function") W.sayAloud("Estás saliendo de la aplicación. ¿Estás seguro?"); }catch(e){}
+      try{ var no = D.getElementById("witt-salir-no"); no && no.focus({ preventScroll:true }); }catch(e){}
+    };
+    W.__wittPreguntarSalir = abrir;
+
+    var saliendo = false;
+    D.getElementById("witt-salir-no").addEventListener("click", function(){ bg.classList.remove("show"); });
+    bg.addEventListener("click", function(e){ if(e.target === bg) bg.classList.remove("show"); });
+    D.getElementById("witt-salir-si").addEventListener("click", function(){
+      bg.classList.remove("show");
+      if(esNativa()){
+        try{ var A = W.Capacitor.Plugins && W.Capacitor.Plugins.App; if(A && A.exitApp){ A.exitApp(); return; } }catch(e){}
+      }
+      // Navegador / APK web: se dejan pasar los "atrás" (sin guardia) hasta salir de la página.
+      saliendo = true;
+      try{ history.back(); }catch(e){}
+    });
+
+    // El "atrás" del original corre ANTES que este (se registró primero): cierra una ventana, va al inicio o abre el
+    // selector, y siempre vuelve a poner su guardia. Para saber si ese "atrás" ya hizo algo, se vigila (barato: solo el
+    // atributo class de cada ventana y del selector) cuándo cambió algo. Si no cambió nada y está el selector solo, es la raíz.
+    var tCambio = 0;
+    try{
+      var mo = new MutationObserver(function(){ tCambio = performance.now(); });
+      var vigilar = function(el){ try{ if(el && !el.__wittVig){ el.__wittVig = 1; mo.observe(el, { attributes:true, attributeFilter:["class"] }); } }catch(e){} };
+      Array.prototype.forEach.call(D.querySelectorAll(".modal-bg"), vigilar);
+      vigilar($("#app-launcher"));
+      setTimeout(function(){ Array.prototype.forEach.call(D.querySelectorAll(".modal-bg"), vigilar); }, 4000);   // ventanas que agregan otras capas después
+    }catch(e){}
+    // Al salir (navegador) la guardia del original ya no se pone, y cada "atrás" sigue hasta dejar la página.
+    try{
+      var psOrig = history.pushState;
+      history.pushState = function(st){ if(saliendo && st && st.gwGuard) return; return psOrig.apply(history, arguments); };
+    }catch(e){}
+    W.addEventListener("popstate", function(){
+      if(saliendo){ try{ history.back(); }catch(x){} return; }
+      // los observadores entregan su aviso entre un escucha y otro: si el original movió algo, tCambio es de este instante
+      setTimeout(function(){
+        try{
+          if(performance.now() - tCambio < 80) return;
+          if(launcherAbierto() && !hayVentana() && !(typeof W.pvIsOpen === "function" && W.pvIsOpen())) abrir();
+        }catch(e){}
+      }, 0);
+    });
+  }catch(e){}
 })();
 </script>
 </body>
