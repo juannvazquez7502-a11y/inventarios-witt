@@ -36,6 +36,7 @@ import android.util.Log
 import android.util.Range
 import android.util.Size
 import android.util.TypedValue
+import android.view.Choreographer
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
@@ -167,6 +168,12 @@ class VistaCamara(
     private val cuadrosCamara = AtomicInteger(0)
     private var fpsCamara = 0f
     private var tMedir = 0L
+    // Cuadros de la pantalla (vsync del hilo principal) mientras la cámara está abierta: si baja de ~60, algo traba el hilo.
+    private var cuadrosUi = 0
+    private var fpsUi = 0f
+    private val vsync = object : Choreographer.FrameCallback {
+        override fun doFrame(t: Long) { cuadrosUi++; if (abierta) Choreographer.getInstance().postFrameCallback(this) }
+    }
 
     // lectura
     private var esperando = false
@@ -185,10 +192,11 @@ class VistaCamara(
             if (!abierta) return
             val ahora = SystemClock.elapsedRealtime()
             val n = cuadrosCamara.getAndSet(0)
-            if (tMedir > 0) fpsCamara = n * 1000f / max(1L, ahora - tMedir)
+            val nUi = cuadrosUi; cuadrosUi = 0
+            if (tMedir > 0) { fpsCamara = n * 1000f / max(1L, ahora - tMedir); fpsUi = nUi * 1000f / max(1L, ahora - tMedir) }
             tMedir = ahora
-            Log.i(TAG, String.format(Locale.US, "fps camara=%.1f analisis=%.1f ms/cuadro=%.0f rango=%s modo=%s",
-                fpsCamara, analizador?.fps ?: 0f, analizador?.msPorCuadro ?: 0f, rangoTexto(), modo))
+            Log.i(TAG, String.format(Locale.US, "fps camara=%.1f pantalla=%.1f analisis=%.1f ms/cuadro=%.0f rango=%s modo=%s",
+                fpsCamara, fpsUi, analizador?.fps ?: 0f, analizador?.msPorCuadro ?: 0f, rangoTexto(), modo))
             principal.postDelayed(this, 2000)
         }
     }
@@ -220,6 +228,8 @@ class VistaCamara(
         atras = cb
         abierta = true
         tMedir = 0L
+        Choreographer.getInstance().removeFrameCallback(vsync)
+        Choreographer.getInstance().postFrameCallback(vsync)
         iniciarCamara(listo)
     }
 
@@ -235,6 +245,7 @@ class VistaCamara(
         abierta = false; cerrando = false; esperando = false; sesion++
         principal.removeCallbacks(finEspera); principal.removeCallbacks(ocultarTarjeta)
         principal.removeCallbacks(medir); principal.removeCallbacks(restaurarPista)
+        Choreographer.getInstance().removeFrameCallback(vsync)
         analizador?.activo = false
         if (linterna) {
             try { camara?.cameraControl?.enableTorch(false) } catch (_: Throwable) {}
@@ -482,7 +493,7 @@ class VistaCamara(
         }
         respirar(f)
         if (!f.mantener) {
-            val dur = when (f.color) { "verde" -> 1700L; "amarillo" -> 2800L; "rojo" -> 3400L; else -> 1300L } + (if (f.deshacer) 2600L else 0L)
+            val dur = when (f.color) { "verde" -> 1700L; "amarillo" -> 2800L; "rojo" -> 3400L; else -> 1300L } + (if (f.deshacer) 3800L else 0L)
             principal.postDelayed(ocultarTarjeta, dur)
         }
     }
@@ -1035,6 +1046,7 @@ class VistaCamara(
         o.put("version", VERSION_CAMARA)
         o.put("rangoFps", rangoTexto())
         o.put("fpsCamara", fpsCamara.toDouble())
+        o.put("fpsPantalla", fpsUi.toDouble())
         o.put("fpsAnalisis", (analizador?.fps ?: 0f).toDouble())
         o.put("msPorCuadro", (analizador?.msPorCuadro ?: 0f).toDouble())
         o.put("linterna", linterna)
