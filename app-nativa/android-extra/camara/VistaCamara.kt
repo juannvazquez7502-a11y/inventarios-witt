@@ -348,6 +348,10 @@ class VistaCamara(
             st.error?.let { Log.w(TAG, "estado de la cámara: error ${it.code}"); pistaTemporal("La cámara tuvo un problema (código ${it.code})") }
         }
         btnLinterna.visibility = if (cam.cameraInfo.hasFlashUnit()) View.VISIBLE else View.GONE
+        if (op?.modos?.contains("placa") == true) {
+            val s = sesion
+            principal.postDelayed({ if (s == sesion) analizador?.precalentarTexto() }, if (modo == "placa") 0L else 1500L)
+        }
         Log.i(TAG, "cámara abierta: rango=${rangoTexto()} modo=$modo")
     }
 
