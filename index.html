@@ -5818,6 +5818,22 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 /* Vehículos: modelos 2027 (fotos oficiales Nissan México, en carros/). Si no cargan, se ve el color de fondo de la tarjeta. */
 #app-launcher .wcr .wcr-track > .app-card.autos{--wcr-foto:url("carros/xtrail-2027.webp");--wimg-vehiculos-renault:url("carros/kicks-2027.webp");}
 
+/* v3.2 · catálogo de referencia (foto oficial del modelo/versión). Las de Nissan traen arriba el encabezado
+   ("Advance CVT · Rines…"): se ve solo la parte de abajo (el carro) anclando la imagen abajo en una caja más baja. */
+.witt-ref{margin:10px 0 8px;border-radius:16px;overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);}
+.witt-ref .wref-img{width:100%;aspect-ratio:300/150;background:#fff center bottom / 100% auto no-repeat;}
+.witt-ref.libre .wref-img{background-size:contain;background-position:center;aspect-ratio:16/8;}
+.witt-ref.grande .wref-img{aspect-ratio:300/155;}
+.witt-ref .wref-pie{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;padding:6px 12px 8px;background:#f4f6f5;color:#3b4744;font:600 11.5px/1.3 var(--font,inherit);}
+.witt-ref .wref-tag{opacity:.85;}
+.witt-ref .wref-color b{font-weight:800;color:#00574a;}
+.witt-ref.sin .wref-img{display:grid;place-items:center;aspect-ratio:300/110;background:repeating-linear-gradient(135deg,#f2f4f3 0 12px,#e9eeec 12px 24px);}
+.witt-ref.sin .wref-img span{font:800 13px/1 var(--font,inherit);color:#7d8a86;letter-spacing:.3px;text-transform:uppercase;}
+[data-theme="dark"] .witt-ref .wref-pie{background:#1c2120;color:#c9d3d0;}
+[data-theme="dark"] .witt-ref .wref-color b{color:#46dbb5;}
+[data-theme="dark"] .witt-ref.sin .wref-img{background:repeating-linear-gradient(135deg,#202524 0 12px,#1a1e1d 12px 24px);}
+[data-theme="dark"] .witt-ref.sin .wref-img span{color:#8a9894;}
+
 /* v2.7 · tamaño de letra: botón "Aa" junto al de tema y la hoja con 4 tamaños */
 #app-launcher .witt-head-der{display:flex;align-items:center;gap:8px;flex:none;}
 #witt-letra-btn{width:40px;height:32px;display:grid;place-items:center;border:0;border-radius:999px;background:var(--g-hero-chip,rgba(255,255,255,.14));color:var(--g-on-hero,#fff);
@@ -28265,7 +28281,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.1", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.2", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -28383,6 +28399,127 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       }catch(e){}
     });
   }catch(e){}
+})();
+
+/* ===== Catálogo de referencia (v3.2, 25-nov-2026) =====
+   Foto oficial (Nissan / Renault México) del modelo y versión de cada unidad, como REFERENCIA, en:
+     - los resultados de búsqueda (cada tarjeta), y
+     - la ventana de validación al encontrar/escanear la unidad.
+   No se descarga ni se guarda: se ve directo del sitio oficial (no va al ZIP ni cuenta como foto de la unidad).
+   Si la unidad ya tiene fotos tomadas, NO se muestra (se ve la de la unidad). Si se toma una foto en la ventana,
+   la referencia se quita en ese momento (solo de esa unidad).
+   Sin empate (modelo no reconocido, año antes de 2020 o de otra generación) = recuadro "Sin imagen".
+   El color de la foto es el del sitio oficial (no publica todos los colores); el color real va escrito debajo. */
+(function(){
+  "use strict";
+  var W = window, D = document;
+  var CAT = {"nissanBase":"https://www.nissan.com.mx/content/dam/Nissan/mexico/assets/","modelos":[{"id":"versa","marca":"Nissan","nombre":"Versa","kw":[["VERSA"]],"desde":2020,"def":"advance cvt","v":[["sense base tm","versa/my26/vap/Carrusel_Versa_sense_base_TM.jpg"],["sense cvt","versa/my26/vap/Carrusel_Versa_sense_CVT.jpg"],["sense","versa/my26/vap/Carrusel_Versa_sense_TM.jpg"],["advance cvt","versa/my26/vap/Carrusel_Versa_advance_CVT.jpg"],["advance","versa/my26/vap/Carrusel_Versa_advance_TM.jpg"],["exclusive","versa/my26/vap/Carrusel_Versa_exclusive_CVT.jpg"]]},{"id":"sentra","marca":"Nissan","nombre":"Sentra","kw":[["SENTRA"]],"desde":2026,"def":"advance","v":[["sr platinum","sentra/my26/vap/nissan-2026-sentra-version-sr_platinum-cvt-d.jpg"],["sr","sentra/my26/vap/nissan-2026-sentra-version-sr-cvt-d.jpg"],["advance","sentra/my26/vap/nissan-2026-sentra-version-advance-cvt-d.jpg"],["sense","sentra/my26/vap/nissan-2026-sentra-version-sense-cvt-d.jpg"]]},{"id":"march","marca":"Nissan","nombre":"March","kw":[["MARCH"]],"desde":2021,"def":"advance","v":[["advance","march/my26/vap/nissan-2026-march_advance_ta_rojo.jpg"],["sense","march/my26/vap/nissan-2026-march_sense_tm_rojo.jpg"]]},{"id":"kicks-epower","marca":"Nissan","nombre":"Kicks e-POWER","kw":[["KICKS","EPOWER"],["KICKS","PLAY"]],"desde":2022,"def":"advance","v":[["platinum","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER_platinum.jpg"],["exclusive","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER_exclusive.jpg"],["advance","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER-advance.jpg"]]},{"id":"kicks","marca":"Nissan","nombre":"Kicks","kw":[["KICKS"]],"desde":2025,"def":"advance","v":[["platinum","kicks/my27/vap/nissan-2027-kicks-version_platinum_cvt_v3-d.webp"],["exclusive","kicks/my27/vap/nissan-2027-kicks-version_exclusive_cvt_v3-d.webp"],["advance","kicks/my27/vap/nissan-2027-kicks-version_advance_cvt_v3-d.webp"]]},{"id":"xtrail-epower","marca":"Nissan","nombre":"X-Trail e-POWER","kw":[["XTRAIL","EPOWER"]],"desde":2024,"def":"exclusive","v":[["platinum","xtrail_e_power/my27/vap/nissan-2027-x-trail_e-power-platinum_e-4orce_2-row-d.jpg"],["exclusive","xtrail_e_power/my27/vap/nissan-2027-xtrail_epower_exclusive_2_row-d.jpg"]]},{"id":"xtrail","marca":"Nissan","nombre":"X-Trail","kw":[["XTRAIL"]],"desde":2023,"def":"advance","png":true,"v":[["platinum plus","xtrail/my27/reveals/nissan-2027-x_trail-platinum_plus_v1-d.png"],["platinum","xtrail/my27/reveals/nissan-2027-x_trail-platinum-d.png"],["exclusive","xtrail/my27/reveals/nissan-2027-x_trail-axclusisve-d.png"],["advance","xtrail/my27/reveals/nissan-2027-x_trail-advance-d.png"]]},{"id":"frontier-phev","marca":"Nissan","nombre":"Frontier PRO-PHEV","kw":[["FRONTIER","PHEV"]],"desde":2027,"def":"le","v":[["platinum","frontier_pro_phev/my27/vap/nissan-2027-frontier-phev-version-platinum-d.jpg"],["le","frontier_pro_phev/my27/vap/nissan-2027-frontier-phev-version-le-d.jpg"]]},{"id":"frontier-v6","marca":"Nissan","nombre":"Frontier V6 PRO-4X","kw":[["FRONTIER","V6"]],"desde":2022,"def":"pro4x","v":[["pro4x","frontier_usa/my27/vap/nissan-2027-frontier_v6_pro_4x-d.jpg"]]},{"id":"frontier","marca":"Nissan","nombre":"Frontier","kw":[["FRONTIER"]],"desde":2021,"def":"le tm","v":[["pro4x","frontier/my26/vap/Carrusel_De_Frontier_PRO-4X_4X4_TA.jpg"],["platinum","frontier/my26/vap/Carrusel_De_Frontier_Platinum_LE_TM.jpg"],["le diesel","frontier/my26/vap/Carrusel_De_Frontier_LE_DIESEL_4X4_TA.jpg"],["dc diesel","frontier/my26/vap/Carrusel_De_Frontier_DC_DIESEL_4X4_TM.jpg"],["le","frontier/my26/vap/Carrusel_De_Frontier_LE_TM.jpg"],["se","frontier/my26/vap/Carrusel_De_Frontier_SE_TM.jpg"],["xe cvt","frontier/my26/vap/Carrusel_De_Frontier_XE_TA.jpg"],["xe","frontier/my26/vap/Carrusel_De_Frontier_XE_TM.jpg"]]},{"id":"np300","marca":"Nissan","nombre":"NP300","kw":[["NP300"]],"desde":2020,"def":"pickup","v":[["chasis diesel","np3001/my26/vap/nissan-2026-np300-chasis-diesel-tm-ac-vdc-d.jpg"],["chasis","np3001/my26/vap/nissan-2026-np300-chasis-tm-ac-vdc-d.jpg"],["pickup","np3001/my26/vap/nissan-2026-np300-pickup-tm-ac-d.jpg"]]},{"id":"urvan","marca":"Nissan","nombre":"Urvan","kw":[["URVAN"]],"desde":2022,"def":"panel","v":[["11","urvan/my27/vap/nissan-2027-urvan_11_pasajeros_AA.jpg"],["14","urvan/my27/vap/nissan-2027-urvan_14_pasajeros_amplia_AA.jpg"],["15","urvan/my27/vap/nissan-2027-urvan_14_pasajeros_amplia_AA.jpg"],["panel ventanas","urvan/my27/vap/nissan-2027-urvan_panel_ventanas_Amplia.jpg"],["panel","urvan/my27/vap/nissan-2027-urvan_panel_amplia_AA.jpg"]]},{"id":"pathfinder","marca":"Nissan","nombre":"Pathfinder","kw":[["PATHFINDER"]],"desde":2022,"def":"platinum","v":[["platinum","pathfinder/my26/vap/nissan-2026-pathfinder-platinum-d.jpg"]]},{"id":"magnite","marca":"Nissan","nombre":"Magnite","kw":[["MAGNITE"]],"desde":2024,"def":"advance cvt","v":[["advance cvt dark","magnite/my26/vap/nissan-2026-magnite-advance-cvt-dark-armour-d.jpg"],["advance tm dark","magnite/my26/vap/nissan-2026-magnite-advance-mt-dark-armour-d.jpg"],["exclusive","magnite/my26/vap/nissan-2026-magnite-exclusive-cvt-d.jpg"],["advance cvt","magnite/my26/vap/nissan-2026-magnite-advance-cvt-d.jpg"],["advance","magnite/my26/vap/nissan-2026-magnite-advance-mt-d.jpg"]]},{"id":"kait","marca":"Nissan","nombre":"Kait","kw":[["KAIT"]],"desde":2026,"def":"advance","v":[["platinum","kait/my27/vap/nissan-2027-kait-platinum-cvt-d.jpg"],["exclusive","kait/my27/vap/nissan-2027-kait-exclusive-cvt-d.jpg"],["advance","kait/my27/vap/nissan-2027-kait-advance-cvt-d.jpg"]]},{"id":"vdrive","marca":"Nissan","nombre":"V-Drive","kw":[["VDRIVE"]],"desde":2020,"def":"base","v":[["tm","v_drive/my26/vap/nissan-2026-vdrive-tm.jpg"],["base","v_drive/my26/vap/nissan-2026-vdrive-base.jpg"]]},{"id":"z","marca":"Nissan","nombre":"Nissan Z","kw":[["NISSANZ"],["Z","TOURING"]],"desde":2023,"def":"cvt","v":[["tm","z/my26/vap/nissan-2026-z-touring_mt-d.jpg"],["cvt","z/my26/vap/nissan-2026-z-touring_at-d.jpg"]]},{"id":"kwid","marca":"Renault","nombre":"Kwid","kw":[["KWID"]],"desde":2023,"renault":"https://mx.co.rplug.renault.com/product/model/BB1/kwid-ph2/c/A-ENS_0MDL2P1SERIELIM3_-OKNU"},{"id":"kardian","marca":"Renault","nombre":"Kardian","kw":[["KARDIAN"]],"desde":2024,"renault":"https://mx.co.rplug.renault.com/product/model/HM1/kardian/c/A-ENS_0MDL2P1SERIELIM2_-TERQH"},{"id":"duster","marca":"Renault","nombre":"Duster","kw":[["DUSTER"]],"desde":2025,"renault":"https://mx.co.rplug.renault.com/product/model/JM1/duster/c/A-TEKNH"},{"id":"arkana","marca":"Renault","nombre":"Arkana","kw":[["ARKANA"]],"desde":2022,"renault":"https://mx.co.rplug.renault.com/product/model/JL1/arkana/c/A-ENS_0MDL2P1SERIELIM1_-TEKQS"},{"id":"koleos","marca":"Renault","nombre":"Koleos","kw":[["KOLEOS"]],"desde":2025,"renault":"https://mx.co.rplug.renault.com/product/model/AU1/renault-koleos/c/A-TEKQS"},{"id":"oroch","marca":"Renault","nombre":"Oroch","kw":[["OROCH"]],"desde":2023,"renault":"https://mx.co.rplug.renault.com/product/model/M79;ck=VU/oroch/c/A-ENS_0MDL2P1SERIELIM3_"},{"id":"boreal","marca":"Renault","nombre":"Boreal","kw":[["BOREAL"]],"desde":2026,"renault":"https://mx.co.rplug.renault.com/product/model/RM1/proyecto-r1312/c/A-ENS_0MDL2P1SERIELIM3_-TERRM"},{"id":"megane-etech","marca":"Renault","nombre":"Mégane E-Tech","kw":[["MEGANE","ETECH"]],"desde":2024,"renault":"https://mx.co.rplug.renault.com/product/model/ZO1/megane-e-tech/c/A-BIYWU"}]};
+  if(!CAT) return;
+  var RENAULT = "https://www.renault.com.mx/agg/vn/unique/ONE_DACIA_PP_LARGE_DENSITY1/r_brandSite_carPicker_1.png?uri=";
+
+  var norm = function(s){
+    var t = String(s || "").toUpperCase();
+    try{ t = t.normalize("NFD").replace(/[̀-ͯ]/g, ""); }catch(e){}
+    t = t.replace(/X[\s\-]?TRAIL/g, "XTRAIL").replace(/E[\s\-]?POWER/g, "EPOWER").replace(/V[\s\-]?DRIVE/g, "VDRIVE")
+         .replace(/NP[\s\-]?300/g, "NP300").replace(/PRO[\s\-]?4X/g, "PRO4X").replace(/E[\s\-]?TECH/g, "ETECH")
+         .replace(/NISSAN\s+Z\b/g, "NISSANZ").replace(/\bT\s*\/\s*M\b/g, "TM").replace(/\bT\s*\/\s*A\b/g, "TA");
+    var tok = t.split(/[^A-Z0-9]+/).filter(Boolean);
+    var set = {};
+    tok.forEach(function(x){
+      set[x] = 1;
+      if(/^(CVT|TA|AT|AUT|AUTO|AUTOMATICA|AUTOMATICO|XTRONIC)$/.test(x)) set.CVT = 1;
+      if(/^(TM|MT|STD|ESTANDAR|MANUAL)$/.test(x)) set.TM = 1;
+      if(x === "PICKUP" || x === "PICK") set.PICKUP = 1;
+    });
+    return set;
+  };
+  var tiene = function(set, frase){ return String(frase).toUpperCase().split(/\s+/).every(function(w){ return !!set[w]; }); };
+  var anio = function(txt){ var m = String(txt || "").match(/\b(20[1-3]\d)\b/); return m ? Number(m[1]) : null; };
+
+  var memo = {};
+  // -> { url, sinEncabezado, etiqueta } o { sin: "motivo" }
+  var buscar = function(rec){
+    if(!rec) return { sin:"sin datos" };
+    var txt = [rec.type, rec.model, rec.version, rec.desc].filter(Boolean).join(" ");
+    if(memo[txt]) return memo[txt];
+    var set = norm(txt), y = anio(txt) || (rec.year ? Number(rec.year) : null), r = null;
+    for(var i = 0; i < CAT.modelos.length && !r; i++){
+      var m = CAT.modelos[i];
+      if(!m.kw.some(function(g){ return g.every(function(w){ return !!set[w]; }); })) continue;
+      if(y && (y < 2020 || y < m.desde)){ r = { sin:"modelo " + y + " (otra generación)" }; break; }
+      if(m.renault){ r = { url: RENAULT + encodeURIComponent(m.renault), sinEncabezado:true, etiqueta: m.marca + " " + m.nombre }; break; }
+      var mejor = null, pts = -1;
+      m.v.forEach(function(v){ var k = String(v[0]).split(/\s+/).length; if(tiene(set, v[0]) && k > pts){ pts = k; mejor = v; } });
+      if(!mejor) mejor = m.v.filter(function(v){ return v[0] === m.def; })[0] || m.v[0];
+      var p = mejor[1], ext = p.slice(p.lastIndexOf("."));
+      r = { url: CAT.nissanBase + p + (m.png ? ".ximg.s_12_m.smart.png" : ".ximg.l_8_m.smart" + ext),
+            sinEncabezado: m.id === "frontier-v6", etiqueta: m.marca + " " + m.nombre + " · " + mejor[0].toUpperCase() };
+    }
+    memo[txt] = r || { sin:"modelo no reconocido" };
+    return memo[txt];
+  };
+  W.__wittCatalogo = { buscar: buscar };
+
+  var tieneFotos = function(vin){
+    try{
+      if(!vin || typeof State === "undefined") return false;
+      if(State.photosMap && State.photosMap.has && (State.photosMap.has(vin) || State.photosMap.has(vin + "~2"))) return true;
+      return (State.sessionLogs || []).some(function(l){ return l.vin === vin && (l.photoName || (l.extraPhotos && l.extraPhotos.length)); });
+    }catch(e){ return false; }
+  };
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); };
+  var caja = function(rec, grande){
+    var r = buscar(rec);
+    var color = rec && rec.color ? '<span class="wref-color">Color real: <b>' + esc(rec.color) + "</b></span>" : "";
+    if(!r.url) return '<div class="witt-ref sin' + (grande ? " grande" : "") + '" data-witt-ref><div class="wref-img"><span>Sin imagen</span></div><div class="wref-pie"><span class="wref-tag">Sin imagen de referencia · ' + esc(r.sin) + "</span>" + color + "</div></div>";
+    return '<div class="witt-ref' + (r.sinEncabezado ? " libre" : "") + (grande ? " grande" : "") + '" data-witt-ref>' +
+      '<div class="wref-img" role="img" aria-label="Foto de referencia: ' + esc(r.etiqueta) + '" style="background-image:url(&quot;' + esc(r.url) + '&quot;)"></div>' +
+      '<div class="wref-pie"><span class="wref-tag">Referencia oficial · ' + esc(r.etiqueta) + "</span>" + color + "</div></div>";
+  };
+
+  /* 1. Resultados de búsqueda: renderMatchResults se llama por su nombre -> se envuelve */
+  var rmr = W.renderMatchResults;
+  if(typeof rmr === "function"){
+    W.renderMatchResults = function(grouped, query, container){
+      var out = rmr.apply(this, arguments);
+      try{
+        [].forEach.call((container || D).querySelectorAll(".result"), function(div){
+          if(div.querySelector("[data-witt-ref]")) return;
+          var b = div.querySelector("[data-uh-vin]"); if(!b) return;
+          var vin = b.getAttribute("data-uh-vin");
+          var recs = (State.recordsMap && State.recordsMap.get(vin)) || [];
+          var rec = recs[0]; if(!rec || tieneFotos(vin)) return;
+          var desc = div.querySelector(".car-desc");
+          var w = D.createElement("div"); w.innerHTML = caja(rec, false);
+          div.insertBefore(w.firstChild, desc || div.firstChild);
+        });
+      }catch(e){}
+      return out;
+    };
+  }
+
+  /* 2. Ventana de validación (al encontrar / escanear / seleccionar la unidad) */
+  var md = D.getElementById("modal-detect");
+  if(md){
+    var poner = function(){
+      try{
+        var viejo = md.querySelector("[data-witt-ref]"); if(viejo) viejo.remove();
+        if(!md.classList.contains("show")) return;
+        var a = (typeof activeModalData !== "undefined") ? activeModalData : null;
+        if(!a || a.type !== "single" || !a.record) return;
+        var rec = a.record;
+        if(tieneFotos(rec.vin)) return;
+        var th = D.getElementById("ph-thumbs"); if(th && th.children.length) return;
+        var box = md.querySelector(".vehicle-title-box") || md.querySelector(".modal");
+        var w = D.createElement("div"); w.innerHTML = caja(rec, true);
+        box.insertBefore(w.firstChild, box.firstChild);
+      }catch(e){}
+    };
+    new MutationObserver(function(){ poner(); }).observe(md, { attributes:true, attributeFilter:["class"] });
+    // al tomar una foto en la ventana: la referencia se quita (solo de esta unidad)
+    var th0 = D.getElementById("ph-thumbs");
+    if(th0) new MutationObserver(function(){ if(th0.children.length){ var v = md.querySelector("[data-witt-ref]"); if(v) v.remove(); } }).observe(th0, { childList:true });
+  }
 })();
 </script>
 </body>
