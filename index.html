@@ -27743,6 +27743,40 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   }catch(e){}
 
+  /* ---------------- 12. Voz FEMENINA en toda la app (pedido del usuario) ----------------
+     Reemplaza sayAloud (la voz de la app; todas las frases pasan por ahí). Busca una voz de mujer en español (México,
+     luego EE. UU., luego cualquier español) por nombre conocido; si el teléfono no dice cuál es de mujer (Android no lo
+     informa) o en la app nativa (voz del sistema), sube el tono para que suene femenina. */
+  try{
+    var FEM = /(paulina|sabina|dalia|helena|laura|m[oó]nica|elvira|luc[ií]a|marisol|ximena|renata|camila|valentina|sof[ií]a|paloma|female|mujer|femenin|-x-es[df]-|-x-sfb-|zira)/i;
+    var vozF = null, vozBuscada = false;
+    var buscarVoz = function(){
+      try{
+        var vs = (W.speechSynthesis && W.speechSynthesis.getVoices && W.speechSynthesis.getVoices()) || [];
+        if(!vs.length) return null;
+        vozBuscada = true;
+        var es = function(re){ return vs.filter(function(v){ return re.test(v.lang || "") && FEM.test((v.name || "") + " " + (v.voiceURI || "")); })[0] || null; };
+        vozF = es(/^es[-_]MX/i) || es(/^es[-_]US/i) || es(/^es/i) || null;
+        return vozF;
+      }catch(e){ return null; }
+    };
+    try{ if(W.speechSynthesis && W.speechSynthesis.addEventListener) W.speechSynthesis.addEventListener("voiceschanged", buscarVoz); }catch(e){}
+    buscarVoz();
+    W.__wittVozFemenina = function(){ return vozF ? (vozF.name + " · " + vozF.lang) : "tono alto"; };
+    W.sayAloud = function(txt){
+      try{
+        if(!W.speechSynthesis || !txt) return;
+        if(!vozBuscada) buscarVoz();
+        W.speechSynthesis.cancel();
+        var u = new W.SpeechSynthesisUtterance(String(txt));
+        u.lang = (vozF && vozF.lang) || "es-MX"; u.rate = 1.03; u.volume = 1;
+        u.pitch = vozF ? 1.08 : 1.3;            // sin voz de mujer identificada: tono más alto
+        if(vozF) u.voice = vozF;
+        W.speechSynthesis.speak(u);
+      }catch(e){}
+    };
+  }catch(e){}
+
   /* ---------------- 11. Tamaño de letra de toda la app ----------------
      Botón "Aa" junto al de tema en el selector: Chica · Normal · Grande · Muy grande. Escala TODA la app (letras, botones
      y espacios juntos, como el zoom del teléfono) para que nada se encime. Se recuerda en este teléfono. */
@@ -27810,6 +27844,18 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       }catch(e){}
     };
     aviso.addEventListener("click", function(){ aviso.classList.remove("show"); });
+    // nombre de quien registra: el del perfil de este teléfono (el mismo del saludo "Hola, …")
+    var quien = function(){
+      var n = "";
+      try{ if(typeof cloudLoadProfileName === "function") n = cloudLoadProfileName() || ""; }catch(e){}
+      try{ if(!n && typeof State !== "undefined" && State.cloud) n = State.cloud.userName || ""; }catch(e){}
+      return String(n).trim().replace(/\s+/g, " ").slice(0, 40);
+    };
+    var frase = function(que, fuera){   // "Juan registró el vehículo" · sin nombre: "Vehículo registrado"
+      var n = quien();
+      if(que === "vehiculo") return n ? n + " registró el vehículo" + (fuera ? " fuera de inventario" : "") : "Vehículo registrado" + (fuera ? " fuera de inventario" : "");
+      return n ? n + " registró la pieza" + (fuera ? " fuera de inventario" : "") : "Pieza registrada" + (fuera ? " fuera de inventario" : "");
+    };
     W.__wittAvisoRegistrado = avisar;
 
     // Vehículos
@@ -27830,8 +27876,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
             clearInterval(mirar); mirar = 0;
             var fuera = /not_found|nf/i.test(tipo);
             var sub = (nombre && !/Cargando/i.test(nombre) ? nombre.trim() : "") + (vin && vin.trim() !== "-" ? (nombre ? " · " : "") + vin.trim() : "");
-            avisar(fuera ? "Vehículo registrado · fuera de inventario" : "¡Vehículo registrado!", sub, fuera ? "rojo" : "verde",
-              fuera ? "Vehículo registrado fuera de inventario" : "Vehículo registrado");
+            var fv = frase("vehiculo", fuera);
+            avisar(fv, sub, fuera ? "rojo" : "verde", fv);
           } else if(Date.now() - t0 > 15000){ clearInterval(mirar); mirar = 0; }   // no se guardó (faltaba algo): sin aviso
         }, 120);
       }, { passive:true });
@@ -27847,7 +27893,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(typeof aph === "function"){
       W.addPartHistory = function(pn, desc, qty, prev){
         var r = aph.apply(this, arguments);
-        try{ if(Date.now() - tocoPieza < 2500) avisar("¡Pieza registrada!", String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde", "Pieza registrada"); }catch(e){}
+        try{ if(Date.now() - tocoPieza < 2500) { var fp = frase("pieza", false); avisar(fp, String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde", fp); } }catch(e){}
         return r;
       };
     }
@@ -27855,7 +27901,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(typeof rpo === "function"){
       W.registerPartOOI = function(pn, desc, qty){
         var r = rpo.apply(this, arguments);
-        try{ avisar("Pieza registrada · fuera de inventario", String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo", "Pieza registrada fuera de inventario"); }catch(e){}
+        try{ var fo = frase("pieza", true); avisar(fo, String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo", fo); }catch(e){}
         return r;
       };
     }
@@ -28086,7 +28132,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "2.7", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "2.8", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
