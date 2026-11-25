@@ -101,7 +101,7 @@ fps_surface() { # fps de la vista previa (capa SurfaceView en SurfaceFlinger) en
   : > "$OUT/medidas/$1-surfaceflinger.txt"
   while IFS= read -r capa; do
     [ -z "$capa" ] && continue
-    adb shell "dumpsys SurfaceFlinger --latency '$capa'" | tr -d '\r' > /tmp/lat.txt; cp /tmp/lat.txt "$OUT/medidas/$1-latency-$(echo "$capa" | tr -c 'A-Za-z0-9' _ | tail -c 24).txt"
+    adb shell "dumpsys SurfaceFlinger --latency '$capa'" < /dev/null | tr -d '\r' > /tmp/lat.txt; cp /tmp/lat.txt "$OUT/medidas/$1-latency-$(echo "$capa" | tr -c 'A-Za-z0-9' _ | tail -c 24).txt"
     n=$(awk 'NR>1 && $2>0 && $2<9000000000000000000 {print $2}' /tmp/lat.txt | sort -n | awk 'NR==1{a=$1} {b=$1; n++} END{ if(n>1 && b>a) printf "%d cuadros, %.1f fps", n, (n-1)/((b-a)/1e9); else print "sin cuadros" }')
     echo "$capa -> $n" >> "$OUT/medidas/$1-surfaceflinger.txt"
   done < "$OUT/medidas/capas-surfaceview.txt"
@@ -115,6 +115,8 @@ cat "$OUT/dispositivo.txt"
 adb shell settings put global verifier_verify_adb_installs 0 || true
 adb shell settings put global package_verifier_enable 0 || true
 adb shell input keyevent 82 || true
+# El flujo apaga las animaciones del emulador (escala 0): aquí se prenden, porque la respiración ES una animación y se mide.
+for k in window_animation_scale transition_animation_scale animator_duration_scale; do adb shell settings put global $k 1 || true; done
 
 paso "A. Instala y abre la app de prueba"
 adb install -r "$DBG" | tee "$OUT/A-instalar.txt"
@@ -155,12 +157,12 @@ anotar "D. pantalla: $(adb shell dumpsys window | grep -m1 mCurrentFocus | tr -d
 
 paso "E. Amarillo: la misma unidad otra vez (ya encontrada; el continuo ignora el mismo código 6 s)"
 sleep 7
-anotar "E. $(leer verde.png)"; sleep 0.3; rapida 05-amarillo-ya-encontrada
+anotar "E. $(leer verde.png)"; sleep 0.3; rapida 05-amarillo-ya-encontrada; sleep 0.6; rapida 05b-amarillo-respira
 sleep 3
 
 paso "F. Verde con Code 128 (unidad 2) y Deshacer desde la cámara (toque real)"
-anotar "F. $(leer barras.png)"; sleep 0.3; rapida 06-verde-code128
-tocar_nativo 'text="Deshacer"' && sleep 2
+anotar "F. $(leer barras.png)"
+tocar_nativo 'text="Deshacer"' && sleep 1.5
 foto 07-deshacer
 anotar "F. Tras Deshacer: registros $($H eval 'String(document.querySelectorAll("#history-list .hist-item").length)+" en historial; ronda "+(typeof csState!=="undefined"?csState.round.length:"?")' 2>&1 | tail -1)"
 
@@ -168,7 +170,7 @@ paso "G. Rojo: VIN que no está en el inventario (la cámara se cierra y la app 
 sleep 3
 anotar "G. $(leer rojo.png)"; sleep 0.3; rapida 08-rojo-fuera-de-inventario
 sleep 4; foto 09-ventana-de-la-app; cdp 09-info info
-anotar "G. Tras el rojo -> cámara visible: $(camara_visible 09-ventana-de-la-app); ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+anotar "G. Tras el rojo -> cámara visible: $(camara_visible 09-ventana-de-la-app); ventanas: $($H eval '([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id).join(",")||"ninguna")' 2>&1 | tail -1)"
 
 paso "H. Atrás cierra la ventana y la cámara vuelve sola (en Continuo)"
 adb shell input keyevent 4; sleep 5; foto 10-vuelve-a-la-camara
@@ -206,7 +208,7 @@ anotar "J. modo: $($H eval '__wittNativa.estado().camara.modo' 2>&1 | tail -1)"
 probar placa.png; sleep 3; probar placa.png
 anotar "J. $(esperar_aviso 4)"; sleep 0.3; rapida 13-placa-leida
 sleep 4; foto 14-placa-resultado; cdp 14-info info
-anotar "J. ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+anotar "J. ventanas: $($H eval '([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id).join(",")||"ninguna")' 2>&1 | tail -1)"
 adb logcat -d -s WittCamara:I | grep -E " placa " | tail -3 | tee -a "$RES"
 
 paso "K. Atrás cierra la ventana (vuelve la cámara) y la X cierra la cámara"
@@ -225,7 +227,7 @@ js '(()=>{try{document.activeElement.blur()}catch(e){}return "sin foco"})()'; sl
 paso "M. Ubicación desde la cámara (toque real en el chip)"
 tocar '#fab-scan'; sleep 5
 tocar_nativo 'content-desc="Ubicación'; sleep 3; foto 18-ubicacion
-anotar "M. Ubicación -> ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+anotar "M. Ubicación -> ventanas: $($H eval '([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id).join(",")||"ninguna")' 2>&1 | tail -1)"
 adb shell input keyevent 4; sleep 5; foto 19-tras-ubicacion
 anotar "M. Tras cerrar la lista -> cámara visible: $(camara_visible 19-tras-ubicacion)"
 
@@ -234,7 +236,7 @@ if [ "$(camara_visible 19-tras-ubicacion)" != si ]; then tocar '#fab-scan'; slee
 tocar_nativo 'content-desc="Modo Normal"'; sleep 2
 anotar "N. $(leer barras.png)"; sleep 0.3; rapida 20-normal-color
 sleep 4; foto 21-normal-ventana-unidad
-anotar "N. ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+anotar "N. ventanas: $($H eval '([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id).join(",")||"ninguna")' 2>&1 | tail -1)"
 adb shell input keyevent 4; sleep 5
 tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 3
 
