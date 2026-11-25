@@ -53,7 +53,19 @@ class Analizador(private val ex: Executor, private val salida: (Resultado) -> Un
             .build()
     )
     private var lectorTexto: TextRecognizer? = null
-    private fun textos(): TextRecognizer = lectorTexto ?: TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).also { lectorTexto = it }
+    @Synchronized private fun textos(): TextRecognizer = lectorTexto ?: TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).also { lectorTexto = it }
+    @Volatile private var calentado = false
+
+    // El primer texto que lee ML Kit carga su modelo (en un teléfono lento tarda); se carga antes, en un hilo de baja
+    // prioridad, para que la primera placa no espere.
+    fun precalentarTexto() {
+        if (calentado) return
+        calentado = true
+        Thread {
+            try { textos().process(InputImage.fromBitmap(Bitmap.createBitmap(96, 32, Bitmap.Config.ARGB_8888), 0)) }
+            catch (e: Throwable) { Log.w(TAG, "precalentar texto", e) }
+        }.apply { priority = Thread.MIN_PRIORITY; name = "witt-texto" }.start()
+    }
 
     private var cuadros = 0
     private var t0 = 0L
