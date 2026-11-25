@@ -27791,7 +27791,10 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     var GRABADOS = { papi1:1, papi2:1, papi3:1, papi4:1, huguino:1, papichulo:1, hugo:1, israel:1 };   // faltan aaron y juan (cuota de AI Studio)
     var slug = function(n){ try{ return String(n || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, ""); }catch(e){ return ""; } };
     var esPaisa = function(n){ return NOMBRES_PAISA[slug(n)] || null; };
-    var clipDe = function(n, frase){ var s = esPaisa(n); return (s && GRABADOS[s]) ? "voces/" + s + "-" + frase + ".mp3" : null; };
+    // Frases grabadas que SÍ se usan. "veh-fuera" y "pieza-fuera" decían "mor" (el usuario quiere "amor" bien dicho):
+    // fuera hasta regrabarlas. "ya-encontrada" falta grabarla (cuota de AI Studio).
+    var CLIPS_OK = { "veh":1, "pieza":1, "ya-fuera":1 };
+    var clipDe = function(n, frase){ var s = esPaisa(n); return (s && GRABADOS[s] && CLIPS_OK[frase]) ? "voces/" + s + "-" + frase + ".mp3" : null; };
     var porTexto = {};            // texto que se va a decir -> audio grabado que lo dice
     var audioActual = null;
     W.__wittVoz = { esPaisa: esPaisa, clipDe: clipDe, ligar: function(txt, clip){ if(txt && clip) porTexto[String(txt)] = clip; } };
@@ -27842,6 +27845,10 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
             else t = "Esta unidad ya está registrada fuera de inventario.";      // voz genérica: neutra
           }
           else if(log && log.status === "BAJA" && n && esPaisa(n)) t += ". La dio de baja " + n;
+          else if(log && log.status === "ENCONTRADO" && n && esPaisa(n)){   // ya estaba marcada como encontrada
+            t = "Ojo, amor, esta unidad ya está marcada como encontrada. La registró " + n + ".";
+            W.__wittVoz.ligar(t, clipDe(n, "ya-encontrada"));
+          }
         }catch(e){}
         return t;
       };
@@ -27974,7 +27981,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       var cosa = que === "vehiculo" ? "el vehículo" : "la pieza";
       var t, clip = null;
       if(paisa){
-        t = (fuera ? "Ojo, mor: " : "¡Listo, pues! ") + n + " registró " + cosa + (fuera ? " fuera de inventario." : ".");
+        t = (fuera ? "Ojo, amor: " : "¡Listo, pues! ") + n + " registró " + cosa + (fuera ? " fuera de inventario." : ".");
         clip = V.clipDe(n, (que === "vehiculo" ? "veh" : "pieza") + (fuera ? "-fuera" : ""));
       } else {
         t = (que === "vehiculo" ? "Vehículo registrado" : "Pieza registrada") + (fuera ? " fuera de inventario." : ".");   // genérica: neutra, sin "amor"
@@ -28258,7 +28265,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.0", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.1", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
