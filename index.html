@@ -5831,6 +5831,12 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
   background:var(--g-soft,rgba(127,127,127,.12));color:var(--g-ink,inherit);font:600 12px/1.2 var(--font,inherit);padding:8px 4px;}
 .witt-letra-ops button span{font-weight:800;line-height:1;}
 .witt-letra-ops button[aria-checked="true"]{background:var(--g-hero,#00574a);color:#fff;}
+.witt-voz-sel{width:100%;min-height:46px;border-radius:14px;padding:0 12px;border:0;background:var(--g-soft,rgba(127,127,127,.12));color:var(--g-ink,inherit);
+  font:600 14px/1.2 var(--font,inherit);}
+.witt-tono-ops{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.witt-tono-ops button{min-height:44px;border:0;border-radius:14px;background:var(--g-soft,rgba(127,127,127,.12));color:var(--g-ink,inherit);font:700 13px/1.2 var(--font,inherit);}
+.witt-tono-ops button[aria-checked="true"]{background:var(--g-hero,#00574a);color:#fff;}
+#modal-witt-letra .modal{max-height:88vh;overflow-y:auto;}
 
 /* v2.7 · aviso "¡Registrado!" al guardar (arriba, encima de todo; entra y sale con transform/opacity) */
 #witt-registrado{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));z-index:70;display:flex;align-items:center;gap:12px;
@@ -27763,18 +27769,56 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     try{ if(W.speechSynthesis && W.speechSynthesis.addEventListener) W.speechSynthesis.addEventListener("voiceschanged", buscarVoz); }catch(e){}
     buscarVoz();
     W.__wittVozFemenina = function(){ return vozF ? (vozF.name + " · " + vozF.lang) : "tono alto"; };
+    // v2.9: el usuario puede elegir la voz y el tono (hoja "Aa"). Guardado en este teléfono.
+    var TONOS = { normal:1.0, agudo:1.3, muy:1.6 };
+    var pref = function(k, d){ try{ return localStorage.getItem(k) || d; }catch(e){ return d; } };
+    var vocesWeb = function(){ try{ return ((W.speechSynthesis && W.speechSynthesis.getVoices && W.speechSynthesis.getVoices()) || []).filter(function(v){ return /^es/i.test(v.lang || ""); }); }catch(e){ return []; } };
+    var TTS = null; try{ TTS = W.Capacitor && W.Capacitor.Plugins && W.Capacitor.Plugins.TextToSpeech; }catch(e){}
+    var vocesNat = null;   // app nativa: voces del sistema Android (índice para TextToSpeech.speak)
+    if(TTS && TTS.getSupportedVoices){ try{ TTS.getSupportedVoices().then(function(r){ vocesNat = (r && r.voices) || []; }, function(){}); }catch(e){} }
+    var elegida = function(){
+      var id = pref("witt-voz", "auto");
+      if(id === "auto") return null;
+      return vocesWeb().filter(function(v){ return (v.voiceURI || v.name) === id; })[0] || null;
+    };
+    W.__wittVoces = { web: vocesWeb, nat: function(){ return vocesNat; }, tonos: TONOS };
     W.sayAloud = function(txt){
       try{
-        if(!W.speechSynthesis || !txt) return;
+        if(!txt) return;
+        var tono = pref("witt-tono", "");
+        // app nativa con voz del sistema elegida: directo al plugin (con su índice de voz)
+        var idn = pref("witt-voz-nat", "");
+        if(TTS && TTS.speak && idn !== "" && !isNaN(Number(idn))){
+          try{ TTS.stop && TTS.stop(); }catch(e){}
+          TTS.speak({ text:String(txt), lang:"es-MX", rate:1.0, pitch: TONOS[tono] || 1.15, volume:1, voice:Number(idn), category:"ambient" }).catch(function(){});
+          return;
+        }
+        if(!W.speechSynthesis) return;
         if(!vozBuscada) buscarVoz();
         W.speechSynthesis.cancel();
+        var v = elegida() || vozF;
         var u = new W.SpeechSynthesisUtterance(String(txt));
-        u.lang = (vozF && vozF.lang) || "es-MX"; u.rate = 1.03; u.volume = 1;
-        u.pitch = vozF ? 1.08 : 1.3;            // sin voz de mujer identificada: tono más alto
-        if(vozF) u.voice = vozF;
+        u.lang = (v && v.lang) || "es-MX"; u.rate = 1.0; u.volume = 1;
+        // tono: el que eligió el usuario; si no eligió: con voz de mujer conocida 1.12, sin ella 1.5 (más fino, menos grueso)
+        u.pitch = TONOS[tono] || (v ? 1.12 : 1.5);
+        if(v) u.voice = v;
         W.speechSynthesis.speak(u);
       }catch(e){}
     };
+    // Al volver a escanear una unidad ya registrada: también dice QUIÉN la registró (fuera de inventario y bajas;
+    // en las encontradas el original ya decía "por …" cuando fue otra persona).
+    var apOrig = W.alreadyPhrase;
+    if(typeof apOrig === "function"){
+      W.alreadyPhrase = function(log){
+        var t = apOrig.apply(this, arguments);
+        try{
+          var n = log && log.user_name ? String(log.user_name).trim() : "";
+          if(n && log.status === "NO_ENCONTRADO") t += ". La registró " + n;
+          else if(n && log.status === "BAJA") t += ". La dio de baja " + n;
+        }catch(e){}
+        return t;
+      };
+    }
   }catch(e){}
 
   /* ---------------- 11. Tamaño de letra de toda la app ----------------
@@ -27804,11 +27848,51 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       hoja.className = "modal-bg"; hoja.id = "modal-witt-letra"; hoja.setAttribute("role", "dialog"); hoja.setAttribute("aria-modal", "true"); hoja.setAttribute("aria-labelledby", "witt-letra-t");
       hoja.innerHTML = '<div class="modal"><h3 id="witt-letra-t">Tamaño de letra</h3><p class="hint" style="margin-top:0;">Cambia el tamaño de toda la app en este teléfono.</p>' +
         '<div class="witt-letra-ops" role="radiogroup" aria-label="Tamaño">' + TAMS.map(function(t){ return '<button type="button" role="radio" data-k="' + t.k + '"><span style="font-size:' + Math.round(16 * t.z) + 'px">Aa</span><small>' + t.n + '</small></button>'; }).join("") + '</div>' +
+        '<h3 style="margin-top:20px;">Voz</h3><p class="hint" style="margin-top:0;">Elige la voz que más te guste y su tono.</p>' +
+        '<select id="witt-voz-sel" class="witt-voz-sel" aria-label="Voz"></select>' +
+        '<div class="witt-tono-ops" role="radiogroup" aria-label="Tono">' +
+          '<button type="button" role="radio" data-tono="normal">Normal</button><button type="button" role="radio" data-tono="agudo">Agudo</button><button type="button" role="radio" data-tono="muy">Más agudo</button>' +
+        '</div>' +
+        '<button type="button" class="btn sm ghost" id="witt-voz-probar" style="width:100%;margin-top:10px;">▶ Probar voz</button>' +
         '<div class="btn-row" style="margin-top:16px;"><button type="button" class="btn sm" id="witt-letra-ok" style="width:100%;">Listo</button></div></div>';
       (D.body || D.documentElement).appendChild(hoja);
       var pintarTam = function(){ var k = leerTam(); [].forEach.call(hoja.querySelectorAll("[data-k]"), function(b){ b.setAttribute("aria-checked", b.getAttribute("data-k") === k ? "true" : "false"); }); };
-      bt.addEventListener("click", function(){ pintarTam(); hoja.classList.add("show"); });
+      var ls = function(k, v){ try{ if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} };
+      var lg = function(k, d){ try{ return localStorage.getItem(k) || d; }catch(e){ return d; } };
+      var llenarVoces = function(){
+        try{
+          var sel = D.getElementById("witt-voz-sel"); if(!sel) return;
+          var V = W.__wittVoces || { web:function(){ return []; }, nat:function(){ return null; } };
+          var ops = ['<option value="auto">Automática (mujer)</option>'];
+          (V.web() || []).forEach(function(v){ var id = v.voiceURI || v.name; ops.push('<option value="w:' + String(id).replace(/"/g, "&quot;") + '">' + String(v.name).replace(/</g, "&lt;") + " · " + v.lang + "</option>"); });
+          (V.nat() || []).forEach(function(v, i){ if(/^es/i.test(v.lang || "")) ops.push('<option value="n:' + i + '">' + String(v.name || v.voiceURI || ("Voz " + (i + 1))).replace(/</g, "&lt;") + " · " + v.lang + "</option>"); });
+          sel.innerHTML = ops.join("");
+          var n = lg("witt-voz-nat", ""), w = lg("witt-voz", "auto");
+          sel.value = n !== "" ? "n:" + n : (w === "auto" ? "auto" : "w:" + w);
+          if(!sel.value) sel.value = "auto";
+          var t = lg("witt-tono", "");
+          [].forEach.call(hoja.querySelectorAll("[data-tono]"), function(b){ b.setAttribute("aria-checked", b.getAttribute("data-tono") === t ? "true" : "false"); });
+        }catch(e){}
+      };
+      var probar = function(){
+        var n = ""; try{ n = (typeof cloudLoadProfileName === "function" ? cloudLoadProfileName() : "") || ""; }catch(e){}
+        try{ W.sayAloud((n ? String(n).trim() + " registró el vehículo" : "Vehículo registrado")); }catch(e){}
+      };
+      try{ if(W.speechSynthesis && W.speechSynthesis.addEventListener) W.speechSynthesis.addEventListener("voiceschanged", function(){ if(hoja.classList.contains("show")) llenarVoces(); }); }catch(e){}
+      hoja.addEventListener("change", function(e){
+        if(e.target && e.target.id === "witt-voz-sel"){
+          var v = e.target.value || "auto";
+          if(v === "auto"){ ls("witt-voz", null); ls("witt-voz-nat", null); }
+          else if(v.indexOf("n:") === 0){ ls("witt-voz-nat", v.slice(2)); ls("witt-voz", null); }
+          else { ls("witt-voz", v.slice(2)); ls("witt-voz-nat", null); }
+          probar();
+        }
+      });
+      bt.addEventListener("click", function(){ pintarTam(); llenarVoces(); hoja.classList.add("show"); });
       hoja.addEventListener("click", function(e){
+        var tb = e.target.closest && e.target.closest("[data-tono]");
+        if(tb){ ls("witt-tono", tb.getAttribute("data-tono")); llenarVoces(); probar(); return; }
+        if(e.target.closest && e.target.closest("#witt-voz-probar")){ probar(); return; }
         var b = e.target.closest && e.target.closest("[data-k]");
         if(b){ aplicarTam(b.getAttribute("data-k")); pintarTam(); try{ if(navigator.vibrate) navigator.vibrate(10); }catch(x){} return; }
         if(e.target === hoja || (e.target.closest && e.target.closest("#witt-letra-ok"))) hoja.classList.remove("show");
@@ -28132,7 +28216,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "2.8", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "2.9", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
