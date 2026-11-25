@@ -78,18 +78,23 @@ tocar_nativo() { # toca una vista de Android por texto o content-desc (regex)
   if [ $# -eq 4 ]; then adb shell input tap $(( ($1 + $3) / 2 )) $(( ($2 + $4) / 2 )); echo "toque nativo '$re' en [$1,$2][$3,$4]"; return 0; fi
   echo "no encontré '$re'"; return 1
 }
+limpiar() { # deja la app en Inicio sin ventanas ni cámara (para que un paso lento no arrastre a los siguientes)
+  js '(()=>{let n=0;while(n<4&&document.querySelector(".modal-bg.show")){__wittNativa.atras();n++}return "ventanas cerradas: "+n})()'
+  sleep 6; tocar_nativo 'content-desc="Cerrar la cámara"' > /dev/null && sleep 3
+  return 0
+}
 camara_visible() { # ¿la cámara Witt está en pantalla? (sus vistas nativas en uiautomator)
   if grep -q 'content-desc="Cámara Witt"' "$OUT/xml/$1.xml" 2>/dev/null || grep -q 'content-desc="Cerrar la cámara"' "$OUT/xml/$1.xml" 2>/dev/null; then echo si; else echo no; fi
 }
 anotar() { echo "$*" | tee -a "$RES"; }
 probar() { js "Capacitor.Plugins.WittCamara.probar({imagen:'$1'}).then(r=>JSON.stringify(r),e=>'ERROR '+(e.code||'')+' '+e.message)"; }
 avisos() { $H eval 'JSON.stringify(((__wittNativa.estado().camara||{}).avisos||[]).slice(-3))' 2>&1 | tail -c 900; echo; }
-# Espera el aviso de color que la página manda a la cámara (hasta 25 s: en el emulador ML Kit tarda 1-5 s por cuadro).
-ESPERA_JS='for(let i=0;i<170;i++){const a=((__wittNativa.estado().camara||{}).avisos)||[];const u=a[a.length-1];if(u&&u.t>=t0)return u.color+" | "+u.titulo+(u.cerrar?" | cierra la cámara":"")+" | "+((Date.now()-t0)/1000).toFixed(1)+" s";await new Promise(r=>setTimeout(r,150));}'
+# Espera el aviso de color que la página manda a la cámara (hasta 25 s: en el emulador ML Kit tarda 1-5 s por cuadro y el texto más).
+ESPERA_JS='for(let i=0;i<N;i++){const a=((__wittNativa.estado().camara||{}).avisos)||[];const u=a[a.length-1];if(u&&u.t>=t0)return u.color+" | "+u.titulo+(u.cerrar?" | cierra la cámara":"")+" | "+((Date.now()-t0)/1000).toFixed(1)+" s";await new Promise(r=>setTimeout(r,150));}'
 leer() { # lee una imagen sintética con el plugin (mismo ML Kit y mismo camino que un cuadro de la cámara) y espera el color
-  $H eval "(async()=>{const t0=Date.now();let p='';try{await Capacitor.Plugins.WittCamara.probar({imagen:'$1'});}catch(e){p=' (probar: '+(e.code||'')+' '+e.message+')';}${ESPERA_JS}return 'sin aviso'+p;})()" 2>&1 | tail -1 | sed "s/^/$1 -> /"
+  $H eval "(async()=>{const N=170,t0=Date.now();let p='';try{await Capacitor.Plugins.WittCamara.probar({imagen:'$1'});}catch(e){p=' (probar: '+(e.code||'')+' '+e.message+')';}${ESPERA_JS}return 'sin aviso'+p;})()" 2>&1 | tail -1 | sed "s/^/$1 -> /"
 }
-esperar_aviso() { $H eval "(async()=>{const t0=Date.now()-$1*1000;${ESPERA_JS}return 'sin aviso';})()" 2>&1 | tail -1; }
+esperar_aviso() { $H eval "(async()=>{const N=Math.round(${2:-25}*1000/150),t0=Date.now()-$1*1000;${ESPERA_JS}return 'sin aviso';})()" 2>&1 | tail -1; }   # $1 s hacia atrás, hasta $2 s (máx. 55)
 estado_plugin() { $H eval 'Capacitor.Plugins.WittCamara.estado().then(r=>JSON.stringify(r))' 2>&1 | tail -c 900; echo; }
 permiso() { # el diálogo de Android para la cámara, si sale
   sleep 2
@@ -206,7 +211,7 @@ tocar_nativo 'content-desc="Modo Placa"'; sleep 2
 foto 12-modo-placa
 anotar "J. modo: $($H eval '__wittNativa.estado().camara.modo' 2>&1 | tail -1)"
 probar placa.png; sleep 3; probar placa.png
-anotar "J. $(esperar_aviso 4)"; sleep 0.3; rapida 13-placa-leida
+anotar "J. $(esperar_aviso 4 55)"; sleep 0.3; rapida 13-placa-leida
 sleep 4; foto 14-placa-resultado; cdp 14-info info
 anotar "J. ventanas: $($H eval '([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id).join(",")||"ninguna")' 2>&1 | tail -1)"
 adb logcat -d -s WittCamara:I | grep -E " placa " | tail -3 | tee -a "$RES"
@@ -217,6 +222,7 @@ foto 15a-vuelve
 tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 3; foto 15-cerrada-con-x; cdp 15-info info
 anotar "K. Tras la X -> cámara visible: $(camara_visible 15-cerrada-con-x); pantalla: $($H eval '(document.querySelector(".screen.active")||{}).id' 2>&1 | tail -1)"
 
+limpiar
 paso "L. Botón verde y Escribir a mano (toque real en Escribir)"
 tocar '#fab-scan'; sleep 5; foto 16-boton-verde-otra-vez
 anotar "L. Botón verde -> cámara visible: $(camara_visible 16-boton-verde-otra-vez)"
@@ -224,6 +230,7 @@ tocar_nativo 'content-desc="Escribir"'; sleep 4; foto 17-escribir-a-mano
 anotar "L. Escribir -> foco: $($H eval 'document.activeElement&&document.activeElement.id' 2>&1 | tail -1) | teclado: $(adb shell dumpsys input_method | grep -m1 -oE 'mInputShown=(true|false)')"
 js '(()=>{try{document.activeElement.blur()}catch(e){}return "sin foco"})()'; sleep 1.5
 
+limpiar
 paso "M. Ubicación desde la cámara (toque real en el chip)"
 tocar '#fab-scan'; sleep 5
 tocar_nativo 'content-desc="Ubicación'; sleep 3; foto 18-ubicacion
@@ -240,6 +247,7 @@ anotar "N. ventanas: $($H eval '([...document.querySelectorAll(".modal-bg.show")
 adb shell input keyevent 4; sleep 5
 tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 3
 
+limpiar
 paso "O. Leer placa (toque real) abre la cámara en modo Placa"
 # "Leer placa" está en la pantalla Escanear de la página, que ya no se abre sola: se muestra un momento sin la cámara Witt.
 js '(()=>{__wittNativa.config.camaraWitt=false;document.querySelector(".nav:not(.fz-nav) button[data-screen=\"scan\"]").click();return "pantalla Escanear"})()'
