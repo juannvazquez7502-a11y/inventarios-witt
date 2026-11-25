@@ -5818,6 +5818,38 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 /* Vehículos: modelos 2027 (fotos oficiales Nissan México, en carros/). Si no cargan, se ve el color de fondo de la tarjeta. */
 #app-launcher .wcr .wcr-track > .app-card.autos{--wcr-foto:url("carros/xtrail-2027.webp");--wimg-vehiculos-renault:url("carros/kicks-2027.webp");}
 
+/* v2.7 · tamaño de letra: botón "Aa" junto al de tema y la hoja con 4 tamaños */
+#app-launcher .witt-head-der{display:flex;align-items:center;gap:8px;flex:none;}
+#witt-letra-btn{width:40px;height:32px;display:grid;place-items:center;border:0;border-radius:999px;background:var(--g-hero-chip,rgba(255,255,255,.14));color:var(--g-on-hero,#fff);
+  font:800 15px/1 var(--font,inherit);padding:0;}
+#witt-letra-btn small{font-size:11px;font-weight:800;margin-left:1px;}
+#witt-letra-btn:active{scale:.94;}
+#witt-letra-btn:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+#modal-witt-letra .modal{max-width:420px;}
+.witt-letra-ops{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.witt-letra-ops button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:78px;border:0;border-radius:16px;
+  background:var(--g-soft,rgba(127,127,127,.12));color:var(--g-ink,inherit);font:600 12px/1.2 var(--font,inherit);padding:8px 4px;}
+.witt-letra-ops button span{font-weight:800;line-height:1;}
+.witt-letra-ops button[aria-checked="true"]{background:var(--g-hero,#00574a);color:#fff;}
+
+/* v2.7 · aviso "¡Registrado!" al guardar (arriba, encima de todo; entra y sale con transform/opacity) */
+#witt-registrado{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));z-index:70;display:flex;align-items:center;gap:12px;
+  width:min(92%,420px);box-sizing:border-box;padding:12px 16px 12px 12px;border-radius:20px;background:#0f1f1b;color:#fff;
+  box-shadow:0 14px 36px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.08);
+  transform:translate(-50%,-140%) scale(.96);opacity:0;pointer-events:none;
+  transition:transform .42s cubic-bezier(.2,.9,.25,1.15),opacity .25s ease;}
+#witt-registrado.show{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto;}
+#witt-registrado .wr-ico{width:42px;height:42px;flex:none;display:grid;place-items:center;border-radius:999px;background:#46dbb5;color:#00382f;}
+#witt-registrado .wr-ico svg{width:24px;height:24px;stroke-dasharray:24;stroke-dashoffset:24;}
+#witt-registrado.show .wr-ico svg{animation:wr-palomita .45s .12s ease-out forwards;}
+@keyframes wr-palomita{to{stroke-dashoffset:0;}}
+#witt-registrado[data-color="rojo"] .wr-ico{background:#ff6b6b;color:#3a0000;}
+#witt-registrado .wr-txt{display:flex;flex-direction:column;gap:3px;min-width:0;}
+#witt-registrado b{font:800 16px/1.2 var(--font,inherit);}
+#witt-registrado small{font:500 13px/1.3 var(--font,inherit);opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+[data-theme="light"] #witt-registrado{background:#fff;color:#0f1f1b;box-shadow:0 14px 36px rgba(0,60,48,.22),inset 0 0 0 1px rgba(0,60,48,.1);}
+@media (prefers-reduced-motion:reduce){ #witt-registrado{transition:opacity .2s ease;transform:translate(-50%,0);} #witt-registrado .wr-ico svg{animation:none;stroke-dashoffset:0;} }
+
 /* v2.6 · escáner web a pantalla completa: el #cam-frame de la app pasa a esta capa; los ajustes van encima del video */
 #witt-camcompleta{display:none;position:fixed;inset:0;z-index:45;background:#000;color:#fff;}
 #witt-camcompleta.show{display:block;}
@@ -27711,6 +27743,124 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   }catch(e){}
 
+  /* ---------------- 11. Tamaño de letra de toda la app ----------------
+     Botón "Aa" junto al de tema en el selector: Chica · Normal · Grande · Muy grande. Escala TODA la app (letras, botones
+     y espacios juntos, como el zoom del teléfono) para que nada se encime. Se recuerda en este teléfono. */
+  try{
+    var TAMS = [{ k:"chica", n:"Chica", z:0.92 }, { k:"normal", n:"Normal", z:1 }, { k:"grande", n:"Grande", z:1.1 }, { k:"muy", n:"Muy grande", z:1.2 }];
+    var leerTam = function(){ try{ return localStorage.getItem("witt-letra") || "normal"; }catch(e){ return "normal"; } };
+    var aplicarTam = function(k){
+      var t = TAMS.filter(function(x){ return x.k === k; })[0] || TAMS[1];
+      try{ D.documentElement.style.zoom = t.z === 1 ? "" : String(t.z); }catch(e){}
+      D.documentElement.setAttribute("data-letra", t.k);
+      try{ localStorage.setItem("witt-letra", t.k); }catch(e){}
+      try{ W.dispatchEvent(new Event("resize")); }catch(e){}   // el carrusel y la curva vuelven a medir
+      return t;
+    };
+    aplicarTam(leerTam());
+    var cabeza = $("#app-launcher .launcher-head"), temaBtn = $("#btn-theme-toggle-launcher");
+    if(cabeza && !D.getElementById("witt-letra-btn")){
+      var bt = D.createElement("button");
+      bt.type = "button"; bt.id = "witt-letra-btn"; bt.setAttribute("aria-label", "Tamaño de letra"); bt.setAttribute("aria-haspopup", "dialog");
+      bt.innerHTML = '<span aria-hidden="true">A<small>A</small></span>';
+      var grupo = D.createElement("div"); grupo.className = "witt-head-der";
+      if(temaBtn && temaBtn.parentNode === cabeza){ cabeza.insertBefore(grupo, temaBtn); grupo.appendChild(bt); grupo.appendChild(temaBtn); }
+      else cabeza.appendChild(bt);
+      var hoja = D.createElement("div");
+      hoja.className = "modal-bg"; hoja.id = "modal-witt-letra"; hoja.setAttribute("role", "dialog"); hoja.setAttribute("aria-modal", "true"); hoja.setAttribute("aria-labelledby", "witt-letra-t");
+      hoja.innerHTML = '<div class="modal"><h3 id="witt-letra-t">Tamaño de letra</h3><p class="hint" style="margin-top:0;">Cambia el tamaño de toda la app en este teléfono.</p>' +
+        '<div class="witt-letra-ops" role="radiogroup" aria-label="Tamaño">' + TAMS.map(function(t){ return '<button type="button" role="radio" data-k="' + t.k + '"><span style="font-size:' + Math.round(16 * t.z) + 'px">Aa</span><small>' + t.n + '</small></button>'; }).join("") + '</div>' +
+        '<div class="btn-row" style="margin-top:16px;"><button type="button" class="btn sm" id="witt-letra-ok" style="width:100%;">Listo</button></div></div>';
+      (D.body || D.documentElement).appendChild(hoja);
+      var pintarTam = function(){ var k = leerTam(); [].forEach.call(hoja.querySelectorAll("[data-k]"), function(b){ b.setAttribute("aria-checked", b.getAttribute("data-k") === k ? "true" : "false"); }); };
+      bt.addEventListener("click", function(){ pintarTam(); hoja.classList.add("show"); });
+      hoja.addEventListener("click", function(e){
+        var b = e.target.closest && e.target.closest("[data-k]");
+        if(b){ aplicarTam(b.getAttribute("data-k")); pintarTam(); try{ if(navigator.vibrate) navigator.vibrate(10); }catch(x){} return; }
+        if(e.target === hoja || (e.target.closest && e.target.closest("#witt-letra-ok"))) hoja.classList.remove("show");
+      });
+    }
+  }catch(e){}
+
+  /* ---------------- 10. Aviso "¡Registrado!" al guardar (Vehículos y Refacciones) ----------------
+     Vehículos: al tocar "Guardar Registro", si la ventana se cierra (se guardó; si falta algo la app la deja abierta),
+     sale arriba una tarjeta con palomita, el nombre de la unidad y si quedó ENCONTRADA o FUERA DE INVENTARIO.
+     Refacciones: cuando la app guarda el conteo de una pieza (tras los toques + / − o al escribir la cantidad) y al
+     registrar una pieza fuera de inventario. Los cambios que llegan de otros teléfonos (nube) NO avisan.
+     Vibra (verde: un toque; fuera de inventario: doble). Solo transform/opacity: 60 fps. */
+  try{
+    var aviso = D.createElement("div");
+    aviso.id = "witt-registrado"; aviso.setAttribute("role", "status"); aviso.setAttribute("aria-live", "polite");
+    aviso.innerHTML = '<span class="wr-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="wr-txt"><b></b><small></small></span>';
+    (D.body || D.documentElement).appendChild(aviso);
+    var avisoT = 0;
+    var avisar = function(titulo, sub, color, voz){
+      try{
+        // voz (pedido del usuario): "Vehículo registrado" / "Pieza registrada", con la voz de la app
+        if(voz){ try{ if(typeof W.sayAloud === "function") W.sayAloud(voz); }catch(e){} }
+        aviso.setAttribute("data-color", color || "verde");
+        aviso.querySelector("b").textContent = titulo;
+        aviso.querySelector("small").textContent = sub || "";
+        aviso.classList.remove("show"); void aviso.offsetWidth; aviso.classList.add("show");
+        clearTimeout(avisoT); avisoT = setTimeout(function(){ aviso.classList.remove("show"); }, 2200);
+        try{
+          if(typeof W.__wittHapticsColor === "function") W.__wittHapticsColor(color === "rojo" ? "amarillo" : "verde");
+          else if(navigator.vibrate) navigator.vibrate(color === "rojo" ? [40, 60, 40] : 35);
+        }catch(e){}
+      }catch(e){}
+    };
+    aviso.addEventListener("click", function(){ aviso.classList.remove("show"); });
+    W.__wittAvisoRegistrado = avisar;
+
+    // Vehículos
+    var md = $("#modal-detect"), bc = $("#modal-btn-confirm");
+    if(md && bc){
+      var mirar = 0;
+      var cancelar = $("#modal-close");
+      if(cancelar) cancelar.addEventListener("click", function(){ clearInterval(mirar); mirar = 0; }, { passive:true, capture:true });
+      bc.addEventListener("click", function(){
+        clearInterval(mirar);
+        var nombre = "", tipo = "", vin = "";
+        try{ nombre = ($("#modal-vehicle-name") || {}).textContent || ""; vin = ($("#modal-val") || {}).textContent || ""; }catch(e){}
+        try{ tipo = (W.activeModalData && W.activeModalData.type) || ""; }catch(e){}
+        try{ if(!tipo && typeof activeModalData !== "undefined" && activeModalData) tipo = activeModalData.type || ""; }catch(e){}
+        var t0 = Date.now();
+        mirar = setInterval(function(){
+          if(!md.classList.contains("show")){
+            clearInterval(mirar); mirar = 0;
+            var fuera = /not_found|nf/i.test(tipo);
+            var sub = (nombre && !/Cargando/i.test(nombre) ? nombre.trim() : "") + (vin && vin.trim() !== "-" ? (nombre ? " · " : "") + vin.trim() : "");
+            avisar(fuera ? "Vehículo registrado · fuera de inventario" : "¡Vehículo registrado!", sub, fuera ? "rojo" : "verde",
+              fuera ? "Vehículo registrado fuera de inventario" : "Vehículo registrado");
+          } else if(Date.now() - t0 > 15000){ clearInterval(mirar); mirar = 0; }   // no se guardó (faltaba algo): sin aviso
+        }, 120);
+      }, { passive:true });
+    }
+
+    // Refacciones: solo lo que hizo esta persona en este teléfono (no lo que llega de la nube)
+    var tocoPieza = 0;
+    ["quickAdjustPartQty", "setPartFound"].forEach(function(n){
+      var f = W[n]; if(typeof f !== "function") return;
+      W[n] = function(){ tocoPieza = Date.now(); return f.apply(this, arguments); };
+    });
+    var aph = W.addPartHistory;
+    if(typeof aph === "function"){
+      W.addPartHistory = function(pn, desc, qty, prev){
+        var r = aph.apply(this, arguments);
+        try{ if(Date.now() - tocoPieza < 2500) avisar("¡Pieza registrada!", String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde", "Pieza registrada"); }catch(e){}
+        return r;
+      };
+    }
+    var rpo = W.registerPartOOI;
+    if(typeof rpo === "function"){
+      W.registerPartOOI = function(pn, desc, qty){
+        var r = rpo.apply(this, arguments);
+        try{ avisar("Pieza registrada · fuera de inventario", String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo", "Pieza registrada fuera de inventario"); }catch(e){}
+        return r;
+      };
+    }
+  }catch(e){}
+
   /* ---------------- 9. Escáner web a PANTALLA COMPLETA con los ajustes dentro de la cámara ----------------
      Solo en la versión web (en la app nativa 2.3 manda la cámara Witt). Cuando la cámara de la app arranca (#cam-frame
      toma la clase "scanning"), el mismo #cam-frame (video, línea, linterna, avisos, guía de placa) se pasa a una capa que
@@ -27936,7 +28086,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "2.6", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "2.7", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
