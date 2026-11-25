@@ -27782,9 +27782,33 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       return vocesWeb().filter(function(v){ return (v.voiceURI || v.name) === id; })[0] || null;
     };
     W.__wittVoces = { web: vocesWeb, nat: function(){ return vocesNat; }, tonos: TONOS };
+
+    /* v3.0 · VOZ PAISA GRABADA (Veda, AI Studio). Solo para estos nombres (como los escriba el perfil: "Papi1", "papi 1",
+       "Huguiño", "Aarón"…); cualquier otro nombre usa la voz genérica (sin acento ni modismos, con "amor").
+       Los audios están en voces/<nombre>-<frase>.mp3. Si falta el audio o no hay señal, se dice con la voz del teléfono. */
+    var NOMBRES_PAISA = { papi1:"papi1", papiuno:"papi1", papi2:"papi2", papidos:"papi2", papi3:"papi3", papitres:"papi3",
+      papi4:"papi4", papicuatro:"papi4", huguino:"huguino", papichulo:"papichulo", hugo:"hugo", israel:"israel", aaron:"aaron", juan:"juan" };
+    var GRABADOS = { papi1:1, papi2:1, papi3:1, papi4:1, huguino:1, papichulo:1, hugo:1, israel:1 };   // faltan aaron y juan (cuota de AI Studio)
+    var slug = function(n){ try{ return String(n || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, ""); }catch(e){ return ""; } };
+    var esPaisa = function(n){ return NOMBRES_PAISA[slug(n)] || null; };
+    var clipDe = function(n, frase){ var s = esPaisa(n); return (s && GRABADOS[s]) ? "voces/" + s + "-" + frase + ".mp3" : null; };
+    var porTexto = {};            // texto que se va a decir -> audio grabado que lo dice
+    var audioActual = null;
+    W.__wittVoz = { esPaisa: esPaisa, clipDe: clipDe, ligar: function(txt, clip){ if(txt && clip) porTexto[String(txt)] = clip; } };
     W.sayAloud = function(txt){
       try{
         if(!txt) return;
+        var clip = porTexto[String(txt)];
+        if(clip){
+          delete porTexto[String(txt)];
+          try{ if(W.speechSynthesis) W.speechSynthesis.cancel(); }catch(e){}
+          try{ if(audioActual){ audioActual.pause(); } }catch(e){}
+          var a = new Audio(clip); audioActual = a; a.volume = 1;
+          var respaldo = false, decir = function(){ if(respaldo) return; respaldo = true; try{ W.sayAloud(String(txt)); }catch(e){} };
+          a.onerror = decir;
+          var p = a.play(); if(p && p.catch) p.catch(decir);
+          return;
+        }
         var tono = pref("witt-tono", "");
         // app nativa con voz del sistema elegida: directo al plugin (con su índice de voz)
         var idn = pref("witt-voz-nat", "");
@@ -27813,8 +27837,11 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         var t = apOrig.apply(this, arguments);
         try{
           var n = log && log.user_name ? String(log.user_name).trim() : "";
-          if(n && log.status === "NO_ENCONTRADO") t += ". La registró " + n;
-          else if(n && log.status === "BAJA") t += ". La dio de baja " + n;
+          if(log && log.status === "NO_ENCONTRADO"){
+            if(n && esPaisa(n)){ t = "Ve, esta unidad ya está fuera de inventario, ¿oís? La registró " + n + "."; W.__wittVoz.ligar(t, clipDe(n, "ya-fuera")); }
+            else t = "Esta unidad ya está registrada fuera de inventario.";      // voz genérica: neutra
+          }
+          else if(log && log.status === "BAJA" && n && esPaisa(n)) t += ". La dio de baja " + n;
         }catch(e){}
         return t;
       };
@@ -27935,10 +27962,25 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       try{ if(!n && typeof State !== "undefined" && State.cloud) n = State.cloud.userName || ""; }catch(e){}
       return String(n).trim().replace(/\s+/g, " ").slice(0, 40);
     };
-    var frase = function(que, fuera){   // "Juan registró el vehículo" · sin nombre: "Vehículo registrado"
-      var n = quien();
-      if(que === "vehiculo") return n ? n + " registró el vehículo" + (fuera ? " fuera de inventario" : "") : "Vehículo registrado" + (fuera ? " fuera de inventario" : "");
-      return n ? n + " registró la pieza" + (fuera ? " fuera de inventario" : "") : "Pieza registrada" + (fuera ? " fuera de inventario" : "");
+    // Título de la tarjeta: "Israel registró el vehículo" (nombres de la lista) o "Vehículo registrado" (los demás).
+    var frase = function(que, fuera){
+      var n = quien(), V = W.__wittVoz, paisa = !!(n && V && V.esPaisa(n));
+      var cosa = que === "vehiculo" ? "el vehículo" : "la pieza", Cosa = que === "vehiculo" ? "Vehículo registrado" : "Pieza registrada";
+      return paisa ? n + " registró " + cosa + (fuera ? " fuera de inventario" : "") : Cosa + (fuera ? " fuera de inventario" : "");
+    };
+    // Lo que se DICE: paisa con nombre (y su audio grabado) para los de la lista; genérica con "amor" para los demás.
+    var fraseVoz = function(que, fuera){
+      var n = quien(), V = W.__wittVoz, paisa = !!(n && V && V.esPaisa(n));
+      var cosa = que === "vehiculo" ? "el vehículo" : "la pieza";
+      var t, clip = null;
+      if(paisa){
+        t = (fuera ? "Ojo, mor: " : "¡Listo, pues! ") + n + " registró " + cosa + (fuera ? " fuera de inventario." : ".");
+        clip = V.clipDe(n, (que === "vehiculo" ? "veh" : "pieza") + (fuera ? "-fuera" : ""));
+      } else {
+        t = (que === "vehiculo" ? "Vehículo registrado" : "Pieza registrada") + (fuera ? " fuera de inventario." : ".");   // genérica: neutra, sin "amor"
+      }
+      if(clip && V) V.ligar(t, clip);
+      return t;
     };
     W.__wittAvisoRegistrado = avisar;
 
@@ -27961,7 +28003,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
             var fuera = /not_found|nf/i.test(tipo);
             var sub = (nombre && !/Cargando/i.test(nombre) ? nombre.trim() : "") + (vin && vin.trim() !== "-" ? (nombre ? " · " : "") + vin.trim() : "");
             var fv = frase("vehiculo", fuera);
-            avisar(fv, sub, fuera ? "rojo" : "verde", fv);
+            avisar(fv, sub, fuera ? "rojo" : "verde", fraseVoz("vehiculo", fuera));
           } else if(Date.now() - t0 > 15000){ clearInterval(mirar); mirar = 0; }   // no se guardó (faltaba algo): sin aviso
         }, 120);
       }, { passive:true });
@@ -27977,7 +28019,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(typeof aph === "function"){
       W.addPartHistory = function(pn, desc, qty, prev){
         var r = aph.apply(this, arguments);
-        try{ if(Date.now() - tocoPieza < 2500) { var fp = frase("pieza", false); avisar(fp, String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde", fp); } }catch(e){}
+        try{ if(Date.now() - tocoPieza < 2500) { var fp = frase("pieza", false); avisar(fp, String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde", fraseVoz("pieza", false)); } }catch(e){}
         return r;
       };
     }
@@ -27985,7 +28027,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(typeof rpo === "function"){
       W.registerPartOOI = function(pn, desc, qty){
         var r = rpo.apply(this, arguments);
-        try{ var fo = frase("pieza", true); avisar(fo, String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo", fo); }catch(e){}
+        try{ var fo = frase("pieza", true); avisar(fo, String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo", fraseVoz("pieza", true)); }catch(e){}
         return r;
       };
     }
@@ -28216,7 +28258,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "2.9", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.0", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
