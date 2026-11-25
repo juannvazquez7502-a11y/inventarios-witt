@@ -84,6 +84,12 @@ camara_visible() { # ¿la cámara Witt está en pantalla? (sus vistas nativas en
 anotar() { echo "$*" | tee -a "$RES"; }
 probar() { js "Capacitor.Plugins.WittCamara.probar({imagen:'$1'}).then(r=>JSON.stringify(r),e=>'ERROR '+(e.code||'')+' '+e.message)"; }
 avisos() { $H eval 'JSON.stringify(((__wittNativa.estado().camara||{}).avisos||[]).slice(-3))' 2>&1 | tail -c 900; echo; }
+# Espera el aviso de color que la página manda a la cámara (hasta 25 s: en el emulador ML Kit tarda 1-5 s por cuadro).
+ESPERA_JS='for(let i=0;i<170;i++){const a=((__wittNativa.estado().camara||{}).avisos)||[];const u=a[a.length-1];if(u&&u.t>=t0)return u.color+" | "+u.titulo+(u.cerrar?" | cierra la cámara":"")+" | "+((Date.now()-t0)/1000).toFixed(1)+" s";await new Promise(r=>setTimeout(r,150));}'
+leer() { # lee una imagen sintética con el plugin (mismo ML Kit y mismo camino que un cuadro de la cámara) y espera el color
+  $H eval "(async()=>{const t0=Date.now();let p='';try{await Capacitor.Plugins.WittCamara.probar({imagen:'$1'});}catch(e){p=' (probar: '+(e.code||'')+' '+e.message+')';}${ESPERA_JS}return 'sin aviso'+p;})()" 2>&1 | tail -1 | sed "s/^/$1 -> /"
+}
+esperar_aviso() { $H eval "(async()=>{const t0=Date.now()-$1*1000;${ESPERA_JS}return 'sin aviso';})()" 2>&1 | tail -1; }
 estado_plugin() { $H eval 'Capacitor.Plugins.WittCamara.estado().then(r=>JSON.stringify(r))' 2>&1 | tail -c 900; echo; }
 permiso() { # el diálogo de Android para la cámara, si sale
   sleep 2
@@ -91,11 +97,11 @@ permiso() { # el diálogo de Android para la cámara, si sale
 }
 fps_surface() { # fps de la vista previa (capa SurfaceView en SurfaceFlinger) en ~2 s de muestras
   local capa n
-  adb shell dumpsys SurfaceFlinger --list | tr -d '\r' | grep -E "SurfaceView" > "$OUT/medidas/capas-surfaceview.txt" || true
+  adb shell dumpsys SurfaceFlinger --list | tr -d '\r' | grep -E "SurfaceView" | grep -v "^Background" | sed -E 's/^RequestedLayerState\{//; s/ parentId=.*$//; s/\}$//' | grep -v "^Background" > "$OUT/medidas/capas-surfaceview.txt" || true
   : > "$OUT/medidas/$1-surfaceflinger.txt"
   while IFS= read -r capa; do
     [ -z "$capa" ] && continue
-    adb shell dumpsys SurfaceFlinger --latency "\"$capa\"" | tr -d '\r' > /tmp/lat.txt
+    adb shell "dumpsys SurfaceFlinger --latency '$capa'" | tr -d '\r' > /tmp/lat.txt; cp /tmp/lat.txt "$OUT/medidas/$1-latency-$(echo "$capa" | tr -c 'A-Za-z0-9' _ | tail -c 24).txt"
     n=$(awk 'NR>1 && $2>0 && $2<9000000000000000000 {print $2}' /tmp/lat.txt | sort -n | awk 'NR==1{a=$1} {b=$1; n++} END{ if(n>1 && b>a) printf "%d cuadros, %.1f fps", n, (n-1)/((b-a)/1e9); else print "sin cuadros" }')
     echo "$capa -> $n" >> "$OUT/medidas/$1-surfaceflinger.txt"
   done < "$OUT/medidas/capas-surfaceview.txt"
@@ -143,34 +149,32 @@ anotar "C. Continuo en la página: $($H eval 'String(document.getElementById("cs
 foto 03-modo-continuo
 
 paso "D. Verde: unidad disponible (QR sintético con el VIN de la unidad 1)"
-probar verde.png; sleep 0.5; rapida 04-verde-disponible; sleep 1
-anotar "D. avisos: $(avisos)"
-sleep 2; foto 04b-verde-tarjeta
+anotar "D. $(leer verde.png)"; sleep 0.3; rapida 04-verde-disponible
+sleep 0.9; rapida 04b-verde-respira
+anotar "D. pantalla: $(adb shell dumpsys window | grep -m1 mCurrentFocus | tr -d '\r')"
 
-paso "E. Amarillo: la misma unidad otra vez (ya encontrada)"
+paso "E. Amarillo: la misma unidad otra vez (ya encontrada; el continuo ignora el mismo código 6 s)"
 sleep 7
-probar verde.png; sleep 0.6; rapida 05-amarillo-ya-encontrada; sleep 1
-anotar "E. avisos: $(avisos)"
-
-paso "F. Verde con Code 128 (unidad 2) y Deshacer desde la cámara"
+anotar "E. $(leer verde.png)"; sleep 0.3; rapida 05-amarillo-ya-encontrada
 sleep 3
-probar barras.png; sleep 0.6; rapida 06-verde-code128; sleep 0.8
-tocar_nativo 'text="Deshacer"' && sleep 1.5
+
+paso "F. Verde con Code 128 (unidad 2) y Deshacer desde la cámara (toque real)"
+anotar "F. $(leer barras.png)"; sleep 0.3; rapida 06-verde-code128
+tocar_nativo 'text="Deshacer"' && sleep 2
 foto 07-deshacer
-anotar "F. avisos: $(avisos)"
+anotar "F. Tras Deshacer: registros $($H eval 'String(document.querySelectorAll("#history-list .hist-item").length)+" en historial; ronda "+(typeof csState!=="undefined"?csState.round.length:"?")' 2>&1 | tail -1)"
 
-paso "G. Rojo: VIN que no está en el inventario"
+paso "G. Rojo: VIN que no está en el inventario (la cámara se cierra y la app abre su ventana)"
 sleep 3
-probar rojo.png; sleep 0.6; rapida 08-rojo-fuera-de-inventario; sleep 1
-anotar "G. avisos: $(avisos)"
-sleep 3; foto 09-ventana-de-la-app; cdp 09-info info
-anotar "G. Tras el rojo -> cámara visible: $(camara_visible 09-ventana-de-la-app); ventanas: $(grep -o '"modales": *\[[^]]*\]' "$OUT/cdp-09-info.json" | tr -d '\n ')"
+anotar "G. $(leer rojo.png)"; sleep 0.3; rapida 08-rojo-fuera-de-inventario
+sleep 4; foto 09-ventana-de-la-app; cdp 09-info info
+anotar "G. Tras el rojo -> cámara visible: $(camara_visible 09-ventana-de-la-app); ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
 
-paso "H. Atrás cierra la ventana y la cámara vuelve sola"
-adb shell input keyevent 4; sleep 4; foto 10-vuelve-a-la-camara
-anotar "H. Vuelve a la cámara: $(camara_visible 10-vuelve-a-la-camara)"
+paso "H. Atrás cierra la ventana y la cámara vuelve sola (en Continuo)"
+adb shell input keyevent 4; sleep 5; foto 10-vuelve-a-la-camara
+anotar "H. Vuelve a la cámara: $(camara_visible 10-vuelve-a-la-camara); modo: $($H eval '__wittNativa.estado().camara.modo' 2>&1 | tail -1)"
 
-paso "I. Medidas: fps de la vista previa y de la respiración"
+paso "I. Medidas: fps de la cámara, de la vista previa (SurfaceFlinger) y de la respiración (gfxinfo)"
 sleep 2
 estado_plugin | tee "$OUT/medidas/plugin-estado-1.json"
 adb shell dumpsys gfxinfo "$PKG" reset > /dev/null
@@ -186,61 +190,69 @@ sleep 6
 adb shell dumpsys gfxinfo "$PKG" > "$OUT/medidas/gfxinfo-respiracion.txt"
 adb shell dumpsys gfxinfo "$PKG" framestats > "$OUT/medidas/gfxinfo-respiracion-framestats.txt"
 js 'Capacitor.Plugins.WittCamara.feedback({color:"neutro",titulo:"",sonido:false,vibrar:false}).then(()=>"ok")'
+sleep 1.5; rapida 11b-sin-aviso
 for f in reposo respiracion; do
-  anotar "I. gfxinfo $f: $(grep -E 'Total frames rendered|Janky frames|50th percentile|90th percentile|99th percentile' "$OUT/medidas/gfxinfo-$f.txt" | head -5 | tr -s ' ' | tr '\n' ';')"
+  anotar "I. gfxinfo $f: $(grep -E 'Total frames rendered|Janky frames:|50th percentile|90th percentile|99th percentile|50th gpu percentile' "$OUT/medidas/gfxinfo-$f.txt" | head -6 | tr -s ' ' | tr '\n' ';')"
 done
-anotar "I. SurfaceFlinger: $(cat "$OUT/medidas/reposo-surfaceflinger.txt" | tr '\n' ';')"
-anotar "I. Plugin: $(cat "$OUT/medidas/plugin-estado-2.json")"
+anotar "I. SurfaceFlinger reposo: $(tr '\n' ';' < "$OUT/medidas/reposo-surfaceflinger.txt")"
+anotar "I. SurfaceFlinger respirando: $(tr '\n' ';' < "$OUT/medidas/respirando-surfaceflinger.txt")"
+anotar "I. Plugin: $(tr -d '\n ' < "$OUT/medidas/plugin-estado-2.json")"
 adb logcat -d -s WittCamara:I | grep -E "fps camara|rangos de fps|cámara abierta" | tail -8 | tee "$OUT/medidas/logcat-fps.txt"
 
-paso "J. Placa (toque real en Modo Placa; OCR con ML Kit empaquetado y votación)"
-tocar_nativo 'content-desc="Modo Placa"'; sleep 1.5
+paso "J. Placa (toque real en Modo Placa; OCR con ML Kit empaquetado y votación de varios cuadros)"
+tocar_nativo 'content-desc="Modo Placa"'; sleep 2
 foto 12-modo-placa
-probar placa.png; sleep 0.4; probar placa.png; sleep 0.4; probar placa.png; sleep 0.5; rapida 13-placa-leida
-sleep 3; foto 14-placa-resultado; cdp 14-info info
-anotar "J. avisos: $(avisos)"
-adb logcat -d -s WittCamara:I | grep -E "placa" | tail -3 | tee -a "$RES"
+anotar "J. modo: $($H eval '__wittNativa.estado().camara.modo' 2>&1 | tail -1)"
+probar placa.png; sleep 3; probar placa.png
+anotar "J. $(esperar_aviso 4)"; sleep 0.3; rapida 13-placa-leida
+sleep 4; foto 14-placa-resultado; cdp 14-info info
+anotar "J. ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+adb logcat -d -s WittCamara:I | grep -E " placa " | tail -3 | tee -a "$RES"
 
-paso "K. Atrás cierra la ventana (vuelve la cámara) y luego la X cierra la cámara"
-adb shell input keyevent 4; sleep 4
-tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 2; foto 15-cerrada-con-x; cdp 15-info info
-anotar "K. Tras la X -> cámara visible: $(camara_visible 15-cerrada-con-x)"
+paso "K. Atrás cierra la ventana (vuelve la cámara) y la X cierra la cámara"
+adb shell input keyevent 4; sleep 5
+foto 15a-vuelve
+tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 3; foto 15-cerrada-con-x; cdp 15-info info
+anotar "K. Tras la X -> cámara visible: $(camara_visible 15-cerrada-con-x); pantalla: $($H eval '(document.querySelector(".screen.active")||{}).id' 2>&1 | tail -1)"
 
-paso "L. Pestaña Escanear (toque real) y Escribir a mano"
-tocar '.nav:not(.fz-nav) button[data-screen="scan"]'; sleep 4; foto 16-pestana-escanear
-anotar "L. Pestaña -> cámara visible: $(camara_visible 16-pestana-escanear)"
-tocar_nativo 'content-desc="Escribir"'; sleep 3; foto 17-escribir-a-mano; cdp 17-info info
+paso "L. Botón verde y Escribir a mano (toque real en Escribir)"
+tocar '#fab-scan'; sleep 5; foto 16-boton-verde-otra-vez
+anotar "L. Botón verde -> cámara visible: $(camara_visible 16-boton-verde-otra-vez)"
+tocar_nativo 'content-desc="Escribir"'; sleep 4; foto 17-escribir-a-mano
 anotar "L. Escribir -> foco: $($H eval 'document.activeElement&&document.activeElement.id' 2>&1 | tail -1) | teclado: $(adb shell dumpsys input_method | grep -m1 -oE 'mInputShown=(true|false)')"
-adb shell input keyevent 4; sleep 1
+js '(()=>{try{document.activeElement.blur()}catch(e){}return "sin foco"})()'; sleep 1.5
 
-paso "M. Ubicación desde la cámara"
-tocar '#fab-scan'; sleep 4
-tocar_nativo 'content-desc="Ubicación'; sleep 3; foto 18-ubicacion; cdp 18-info info
-anotar "M. Ubicación -> ventanas: $(grep -o '"modales": *\[[^]]*\]' "$OUT/cdp-18-info.json" | tr -d '\n ')"
-adb shell input keyevent 4; sleep 3; foto 19-tras-ubicacion
+paso "M. Ubicación desde la cámara (toque real en el chip)"
+tocar '#fab-scan'; sleep 5
+tocar_nativo 'content-desc="Ubicación'; sleep 3; foto 18-ubicacion
+anotar "M. Ubicación -> ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+adb shell input keyevent 4; sleep 5; foto 19-tras-ubicacion
+anotar "M. Tras cerrar la lista -> cámara visible: $(camara_visible 19-tras-ubicacion)"
 
-paso "N. Modo Normal: verde y la ventana de la unidad"
-if [ "$(camara_visible 19-tras-ubicacion)" != si ]; then tocar '#fab-scan'; sleep 4; fi
-tocar_nativo 'content-desc="Modo Normal"'; sleep 1.5
-probar barras.png; sleep 0.6; rapida 20-normal-verde; sleep 3.5; foto 21-normal-ventana-unidad; cdp 21-info info
-anotar "N. avisos: $(avisos)"
+paso "N. Modo Normal: color y la ventana de la unidad"
+if [ "$(camara_visible 19-tras-ubicacion)" != si ]; then tocar '#fab-scan'; sleep 5; fi
+tocar_nativo 'content-desc="Modo Normal"'; sleep 2
+anotar "N. $(leer barras.png)"; sleep 0.3; rapida 20-normal-color
+sleep 4; foto 21-normal-ventana-unidad
+anotar "N. ventanas: $($H eval 'JSON.stringify([...document.querySelectorAll(".modal-bg.show")].map(m=>m.id))' 2>&1 | tail -1)"
+adb shell input keyevent 4; sleep 5
+tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 3
 
 paso "O. Leer placa (toque real) abre la cámara en modo Placa"
-adb shell input keyevent 4; sleep 3
-tocar_nativo 'content-desc="Cerrar la cámara"' && sleep 2
 # "Leer placa" está en la pantalla Escanear de la página, que ya no se abre sola: se muestra un momento sin la cámara Witt.
-js '(()=>{__wittNativa.config.camaraWitt=false;return "web un momento"})()'
-tocar '.nav:not(.fz-nav) button[data-screen="scan"]'; sleep 3
+js '(()=>{__wittNativa.config.camaraWitt=false;document.querySelector(".nav:not(.fz-nav) button[data-screen=\"scan\"]").click();return "pantalla Escanear"})()'
+sleep 2
 js '(()=>{__wittNativa.config.camaraWitt=true;return "witt"})()'
-tocar '#btn-plate'; sleep 4; foto 22-leer-placa
+tocar '#btn-plate'; sleep 5; foto 22-leer-placa
 anotar "O. Leer placa -> cámara visible: $(camara_visible 22-leer-placa); modo: $($H eval '__wittNativa.estado().camara.modo' 2>&1 | tail -1)"
+tocar_nativo 'content-desc="Cerrar la cámara"'; sleep 2
 
 paso "P. Registro"
 cdp 99-info info
 adb logcat -d -v time -s WittCamara:V AndroidRuntime:E > "$OUT/logcat-camara.txt" || true
 adb logcat -d -v time Capacitor:V Capacitor/Console:V Capacitor/Plugin:V chromium:I AndroidRuntime:E '*:S' > "$OUT/logcat-app.txt" || true
 adb logcat -d -v time | grep -iE "camera|mlkit|barcode|vision" | tail -400 > "$OUT/logcat-camerax.txt" || true
-grep -E "FATAL|AndroidRuntime" "$OUT/logcat-camara.txt" | head -5 | tee -a "$RES"
+grep -E "FATAL" -A3 "$OUT/logcat-camara.txt" | grep -A3 "$PKG" | head -8 | tee -a "$RES"
 echo; echo "===== RESULTADOS ====="; cat "$RES"
 adb shell am force-stop "$PKG"
 exit 0
