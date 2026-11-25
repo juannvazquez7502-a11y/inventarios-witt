@@ -310,6 +310,7 @@ class VistaCamara(
                 val ia = ImageAnalysis.Builder()
                     .setResolutionSelector(
                         ResolutionSelector.Builder()
+                            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
                             .setResolutionStrategy(ResolutionStrategy(Size(1280, 720), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
                             .build()
                     )
@@ -440,6 +441,7 @@ class VistaCamara(
         principal.removeCallbacks(finEspera)
         f.contador?.let { mostrarContador(it) }
         if (f.color != "neutro" || f.titulo.isNotEmpty()) mostrarAviso(f)
+        else ocultarAviso(false)   // neutro sin texto: quita el aviso anterior (también uno que respiraba sin parar)
         if (f.sonido || f.vibrar) avisos.dar(f.color, f.sonido, f.vibrar)
         Log.i(TAG, "feedback color=${f.color} cerrar=${f.cerrar} titulo=${f.titulo}")
         if (f.cerrar) { cerrar("web", max(0L, f.cerrarEn)); return }
@@ -830,7 +832,8 @@ class VistaCamara(
     private fun botonAccion(clave: String, datos: String, nombre: String, accion: () -> Unit): LinearLayout {
         val l = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
-            setPadding(dpi(14f), dpi(8f), dpi(14f), dpi(6f))
+            setPadding(dpi(12f), dpi(8f), dpi(12f), dpi(6f))
+            minimumWidth = dpi(84f)
             background = RippleDrawable(ColorStateList.valueOf(Color.argb(70, 255, 255, 255)), redondo(Color.argb(70, 255, 255, 255), 18f, 0), null)
             isClickable = true; isFocusable = true
             contentDescription = nombre
@@ -838,7 +841,9 @@ class VistaCamara(
         }
         val ic = Icono(ctx, datos).apply { escala = 0.92f }
         l.addView(ic, LinearLayout.LayoutParams(dpi(26f), dpi(26f)))
-        l.addView(texto(12.5f, Color.WHITE, true).apply { text = nombre; gravity = Gravity.CENTER; setPadding(0, dpi(3f), 0, 0) })
+        // WRAP_CONTENT: con el MATCH_PARENT por defecto el texto tomaba el ancho del ícono y se cortaba ("Escr", "Dict").
+        l.addView(texto(12.5f, Color.WHITE, true).apply { text = nombre; gravity = Gravity.CENTER; maxLines = 1; setPadding(0, dpi(3f), 0, 0) },
+            LinearLayout.LayoutParams(WRAP, WRAP))
         botonesAccion[clave] = l
         return l
     }
@@ -865,7 +870,9 @@ class VistaCamara(
         raiz.addView(previa, FrameLayout.LayoutParams(MATCH, MATCH))
         mira = Mira(ctx)
         raiz.addView(mira, FrameLayout.LayoutParams(MATCH, MATCH))
-        marco = MarcoRespira(ctx).apply { alpha = 0f }
+        // Capa de GPU propia: la respiración solo cambia la opacidad de esa capa (el RenderThread la compone, no se
+        // vuelve a dibujar el marco en cada cuadro).
+        marco = MarcoRespira(ctx).apply { alpha = 0f; setLayerType(View.LAYER_TYPE_HARDWARE, null) }
         raiz.addView(marco, FrameLayout.LayoutParams(MATCH, MATCH))
         destelloV = View(ctx).apply { setBackgroundColor(Color.WHITE); alpha = 0f }
         raiz.addView(destelloV, FrameLayout.LayoutParams(MATCH, MATCH))
@@ -921,7 +928,7 @@ class VistaCamara(
         tarjetaFondo = GradientDrawable().apply { cornerRadius = dp(20f); setColor(Color.argb(238, 16, 20, 20)) }
         tarjeta.background = tarjetaFondo
         tarjetaBrilloFondo = GradientDrawable().apply { cornerRadius = dp(20f); setColor(C_VERDE) }
-        tarjetaBrillo = View(ctx).apply { background = tarjetaBrilloFondo; alpha = 0f }
+        tarjetaBrillo = Relleno(ctx).apply { background = tarjetaBrilloFondo; alpha = 0f }
         tarjeta.addView(tarjetaBrillo, FrameLayout.LayoutParams(MATCH, MATCH))
         val fila = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
