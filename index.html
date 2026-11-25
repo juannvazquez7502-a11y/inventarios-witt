@@ -5817,6 +5817,30 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 @media (prefers-reduced-motion:reduce){ #app-launcher .witt-curva > i{animation:none;} }
 /* Vehículos: modelos 2027 (fotos oficiales Nissan México, en carros/). Si no cargan, se ve el color de fondo de la tarjeta. */
 #app-launcher .wcr .wcr-track > .app-card.autos{--wcr-foto:url("carros/xtrail-2027.webp");--wimg-vehiculos-renault:url("carros/kicks-2027.webp");}
+
+/* v2.5 · tarjeta en UNA sola pieza: la foto ocupa toda la tarjeta y abajo se oscurece poco a poco (sin franja ni línea),
+   y el nombre va encima de ese degradado. Antes la foto era el 80 % y abajo había otro cuadro: parecían 2 recuadros. */
+#app-launcher .wcr .wcr-track > .app-card::before{height:100% !important;bottom:0;border-radius:28px !important;
+  background:linear-gradient(180deg,rgba(0,0,0,.16) 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 52%,rgba(6,10,9,.55) 74%,rgba(6,10,9,.86) 100%),
+    var(--wcr-foto,none) 50% 40% / cover no-repeat !important;}
+#app-launcher .wcr .wcr-track > .app-card .app-top{background:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  box-shadow:none !important;--wcr-ink:#fff;--wcr-ink-2:rgba(255,255,255,.8);}
+#app-launcher .wcr .wcr-track > .app-card .app-top .app-icon{background:rgba(255,255,255,.16) !important;color:#fff !important;}
+#app-launcher .wcr .wcr-track > .app-card .app-top h2,#app-launcher .wcr .wcr-track > .app-card .app-top .app-ring{color:#fff !important;}
+#app-launcher .wcr .wcr-track > .app-card .app-top .app-desc{color:rgba(255,255,255,.8) !important;}
+
+/* v2.5 · cambio de modelo con BARRIDO (no fundido/respiración): la foto nueva entra de derecha a izquierda con un
+   zoom corto, se queda y luego JS pasa esa foto a la capa de abajo; la capa de arriba se oculta y espera el siguiente. */
+#app-launcher .wcr .wcr-track > .app-card.autos::after{height:100% !important;bottom:0;border-radius:28px !important;opacity:1 !important;
+  background:linear-gradient(180deg,rgba(0,0,0,.16) 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 52%,rgba(6,10,9,.55) 74%,rgba(6,10,9,.86) 100%),
+    var(--wimg-vehiculos-renault,none) 50% 40% / cover no-repeat !important;
+  clip-path:inset(0 0 0 100% round 28px);animation:witt-barrido 8s cubic-bezier(.65,0,.35,1) 0s infinite !important;will-change:clip-path,transform;}
+@keyframes witt-barrido{
+  0%,80%{clip-path:inset(0 0 0 100% round 28px);transform:scale(1.07);}
+  93%,100%{clip-path:inset(0 0 0 0 round 28px);transform:scale(1);}
+}
+#app-launcher:not(.show) .wcr .wcr-track > .app-card.autos::after{animation-play-state:paused !important;}
+@media (prefers-reduced-motion:reduce){ #app-launcher .wcr .wcr-track > .app-card.autos::after{animation:none !important;clip-path:inset(0 0 0 100%);} }
 /* Versión y búsqueda de actualizaciones, junto al logo del selector */
 #witt-ver-pill{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:3px 9px;border-radius:999px;white-space:nowrap;
   font:600 11px/1.2 var(--font,inherit);color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
@@ -27650,6 +27674,47 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   }catch(e){}
 
+  /* ---------------- 8. Cambio de tema claro/oscuro sin trabarse ----------------
+     El original usaba una "transición de vista": foto de toda la pantalla + círculo recortado animado (se pinta cuadro por
+     cuadro) mientras recalcula TODOS los estilos: en teléfono se sentía lento. Ahora un círculo del color del tema nuevo
+     crece desde el botón (solo transform = 60 fps), el tema cambia ya tapado y el círculo se desvanece (opacity). */
+  try{
+    if(typeof W.toggleThemeAnimated === "function" && typeof W.setTheme === "function"){
+      var temaOrig = W.toggleThemeAnimated, cambiando = false;
+      W.toggleThemeAnimated = function(fromEl){
+        try{
+          var raiz = D.documentElement;
+          var next = raiz.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          var reducido = false; try{ reducido = W.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+          if(reducido || !fromEl || !fromEl.getBoundingClientRect){ W.setTheme(next); return; }
+          if(cambiando) return;
+          cambiando = true;
+          var r = fromEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+          var R = Math.ceil(Math.hypot(Math.max(x, W.innerWidth - x), Math.max(y, W.innerHeight - y))) + 4;
+          var c = D.createElement("div");
+          c.className = "witt-tema";
+          c.style.cssText = "position:fixed;z-index:2147483600;pointer-events:none;border-radius:50%;left:" + (x - R) + "px;top:" + (y - R) + "px;width:" + (2 * R) + "px;height:" + (2 * R) + "px;" +
+            "background:" + (next === "light" ? "#f3f5f4" : "#0f1111") + ";transform:scale(0);opacity:1;will-change:transform,opacity;" +
+            "transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .24s ease;";
+          (D.body || raiz).appendChild(c);
+          var listo = false;
+          var fin = function(){
+            if(listo) return; listo = true;
+            try{ W.setTheme(next); }catch(e){}
+            // dos cuadros para que el tema nuevo ya esté pintado debajo, luego se desvanece el círculo
+            requestAnimationFrame(function(){ requestAnimationFrame(function(){
+              c.style.opacity = "0";
+              setTimeout(function(){ try{ c.remove(); }catch(e){} cambiando = false; }, 300);
+            }); });
+          };
+          c.addEventListener("transitionend", function(e){ if(e.propertyName === "transform") fin(); });
+          setTimeout(fin, 520);   // por si no llega el transitionend
+          requestAnimationFrame(function(){ requestAnimationFrame(function(){ c.style.transform = "scale(1)"; }); });
+        }catch(e){ cambiando = false; try{ temaOrig.apply(this, arguments); }catch(x){} }
+      };
+    }
+  }catch(e){}
+
   /* ---------------- 7. Curva animada al final del verde de arriba (estilos en fluido.css) ---------------- */
   try{
     var heroe = $("#app-launcher .launcher-inner > div:nth-child(2)");
@@ -27682,7 +27747,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     var CARROS = ["carros/xtrail-2027.webp", "carros/kicks-2027.webp", "carros/frontier-pro-phev-2027.webp"];
     var tarjeta = $("#app-launcher .app-card.autos");
     if(tarjeta && W.Promise && typeof Image === "function"){
-      var listas = {}, sig = 2;   // fluido.css ya pone X-Trail (abajo) y Kicks (encima); sigue la Frontier
+      var listas = {}, sig = 1;   // abajo empieza la X-Trail (fluido.css); la primera en entrar barriendo es la Kicks
       var preparar = function(u){
         if(listas[u]) return listas[u];
         listas[u] = new Promise(function(ok, no){
@@ -27693,25 +27758,32 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         });
         return listas[u];
       };
-      var poner = function(variable){
-        var u = CARROS[sig % CARROS.length];
-        preparar(u).then(function(){ tarjeta.style.setProperty(variable, 'url("' + u + '")'); sig++; preparar(CARROS[sig % CARROS.length]); }, function(){});
-      };
+      // Barrido (fluido.css, "witt-barrido", 8 s): 0-80 % la capa de arriba (::after) está oculta; 80-93 % entra barriendo;
+      // 93-100 % tapa todo. Mientras tapa, la de abajo (::before) recibe LA MISMA foto; al reiniciar, la de arriba se oculta
+      // sin que se note y, ya oculta, recibe el siguiente modelo.
+      var arribaU = CARROS[1];
       var anim = function(){
-        try{ return (tarjeta.getAnimations ? tarjeta.getAnimations({ subtree:true }) : []).filter(function(a){ return a.animationName === "wcr-xf"; })[0] || null; }catch(e){ return null; }
+        try{ return (tarjeta.getAnimations ? tarjeta.getAnimations({ subtree:true }) : []).filter(function(a){ return a.animationName === "witt-barrido"; })[0] || null; }catch(e){ return null; }
       };
       var hecho = { abajo:-1, arriba:-1 };
-      // la de abajo (::before) usa --wcr-foto; la de encima (::after) usa --wimg-vehiculos-renault
       preparar(CARROS[0]); preparar(CARROS[1]); preparar(CARROS[2]);
       setInterval(function(){
         try{
           var L = $("#app-launcher"); if(!L || !L.classList.contains("show") || D.hidden) return;
           var a = anim(); if(!a || a.currentTime == null) return;
-          var t = Math.max(0, a.currentTime), vuelta = Math.floor(t / 16000), fase = (t % 16000) / 16000;
-          if(fase > 0.05 && fase < 0.35 && hecho.arriba !== vuelta){ hecho.arriba = vuelta; poner("--wimg-vehiculos-renault"); }   // ::after oculta
-          if(fase > 0.55 && fase < 0.85 && hecho.abajo !== vuelta){ hecho.abajo = vuelta; poner("--wcr-foto"); }                 // ::after tapa a ::before
+          var t = Math.max(0, a.currentTime), vuelta = Math.floor(t / 8000), fase = (t % 8000) / 8000;
+          if(fase > 0.94 && hecho.abajo !== vuelta){                       // arriba tapa todo: abajo = la misma foto
+            hecho.abajo = vuelta;
+            var ua = arribaU;
+            preparar(ua).then(function(){ tarjeta.style.setProperty("--wcr-foto", 'url("' + ua + '")'); }, function(){});
+          }
+          if(fase > 0.04 && fase < 0.6 && hecho.arriba !== vuelta){        // arriba oculta: siguiente modelo
+            hecho.arriba = vuelta;
+            var u = CARROS[sig % CARROS.length];
+            preparar(u).then(function(){ arribaU = u; tarjeta.style.setProperty("--wimg-vehiculos-renault", 'url("' + u + '")'); sig++; preparar(CARROS[sig % CARROS.length]); }, function(){});
+          }
         }catch(e){}
-      }, 1000);
+      }, 200);
     }
   }catch(e){}
 
@@ -27726,7 +27798,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "2.4", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "2.5", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
