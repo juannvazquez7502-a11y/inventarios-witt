@@ -80,7 +80,8 @@ jobs:
         working-directory: app-nativa/android
         run: |
           chmod +x gradlew
-          if [ "$PRUEBA" = qr ]; then ./gradlew assembleRelease assembleDebug --no-daemon; else ./gradlew assembleDebug --no-daemon; fi
+          # camara: también arma el de release (sin firmar, no se instala) para comprobar que compila con lintVital, como en app-nativa.yml.
+          if [ "$PRUEBA" = qr ] || [ "$PRUEBA" = camara ]; then ./gradlew assembleRelease assembleDebug --no-daemon; else ./gradlew assembleDebug --no-daemon; fi
           mkdir -p ../../apks/debug && cp app/build/outputs/apk/debug/*.apk ../../apks/debug/
           grep -n -A9 'autoVerify' app/src/main/AndroidManifest.xml || echo "sin App Link en el manifiesto"
           grep -rn -A3 'witt-liga-vieja\|FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY' app/src/main/java/ || echo "MainActivity sin el arreglo de la liga vieja"
