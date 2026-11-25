@@ -5818,6 +5818,43 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 /* Vehículos: modelos 2027 (fotos oficiales Nissan México, en carros/). Si no cargan, se ve el color de fondo de la tarjeta. */
 #app-launcher .wcr .wcr-track > .app-card.autos{--wcr-foto:url("carros/xtrail-2027.webp");--wimg-vehiculos-renault:url("carros/kicks-2027.webp");}
 
+/* v2.6 · escáner web a pantalla completa: el #cam-frame de la app pasa a esta capa; los ajustes van encima del video */
+#witt-camcompleta{display:none;position:fixed;inset:0;z-index:45;background:#000;color:#fff;}
+#witt-camcompleta.show{display:block;}
+html.witt-cam-completa,html.witt-cam-completa body{overflow:hidden;}
+#witt-camcompleta #cam-frame{position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;max-height:none !important;
+  aspect-ratio:auto !important;margin:0 !important;border-radius:0 !important;border:0 !important;box-shadow:none !important;background:#000;}
+#witt-camcompleta #cam-frame video{width:100% !important;height:100% !important;object-fit:cover !important;border-radius:0 !important;}
+#witt-camcompleta #cam-frame .cam-torch{display:none !important;}              /* la linterna va arriba, con los demás ajustes */
+#witt-camcompleta #cam-frame .cam-hint{top:auto !important;bottom:calc(200px + env(safe-area-inset-bottom)) !important;}
+#witt-camcompleta #cam-frame .cam-hint[data-wcc-oculto]{display:none !important;}
+html.witt-cam-completa #toast{bottom:calc(210px + env(safe-area-inset-bottom)) !important;top:auto !important;}
+#witt-camcompleta .wcc-arriba{position:absolute;left:0;right:0;top:0;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 14px 22px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0));}
+#witt-camcompleta .wcc-b{width:46px;height:46px;flex:none;display:grid;place-items:center;border:0;border-radius:999px;background:rgba(0,0,0,.42);color:#fff;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);}
+#witt-camcompleta .wcc-b svg{width:22px;height:22px;}
+#witt-camcompleta .wcc-b[aria-pressed="true"]{background:#ffd60a;color:#1a1a1a;}
+#witt-camcompleta .wcc-chip{min-width:0;flex:0 1 auto;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:0;border-radius:999px;
+  background:rgba(0,0,0,.42);color:#fff;font:600 13px/1 var(--font,inherit);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);}
+#witt-camcompleta .wcc-chip svg{width:16px;height:16px;flex:none;}
+#witt-camcompleta .wcc-chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw;}
+#witt-camcompleta .wcc-cuenta{position:absolute;left:50%;top:calc(76px + env(safe-area-inset-top));transform:translateX(-50%);z-index:6;padding:6px 14px;
+  border-radius:999px;background:rgba(0,87,74,.85);font:700 13px/1.2 var(--font,inherit);white-space:nowrap;}
+#witt-camcompleta .wcc-abajo{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;align-items:center;gap:16px;
+  padding:34px 16px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,0));}
+#witt-camcompleta .wcc-modos{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(0,0,0,.5);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
+#witt-camcompleta .wcc-modos button{border:0;border-radius:999px;padding:10px 18px;background:transparent;color:rgba(255,255,255,.85);font:700 14px/1 var(--font,inherit);
+  transition:background-color .2s ease,color .2s ease;}
+#witt-camcompleta .wcc-modos button[aria-checked="true"]{background:#fff;color:#00574a;}
+#witt-camcompleta .wcc-fila{display:flex;justify-content:center;gap:22px;}
+#witt-camcompleta .wcc-r{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;color:#fff;font:600 12px/1 var(--font,inherit);padding:0;}
+#witt-camcompleta .wcc-r svg{width:24px;height:24px;padding:13px;box-sizing:content-box;border-radius:999px;background:rgba(255,255,255,.16);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);}
+#witt-camcompleta .wcc-r[aria-pressed="true"] svg{background:#46dbb5;color:#00382f;}
+#witt-camcompleta button:active{scale:.94;}
+#witt-camcompleta button:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+
 /* v2.5 · tarjeta en UNA sola pieza: la foto ocupa toda la tarjeta y abajo se oscurece poco a poco (sin franja ni línea),
    y el nombre va encima de ese degradado. Antes la foto era el 80 % y abajo había otro cuadro: parecían 2 recuadros. */
 #app-launcher .wcr .wcr-track > .app-card::before{height:100% !important;bottom:0;border-radius:28px !important;
@@ -27674,6 +27711,107 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   }catch(e){}
 
+  /* ---------------- 9. Escáner web a PANTALLA COMPLETA con los ajustes dentro de la cámara ----------------
+     Solo en la versión web (en la app nativa 2.3 manda la cámara Witt). Cuando la cámara de la app arranca (#cam-frame
+     toma la clase "scanning"), el mismo #cam-frame (video, línea, linterna, avisos, guía de placa) se pasa a una capa que
+     ocupa toda la pantalla, con los ajustes encima. Cada ajuste solo "toca" el control original (mismo funcionamiento):
+     Normal/Continuo = casilla de escaneo continuo · Placa · Voz · Foto · Ubicación · Escribir · Linterna · Cerrar.
+     Al cerrar la cámara, el marco regresa a su lugar. Las ventanas de resultado y los avisos quedan ENCIMA (capa 45 < 50). */
+  try{
+    var nativaWC = false; try{ nativaWC = !!(W.Capacitor && W.Capacitor.isNativePlatform && W.Capacitor.isNativePlatform() && W.Capacitor.isPluginAvailable && W.Capacitor.isPluginAvailable("WittCamara")); }catch(e){}
+    var marco = $("#cam-frame");
+    if(marco && !nativaWC){
+      var lugar = D.createComment("cam-frame");
+      var capa = D.createElement("div");
+      capa.id = "witt-camcompleta"; capa.setAttribute("role", "dialog"); capa.setAttribute("aria-label", "Cámara");
+      var ico = function(d){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; };
+      capa.innerHTML =
+        '<div class="wcc-arriba">' +
+          '<button type="button" class="wcc-b" data-a="cerrar" aria-label="Cerrar cámara">' + ico('<path d="M18 6 6 18M6 6l12 12"/>') + '</button>' +
+          '<button type="button" class="wcc-chip" data-a="ubicacion">' + ico('<path d="M12 21s-6.5-5.8-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21Z"/><circle cx="12" cy="10.5" r="2.3"/>') + '<span class="wcc-ubi">Ubicación</span></button>' +
+          '<button type="button" class="wcc-b" data-a="linterna" aria-label="Linterna" aria-pressed="false">' + ico('<path d="M8 2h8v4l-2 4v11a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10L8 6Z"/><path d="M8 6h8"/>') + '</button>' +
+        '</div>' +
+        '<div class="wcc-cuenta" hidden></div>' +
+        '<div class="wcc-abajo">' +
+          '<div class="wcc-modos" role="radiogroup" aria-label="Modo">' +
+            '<button type="button" role="radio" data-a="normal">Normal</button>' +
+            '<button type="button" role="radio" data-a="continuo">Continuo</button>' +
+            '<button type="button" role="radio" data-a="placa">Placa</button>' +
+          '</div>' +
+          '<div class="wcc-fila">' +
+            '<button type="button" class="wcc-r" data-a="escribir">' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>') + '<span>Escribir</span></button>' +
+            '<button type="button" class="wcc-r" data-a="foto">' + ico('<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3.5"/>') + '<span>Foto</span></button>' +
+            '<button type="button" class="wcc-r" data-a="voz" aria-pressed="false">' + ico('<path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>') + '<span>Voz</span></button>' +
+          '</div>' +
+        '</div>';
+      (D.body || D.documentElement).appendChild(capa);
+      var q = function(a){ return capa.querySelector('[data-a="' + a + '"]'); };
+      var cs = $("#cs-toggle"), vz = $("#voice-alert-toggle"), torch = $("#btn-torch");
+      var marcar = function(el, on){ if(!el) return; el.setAttribute(el.getAttribute("role") === "radio" ? "aria-checked" : "aria-pressed", on ? "true" : "false"); };
+      var pintar = function(){
+        try{
+          var cont = !!(cs && cs.checked), placa = false;
+          placa = marco.classList.contains("plate-mode");
+          marcar(q("normal"), !cont && !placa); marcar(q("continuo"), cont && !placa); marcar(q("placa"), placa);
+          marcar(q("voz"), !!(vz && vz.checked));
+          var tb = q("linterna"); tb.hidden = !torch || torch.hidden; marcar(tb, torch && torch.getAttribute("aria-pressed") === "true");
+          var hi = $("#cam-hint"); if(hi){ var viejo = /Iniciar c[aá]mara/i.test(hi.textContent || ""); if(viejo) hi.setAttribute("data-wcc-oculto", ""); else hi.removeAttribute("data-wcc-oculto"); }
+          var u = $("#scan-loc-text"), ub = capa.querySelector(".wcc-ubi"); if(u && ub && ub.textContent !== u.textContent) ub.textContent = u.textContent;
+          var cc = $("#cs-count"), cw = capa.querySelector(".wcc-cuenta");
+          if(cc && cw){ var vis = cont && !cc.hidden && cc.textContent.trim(); cw.hidden = !vis; if(vis && cw.textContent !== cc.textContent) cw.textContent = cc.textContent; }
+        }catch(e){}
+      };
+      var fijar = function(chk, val){ if(chk && chk.checked !== val){ chk.checked = val; chk.dispatchEvent(new Event("change", { bubbles:true })); chk.dispatchEvent(new Event("input", { bubbles:true })); } };
+      var abierta = false;
+      var entrar = function(){
+        if(abierta) return; abierta = true;
+        try{ marco.parentNode.insertBefore(lugar, marco); capa.insertBefore(marco, capa.firstChild); }catch(e){}
+        capa.classList.add("show"); D.documentElement.classList.add("witt-cam-completa");
+        pintar();
+      };
+      var salir = function(){
+        if(!abierta) return; abierta = false;
+        capa.classList.remove("show"); D.documentElement.classList.remove("witt-cam-completa");
+        try{ if(lugar.parentNode){ lugar.parentNode.insertBefore(marco, lugar); lugar.parentNode.removeChild(lugar); } }catch(e){}
+      };
+      new MutationObserver(function(){
+        var on = marco.classList.contains("scanning");
+        if(on) entrar(); else salir();
+        pintar();
+      }).observe(marco, { attributes:true, attributeFilter:["class"] });
+      // si la pantalla de escaneo deja de estar activa (atrás, otra pestaña), se apaga la cámara
+      var ss = $("#screen-scan");
+      if(ss) new MutationObserver(function(){ if(abierta && !ss.classList.contains("active")){ try{ if(typeof W.stopCamera === "function") W.stopCamera(); }catch(e){} } }).observe(ss, { attributes:true, attributeFilter:["class"] });
+      capa.addEventListener("click", function(e){
+        var b = e.target.closest && e.target.closest("[data-a]"); if(!b || !capa.contains(b)) return;
+        var a = b.getAttribute("data-a");
+        try{
+          if(a === "cerrar"){
+            try{ if(typeof W.stopCamera === "function") W.stopCamera(); else $("#btn-cam-stop").click(); }catch(x){}
+            var hb = D.querySelector('.nav button[data-screen="home"]'); if(hb) hb.click();
+          }
+          else if(a === "normal" || a === "continuo"){
+            if(marco.classList.contains("plate-mode") && typeof W.stopPlate === "function") W.stopPlate();   // sale de placa
+            fijar(cs, a === "continuo");
+          }
+          else if(a === "placa"){ if(!marco.classList.contains("plate-mode")){ var bp = $("#btn-plate"); if(bp) bp.click(); } }
+          else if(a === "voz"){ fijar(vz, !(vz && vz.checked)); }
+          else if(a === "linterna"){ if(torch) torch.click(); }
+          else if(a === "foto"){ var bf = $("#btn-photo-scan"); if(bf) bf.click(); }
+          else if(a === "ubicacion"){ var bu = $("#scan-loc-chip"); if(bu) bu.click(); }
+          else if(a === "escribir"){
+            try{ if(typeof W.stopCamera === "function") W.stopCamera(); }catch(x){}
+            var h2 = D.querySelector('.nav button[data-screen="home"]'); if(h2) h2.click();
+            setTimeout(function(){ var s = $("#home-search"); if(s){ s.focus(); try{ s.scrollIntoView({ block:"center" }); }catch(x){} } }, 120);
+          }
+        }catch(x){}
+        setTimeout(pintar, 60); setTimeout(pintar, 400);
+      });
+      // la cuenta del continuo y la ubicación cambian solas: se refresca la capa 2 veces por segundo mientras está abierta
+      setInterval(function(){ if(abierta) pintar(); }, 500);
+    }
+  }catch(e){}
+
   /* ---------------- 8. Cambio de tema claro/oscuro sin trabarse ----------------
      El original usaba una "transición de vista": foto de toda la pantalla + círculo recortado animado (se pinta cuadro por
      cuadro) mientras recalcula TODOS los estilos: en teléfono se sentía lento. Ahora un círculo del color del tema nuevo
@@ -27798,7 +27936,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "2.5", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "2.6", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
