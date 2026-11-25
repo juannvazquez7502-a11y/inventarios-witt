@@ -60,6 +60,18 @@ class Icono(ctx: Context, datos: String, private val letra: String = "") : View(
     }
 }
 
+// Capa de color de la tarjeta (el brillo que respira). Sin tamaño propio: toma el de la tarjeta (FrameLayout la vuelve a
+// medir con su tamaño exacto). Una View normal con MATCH_PARENT dentro de un FrameLayout WRAP_CONTENT se estira a toda
+// la pantalla; esta no.
+class Relleno(ctx: Context) : View(ctx) {
+    override fun onMeasure(w: Int, h: Int) {
+        val ancho = if (View.MeasureSpec.getMode(w) == View.MeasureSpec.EXACTLY) View.MeasureSpec.getSize(w) else 0
+        val alto = if (View.MeasureSpec.getMode(h) == View.MeasureSpec.EXACTLY) View.MeasureSpec.getSize(h) else 0
+        setMeasuredDimension(ancho, alto)
+    }
+    override fun hasOverlappingRendering(): Boolean = false
+}
+
 // Marco que respira en el borde de la pantalla: varios trazos del mismo color con menos opacidad hacia adentro
 // (un brillo sin desenfoque, que sí acelera la GPU). La animación solo cambia "alpha" de la vista.
 class MarcoRespira(ctx: Context) : View(ctx) {
