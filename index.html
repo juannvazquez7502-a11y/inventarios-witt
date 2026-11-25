@@ -5566,12 +5566,26 @@ html body #intro-film{z-index:2147483600;}
 @keyframes wv-entra{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}}
 @media (prefers-reduced-motion:reduce){ .witt-version{animation:none;} }
 
+/* 25-nov-2026: el logo Witt del selector respira SIEMPRE, suave (halo blanco; solo transform y opacity = 60 fps) */
+#app-launcher .launcher-brand .logo{position:relative;}
+#app-launcher .launcher-brand .logo::before{content:"";position:absolute;inset:-6px;border-radius:999px;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,0));opacity:0;transform:scale(.8);
+  animation:wv-halo 3.4s ease-in-out infinite;will-change:transform,opacity;}
+@keyframes wv-halo{0%,100%{opacity:0;transform:scale(.8);}50%{opacity:.75;transform:scale(1.12);}}
+#app-launcher:not(.show) .launcher-brand .logo::before{animation-play-state:paused;}
+/* con versión nueva el halo se vuelve un brillo blanco fuerte que llena el logo */
+html.witt-nueva-version #app-launcher .launcher-brand .logo::before{inset:-10px;animation:wv-brillo 1.8s ease-in-out infinite;
+  background:radial-gradient(closest-side,rgba(255,255,255,1),rgba(255,255,255,.55) 55%,rgba(255,255,255,0));}
+@keyframes wv-brillo{0%,100%{opacity:.25;transform:scale(.85);}50%{opacity:1;transform:scale(1.25);}}
+@media (prefers-reduced-motion:reduce){ #app-launcher .launcher-brand .logo::before{animation:none;opacity:0;}
+  html.witt-nueva-version #app-launcher .launcher-brand .logo::before{opacity:.8;transform:none;} }
 /* 25-nov-2026: versión nueva → el logo Witt del selector respira en verde y blanco; se toca para actualizar */
 html.witt-nueva-version #app-launcher .launcher-brand .logo{cursor:pointer;position:relative;
   animation:wv-respira 1.8s ease-in-out infinite;-webkit-tap-highlight-color:transparent;}
 html.witt-nueva-version #app-launcher .launcher-brand .logo svg{animation:wv-respira-ico 1.8s ease-in-out infinite;}
-html.witt-nueva-version #app-launcher .launcher-brand .logo::after{content:"";position:absolute;inset:-5px;border-radius:inherit;pointer-events:none;
-  box-shadow:0 0 0 2px #46dbb5;animation:wv-anillo 1.8s ease-out infinite;}
+/* el ::after del logo es la marca Witt (máscara blanca): con el brillo blanco al máximo se vuelve verde para que se vea */
+html.witt-nueva-version #app-launcher .launcher-brand .logo::after{animation:wv-marca 1.8s ease-in-out infinite;}
+@keyframes wv-marca{0%,100%{background-color:#fff;}50%{background-color:#00574a;}}
 html.witt-nueva-version #app-launcher .launcher-brand .logo:active{scale:.92;}
 @keyframes wv-respira{0%,100%{background:#00574a;scale:1;}50%{background:#ffffff;scale:1.08;}}
 @keyframes wv-respira-ico{0%,100%{stroke:#ffffff;}50%{stroke:#00574a;}}
@@ -5579,7 +5593,7 @@ html.witt-nueva-version #app-launcher .launcher-brand .logo:active{scale:.92;}
 @media (prefers-reduced-motion:reduce){
   html.witt-nueva-version #app-launcher .launcher-brand .logo{animation:none;background:#ffffff;}
   html.witt-nueva-version #app-launcher .launcher-brand .logo svg{animation:none;stroke:#00574a;}
-  html.witt-nueva-version #app-launcher .launcher-brand .logo::after{animation:none;}
+  html.witt-nueva-version #app-launcher .launcher-brand .logo::after{animation:none;background-color:#00574a;}
 }
 
 /* ===== Puente nativo (23-nov-2026): solo dentro de la app nativa (html.witt-nativa lo pone nativa.js). En la web no aplica nada. ===== */
@@ -5785,6 +5799,40 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 :root:is(.lite,.witt-nativa) #app-launcher .wcr .wcr-track > .app-card{background:#0d1110;}
 :root:is(.lite,.witt-nativa)[data-theme="light"] #app-launcher .wcr .wcr-track > .app-card{background:#eef2f1;}
 #modal-witt-salir .modal{max-width:360px;}
+/* v2.4 · menos cuadrado: esquinas más redondas en tarjetas, controles y ventanas */
+:root{--g-r-card:26px;--g-r-ctl:18px;--g-r-sheet:30px;}
+/* v2.4 · el verde de arriba termina en una curva suave que se mueve despacio (onda), en lugar de una línea recta.
+   Es una franja del color del fondo con forma de onda (máscara SVG) que "muerde" la orilla del verde; solo se mueve con
+   transform (va en la tarjeta gráfica, 60 fps). Va debajo del carrusel. */
+/* va como último hijo del verde (padding 22px 20px 76px): se pega a su orilla de abajo, a todo lo ancho */
+#app-launcher .launcher-inner > div:nth-child(2) > .witt-curva{position:relative;height:0;margin:0 -20px;pointer-events:none;overflow:visible;}
+/* arco: en el centro el verde baja; a los lados sube. "Respira" despacio (solo scaleY desde abajo = 60 fps). */
+#app-launcher .witt-curva > i{position:absolute;left:0;right:0;bottom:-4px;height:60px;display:block;background:var(--g-bg);transform-origin:50% 100%;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 56' preserveAspectRatio='none'%3E%3Cpath d='M0 0 C120 62 280 62 400 0 V56 H0Z' fill='%23000'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 56' preserveAspectRatio='none'%3E%3Cpath d='M0 0 C120 62 280 62 400 0 V56 H0Z' fill='%23000'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  animation:witt-onda 6s ease-in-out infinite;will-change:transform;}
+#app-launcher .witt-curva > i + i{display:none;}
+@keyframes witt-onda{0%,100%{transform:scaleY(1);}50%{transform:scaleY(1.28);}}
+#app-launcher:not(.show) .witt-curva > i{animation-play-state:paused;}
+@media (prefers-reduced-motion:reduce){ #app-launcher .witt-curva > i{animation:none;} }
+/* Vehículos: modelos 2027 (fotos oficiales Nissan México, en carros/). Si no cargan, se ve el color de fondo de la tarjeta. */
+#app-launcher .wcr .wcr-track > .app-card.autos{--wcr-foto:url("carros/xtrail-2027.webp");--wimg-vehiculos-renault:url("carros/kicks-2027.webp");}
+/* Versión y búsqueda de actualizaciones, junto al logo del selector */
+#witt-ver-pill{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:3px 9px;border-radius:999px;white-space:nowrap;
+  font:600 11px/1.2 var(--font,inherit);color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
+#witt-ver-pill b{font-weight:800;}
+#witt-ver-pill em{font-style:normal;opacity:.85;}
+#witt-ver-pill i{width:7px;height:7px;border-radius:50%;background:#9fb3ad;flex:none;}
+#witt-ver-pill[data-estado="al-dia"] i{background:#46dbb5;}
+#witt-ver-pill[data-estado="buscando"] i{background:#ffd166;animation:wv-punto 1s ease-in-out infinite;}
+#witt-ver-pill[data-estado="nueva"]{background:#46dbb5;color:#00382f;box-shadow:none;}
+#witt-ver-pill[data-estado="nueva"] i{background:#00574a;animation:wv-punto .8s ease-in-out infinite;}
+#witt-ver-pill[data-estado="sin-red"] i{background:#ff7a7a;}
+@keyframes wv-punto{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.7);}}
+#app-launcher .launcher-brand{min-width:0;flex-wrap:nowrap;}
+#app-launcher .launcher-brand > span:not(#witt-ver-pill){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+@media (max-width:430px){ #witt-ver-pill em{display:none;} #witt-ver-pill[data-estado="nueva"] em{display:inline;} }
+@media (prefers-reduced-motion:reduce){ #witt-ver-pill i{animation:none !important;} }
 /* Inventario físico · CÓDIGO: el servidor genera códigos de 6 letras (fisico_generate_code): 6 casillas, no 8, y centradas */
 #fisico-app #fz-code.fz-input.code{width:calc(6 * (1ch + var(--wa-ls)) + var(--wa-ls) / 2 + 1px);margin-left:auto;margin-right:auto;}
 #fisico-app .fz-row:has(> #fz-code.fz-input.code){justify-content:center;}
@@ -24198,6 +24246,18 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
                 prev.disabled = i === 0; next.disabled = i === cards.length - 1;
               }catch(e){}
             };
+            /* v2.4 (60 fps): cambiar data-centro recalcula los estilos de todo el selector (~50 ms en un teléfono medio) y,
+               hecho en cada cuadro del deslizamiento, trababa el carrusel. Mientras se desliza solo cambian `centro` y los
+               puntos (baratos); data-centro (cifras, quién recibe el toque) se pone cuando el carrusel se detiene. */
+            var centroT = 0, puntoMarcado = -1;
+            var marcarLuego = function(i){
+              try{
+                centro = i;
+                if(i !== puntoMarcado){ puntoMarcado = i; puntos.forEach(function(p, k){ if(k === i) p.setAttribute("aria-current", "true"); else p.removeAttribute("aria-current"); }); }
+                clearTimeout(centroT);
+                centroT = setTimeout(function(){ marcar(i); }, 140);
+              }catch(e){ marcar(i); }
+            };
             /* v2.2 (rendimiento): los centros de las tarjetas y el ancho del riel no cambian al deslizar; se miden una vez
                (y otra vez al cambiar el tamaño o al abrir el selector). En cada cuadro del deslizamiento solo se lee scrollLeft. */
             var geo = null;
@@ -24225,7 +24285,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
                     c.style.zIndex = String(10 - Math.round(9 * Math.abs(o)));   // v2a: la más cercana al centro, al frente
                   }
                 });
-                marcar(mejor);
+                marcarLuego(mejor);
               }catch(e){}
             };
             var pedir = function(){ if(!raf) raf = requestAnimationFrame(medir); };
@@ -25268,22 +25328,48 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       document.body.appendChild(d);
     }
 
-    function revisar(){
-      if(revisando || avisado || (navigator.onLine === false)) return;
-      revisando = true;
-      leerHuella().then(function(h){
-        revisando = false;
-        if(!h) return;
-        if(huella === null){ huella = h; return; }
-        if(h !== huella) aviso();
-      });
+    // 25-nov-2026 (v2.3): estado para la etiqueta de versión ("buscando", "al-dia", "nueva", "sin-red")
+    function estado(e, remota){
+      try{ window.__wittEstadoVersion = { estado: e, remota: remota || null, t: Date.now() };
+        window.dispatchEvent(new CustomEvent('witt-version', { detail: window.__wittEstadoVersion })); }catch(_){}
+    }
+    // Versión publicada: version.json junto a la página ({"version":"2.3"}). ?t= para saltar la caché del CDN.
+    // Si no existe (404) o falla, se usa la huella de antes (ETag / Last-Modified).
+    var URL_VER = URL_APP.replace(/[^\/]*$/, '') + 'version.json';
+    function leerVersion(){
+      return fetch(URL_VER + '?t=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' }).then(function(r){
+        if(!r || !r.ok) return null;
+        return r.json().then(function(j){ return j && j.version ? String(j.version) : null; });
+      }).catch(function(){ return null; });
     }
 
-    // Huella de la versión que se está viendo
-    revisar();
+    function revisar(){
+      if(avisado){ estado('nueva', window.__wittVersionRemota); return; }
+      if(revisando) return;
+      if(navigator.onLine === false){ estado('sin-red'); return; }
+      revisando = true; estado('buscando');
+      var mia = window.__wittVersion || null;
+      leerVersion().then(function(v){
+        if(v && mia){
+          revisando = false;
+          if(v !== mia){ window.__wittVersionRemota = v; aviso(); estado('nueva', v); }
+          else estado('al-dia', v);
+          return;
+        }
+        return leerHuella().then(function(h){
+          revisando = false;
+          if(!h){ estado(navigator.onLine === false ? 'sin-red' : 'al-dia'); return; }
+          if(huella === null){ huella = h; estado('al-dia'); return; }
+          if(h !== huella){ aviso(); estado('nueva'); } else estado('al-dia');
+        });
+      }).catch(function(){ revisando = false; });
+    }
+
+    // Revisa al abrir, al volver a la app, al recuperar la señal y cada minuto mientras está abierta (pedido del usuario).
+    setTimeout(revisar, 1500);
     document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') setTimeout(revisar, 400); }, { passive: true });
     window.addEventListener('online', function(){ setTimeout(revisar, 800); }, { passive: true });
-    setInterval(function(){ if(document.visibilityState === 'visible') revisar(); }, 10 * 60 * 1000);
+    setInterval(function(){ if(document.visibilityState === 'visible') revisar(); }, 30 * 1000);
     // (25-nov) Ya no se aplica sola al volver al selector: se toca el logo Witt que respira.
     window.__wittRevisarVersion = revisar; // para pruebas
   }catch(e){}
@@ -27527,6 +27613,108 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     guardar($("#launcher-date"), "textContent", dTXT);
   }catch(e){}
 
+  /* ---------------- 5. Íconos por partes (60 fps) ----------------
+     El original cambia cada emoji por un ícono de línea en cuanto aparece algo nuevo en la página (iconizeTree, que llama
+     por su nombre). Con el Historial de 1 500 unidades eran ~7 000 textos de golpe: casi 2 s con la pantalla congelada.
+     Ahora, si lo nuevo es grande (más de 150 elementos), se convierte por partes de ~6 ms entre cuadro y cuadro: la
+     pantalla sigue a 60 fps y los íconos aparecen en un instante, de arriba hacia abajo. Lo chico se hace igual que antes. */
+  try{
+    var itOrig = W.iconizeTree;
+    if(typeof itOrig === "function"){
+      var cola = [], corriendo = false;
+      var trabajar = function(){
+        var t0 = performance.now();
+        try{
+          while(cola.length && performance.now() - t0 < 6){
+            var n = cola.shift();
+            if(!n || !n.isConnected) continue;
+            if(n.nodeType === 1 && n.childElementCount > 0 && n.getElementsByTagName("*").length > 150){
+              // grande: se parte en sus hijos (en orden), sin recorrerlo entero ahora
+              var hijos = Array.prototype.slice.call(n.childNodes);
+              cola = hijos.concat(cola);
+            } else itOrig(n);
+          }
+        }catch(e){}
+        if(cola.length) setTimeout(trabajar, 0); else corriendo = false;
+      };
+      W.iconizeTree = function(root){
+        try{
+          if(root && root.nodeType === 1 && root.getElementsByTagName("*").length > 150){
+            cola.push(root);
+            if(!corriendo){ corriendo = true; setTimeout(trabajar, 0); }
+            return;
+          }
+        }catch(e){}
+        return itOrig.apply(this, arguments);
+      };
+    }
+  }catch(e){}
+
+  /* ---------------- 7. Curva animada al final del verde de arriba (estilos en fluido.css) ---------------- */
+  try{
+    var heroe = $("#app-launcher .launcher-inner > div:nth-child(2)");
+    if(heroe && !D.querySelector("#app-launcher .witt-curva")){
+      var curva = D.createElement("div");
+      curva.className = "witt-curva"; curva.setAttribute("aria-hidden", "true");
+      curva.innerHTML = "<i></i><i></i>";
+      heroe.appendChild(curva);   // dentro del verde (no cambia el orden de los hijos del selector)
+      // se pega a la orilla de abajo del verde (una sola medida al abrir el selector y al cambiar el tamaño)
+      var pegar = function(){
+        try{
+          var hb = heroe.getBoundingClientRect().bottom, cb = curva.getBoundingClientRect().top;
+          if(!hb || !isFinite(hb)) return;
+          var dif = hb - cb;
+          // "top" (posición relativa) la baja sin cambiar el alto del verde (un margen negativo lo encogía)
+          if(Math.abs(dif) > 0.5){ var tp = parseFloat(curva.style.top) || 0; curva.style.top = (tp + dif) + "px"; }
+        }catch(e){}
+      };
+      requestAnimationFrame(pegar);
+      W.addEventListener("resize", function(){ requestAnimationFrame(pegar); }, { passive:true });
+      try{ new MutationObserver(function(){ if($("#app-launcher").classList.contains("show")) requestAnimationFrame(pegar); }).observe($("#app-launcher"), { attributes:true, attributeFilter:["class"] }); }catch(e){}
+    }
+  }catch(e){}
+
+  /* ---------------- 6. Vehículos: modelos 2027 (fotos oficiales de Nissan México) ----------------
+     La tarjeta ya alterna dos fotos con un fundido lento (::before abajo y ::after encima, 16 s). Aquí, mientras una de
+     las dos está oculta, se le cambia la foto por el siguiente modelo: X-Trail 2027 → Kicks 2027 → Frontier PRO-PHEV 2027.
+     Cada foto se descarga y decodifica ANTES de ponerla (sin tirones). Sin internet se quedan las fotos de siempre. */
+  try{
+    var CARROS = ["carros/xtrail-2027.webp", "carros/kicks-2027.webp", "carros/frontier-pro-phev-2027.webp"];
+    var tarjeta = $("#app-launcher .app-card.autos");
+    if(tarjeta && W.Promise && typeof Image === "function"){
+      var listas = {}, sig = 2;   // fluido.css ya pone X-Trail (abajo) y Kicks (encima); sigue la Frontier
+      var preparar = function(u){
+        if(listas[u]) return listas[u];
+        listas[u] = new Promise(function(ok, no){
+          var im = new Image(); im.decoding = "async";
+          im.onload = function(){ (im.decode ? im.decode() : Promise.resolve()).then(function(){ ok(u); }, function(){ ok(u); }); };
+          im.onerror = function(){ delete listas[u]; no(); };
+          im.src = u;
+        });
+        return listas[u];
+      };
+      var poner = function(variable){
+        var u = CARROS[sig % CARROS.length];
+        preparar(u).then(function(){ tarjeta.style.setProperty(variable, 'url("' + u + '")'); sig++; preparar(CARROS[sig % CARROS.length]); }, function(){});
+      };
+      var anim = function(){
+        try{ return (tarjeta.getAnimations ? tarjeta.getAnimations({ subtree:true }) : []).filter(function(a){ return a.animationName === "wcr-xf"; })[0] || null; }catch(e){ return null; }
+      };
+      var hecho = { abajo:-1, arriba:-1 };
+      // la de abajo (::before) usa --wcr-foto; la de encima (::after) usa --wimg-vehiculos-renault
+      preparar(CARROS[0]); preparar(CARROS[1]); preparar(CARROS[2]);
+      setInterval(function(){
+        try{
+          var L = $("#app-launcher"); if(!L || !L.classList.contains("show") || D.hidden) return;
+          var a = anim(); if(!a || a.currentTime == null) return;
+          var t = Math.max(0, a.currentTime), vuelta = Math.floor(t / 16000), fase = (t % 16000) / 16000;
+          if(fase > 0.05 && fase < 0.35 && hecho.arriba !== vuelta){ hecho.arriba = vuelta; poner("--wimg-vehiculos-renault"); }   // ::after oculta
+          if(fase > 0.55 && fase < 0.85 && hecho.abajo !== vuelta){ hecho.abajo = vuelta; poner("--wcr-foto"); }                 // ::after tapa a ::before
+        }catch(e){}
+      }, 1000);
+    }
+  }catch(e){}
+
   /* ---------------- 4. Físico: el código es de 6 letras (6 casillas) ---------------- */
   try{
     var seis = function(){ var c = D.getElementById("fz-code"); if(c && c.type !== "hidden" && c.getAttribute("maxlength") !== "6") c.setAttribute("maxlength", "6"); };
@@ -27537,7 +27725,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   }catch(e){}
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
-  var VERSION_WEB = "2.3", FECHA_WEB = "25-nov-2026";
+  // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
+  var VERSION_WEB = "2.4", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -27547,6 +27736,28 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       v.style.cssText = "margin:14px 0 4px;text-align:center;font:500 12px/1.4 var(--font,inherit);opacity:.62;letter-spacing:.2px;grid-column:1/-1;";
       v.textContent = "Versión " + VERSION_WEB + " · " + FECHA_WEB;
       inner.appendChild(v);
+      // Arriba, junto al logo: "v2.3" y el estado de la búsqueda de actualizaciones (lo avisa actualizar.js)
+      var marca = $("#app-launcher .launcher-brand");
+      if(marca && !D.getElementById("witt-ver-pill")){
+        var pill = D.createElement("span");
+        pill.id = "witt-ver-pill";
+        pill.setAttribute("role", "status");
+        pill.setAttribute("aria-live", "polite");
+        pill.innerHTML = '<b>v' + VERSION_WEB + '</b><i></i><em>buscando…</em>';
+        marca.appendChild(pill);
+        var TXT = { "buscando":"buscando…", "al-dia":"al día", "nueva":"nueva", "sin-red":"sin señal" };
+        var pinta = function(d){
+          try{
+            if(!d) return;
+            pill.setAttribute("data-estado", d.estado);
+            var t = TXT[d.estado] || "";
+            if(d.estado === "nueva") t = d.remota ? "v" + d.remota + " lista" : "nueva";
+            var em = pill.querySelector("em"); if(em && em.textContent !== t) em.textContent = t;
+          }catch(e){}
+        };
+        W.addEventListener("witt-version", function(e){ pinta(e.detail); });
+        if(W.__wittEstadoVersion) pinta(W.__wittEstadoVersion);
+      }
       // En la app nativa se agrega la versión del APK instalado (App.getInfo).
       try{
         var A0 = W.Capacitor && W.Capacitor.Plugins && W.Capacitor.Plugins.App;
@@ -27625,13 +27836,12 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }catch(e){}
     W.addEventListener("popstate", function(){
       if(saliendo){ try{ history.back(); }catch(x){} return; }
-      // los observadores entregan su aviso entre un escucha y otro: si el original movió algo, tCambio es de este instante
-      setTimeout(function(){
-        try{
-          if(performance.now() - tCambio < 80) return;
-          if(launcherAbierto() && !hayVentana() && !(typeof W.pvIsOpen === "function" && W.pvIsOpen())) abrir();
-        }catch(e){}
-      }, 0);
+      // Los observadores entregan su aviso entre un escucha y otro (microtarea), así que si el "atrás" del original movió
+      // algo, tCambio es de ESTE instante. Se revisa aquí mismo, sin esperar (con espera, una app ocupada lo confundía).
+      try{
+        if(performance.now() - tCambio < 40) return;
+        if(launcherAbierto() && !hayVentana() && !(typeof W.pvIsOpen === "function" && W.pvIsOpen())) abrir();
+      }catch(e){}
     });
   }catch(e){}
 })();
