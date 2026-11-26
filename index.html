@@ -28331,7 +28331,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.3", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.4", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -28491,7 +28491,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   var buscar = function(rec){
     if(!rec) return { sin:"sin datos" };
     var txt = [rec.type, rec.model, rec.version, rec.desc].filter(Boolean).join(" ");
-    if(memo[txt]) return memo[txt];
+    var llave = txt + "|" + String(rec.color || "");      // el color también cuenta (Renault cambia de foto por color)
+    if(memo[llave]) return memo[llave];
     var set = norm(txt), y = anio(txt) || (rec.year ? Number(rec.year) : null), r = null;
     for(var i = 0; i < CAT.modelos.length && !r; i++){
       var m = CAT.modelos[i];
@@ -28501,16 +28502,21 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         // Color OFICIAL de Renault: el nombre del color de la unidad se busca en la lista de la marca (código de pintura)
         var cols = (CAT.renaultColores && CAT.renaultColores[m.id]) || {}, cod = null, nomC = "";
         var cu = norm(rec.color || ""), mejorC = 0;
+        // La FAMILIA del color (azul, gris, rojo…) manda: "AZUL ACERO" nunca puede quedar en "Gris Acero".
+        var FAM = ["AZUL","GRIS","ROJO","BLANCO","NEGRO","CAFE","COBRE","PLATA","VERDE","NARANJA","AMARILLO","BEIGE","DORADO","VINO","MORADO"];
+        var famDe = function(set){ for(var i = 0; i < FAM.length; i++) if(set[FAM[i]]) return FAM[i]; return null; };
+        var famU = famDe(cu);
         Object.keys(cols).forEach(function(nombre){
-          var ws = Object.keys(norm(nombre));
+          var cn = norm(nombre), ws = Object.keys(cn);
+          if(famU && famDe(cn) !== famU) return;            // otra familia de color: no sirve
           var hits = ws.filter(function(w){ return cu[w]; }).length;
-          // todas las palabras del color oficial = empate exacto; si no, la que más palabras comparta (p. ej. "GRIS")
-          var pts = hits === ws.length ? 100 + hits : hits;
+          var pts = hits === ws.length ? 100 + hits : hits;  // todas las palabras = el color exacto
           if(hits && pts > mejorC){ mejorC = pts; cod = cols[nombre]; nomC = nombre; }
         });
         var base = m.renault.split("/c/")[0];
+        var noPub = !!(rec.color && !cod);
         r = { url: RENAULT + encodeURIComponent(cod ? base + "/c/A-" + cod : m.renault), sinEncabezado:true,
-              etiqueta: m.marca + " " + m.nombre + (cod ? " · " + nomC + " (color oficial)" : "") };
+              etiqueta: m.marca + " " + m.nombre + (cod ? " · " + nomC + " (color oficial)" : (noPub ? " · color no publicado por la marca" : "")) };
         break;
       }
       var mejor = null, pts = -1;
@@ -28520,8 +28526,8 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       r = { url: CAT.nissanBase + p + (m.png ? ".ximg.s_12_m.smart.png" : ".ximg.l_8_m.smart" + ext),
             sinEncabezado: m.id === "frontier-v6", etiqueta: m.marca + " " + m.nombre + " · " + mejor[0].toUpperCase() };
     }
-    memo[txt] = r || { sin:"modelo no reconocido" };
-    return memo[txt];
+    memo[llave] = r || { sin:"modelo no reconocido" };
+    return memo[llave];
   };
   W.__wittCatalogo = { buscar: buscar };
 
