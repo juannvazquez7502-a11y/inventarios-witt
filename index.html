@@ -6014,7 +6014,7 @@ html.witt-cam-completa #toast{bottom:calc(210px + env(safe-area-inset-bottom)) !
   transform:scale(0) rotate(0deg); opacity:0; will-change:transform, opacity; }
 
 /* ---------- Modo CAJA dentro del selector ---------- */
-html.witt-modo-caja{ --g-hero:#123a5c; --g-hero-line:color-mix(in srgb,#ffffff 22%,#123a5c); }
+/* v4.2 (pedido del usuario): Caja usa el MISMO verde de la app; no se cambia el color */
 html.witt-modo-caja #app-launcher .launcher-inner > .app-card:not(.wcj-card),
 html.witt-modo-caja #app-launcher .launcher-inner > .wcr,
 html.witt-modo-caja #app-launcher #combined-dashboard-area,
@@ -6025,7 +6025,7 @@ html:not(.witt-modo-caja) #wcj-home{ display:none; }
 #app-launcher .app-card.wcj-hero{ margin-top:-52px; }
 #app-launcher .wcj-card .app-icon{ color:var(--g-accent); display:grid; place-items:center; }
 #app-launcher .wcj-card .app-icon svg{ width:24px; height:24px; }
-#app-launcher .wcj-hero .app-icon{ background:#123a5c; color:#fff; }
+#app-launcher .wcj-hero .app-icon{ background:var(--g-hero); color:#fff; }
 #app-launcher .wcj-card .wcj-stat{ font-size:14px; color:var(--g-ink-2); line-height:1.35; }
 #app-launcher .wcj-card .wcj-stat b{ color:var(--g-ink); font-weight:700; }
 #app-launcher .wcj-ring{ width:52px; height:52px; flex:none; }
@@ -6072,7 +6072,7 @@ html:not(.witt-modo-caja) #wcj-home{ display:none; }
 #witt-caja-app .wcj-archivo{ display:flex; align-items:center; gap:12px; width:100%; border:2px dashed var(--g-line); border-radius:var(--g-r-card);
   background:transparent; color:inherit; padding:16px; text-align:left; font:inherit; cursor:pointer; }
 #witt-caja-app .wcj-archivo.listo{ border-style:solid; border-color:var(--g-accent); background:var(--g-accent-soft); }
-#witt-caja-app .wcj-archivo .ic{ width:44px; height:44px; border-radius:12px; background:#123a5c; color:#fff; display:grid; place-items:center; flex:none; }
+#witt-caja-app .wcj-archivo .ic{ width:44px; height:44px; border-radius:12px; background:var(--g-hero); color:#fff; display:grid; place-items:center; flex:none; }
 #witt-caja-app .wcj-archivo b{ display:block; font-size:15px; word-break:break-word; }
 #witt-caja-app .wcj-archivo small{ color:var(--g-ink-2); font-size:13px; }
 #witt-caja-app .wcj-pasos{ list-style:none; margin:12px 0 0; padding:0; display:grid; gap:8px; }
@@ -28561,7 +28561,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "4.1", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "4.2", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -29186,7 +29186,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   var APPS = [
     { id:"inventarios", nombre:"Inventarios", desc:"Vehículos, refacciones y físico", color:"#00574a", ico:SVG.inv,
       marca:"Sistema de Inventarios", sub:"¿Qué inventario vas a trabajar hoy?" },
-    { id:"caja", nombre:"Cortes de caja", desc:"Cruce de caja contra claves de validación", color:"#123a5c", ico:SVG.caja,
+    { id:"caja", nombre:"Cortes de caja", desc:"Cruce de caja contra claves de validación", color:"#00574a", ico:SVG.caja,
       marca:"Cortes de caja", sub:"¿Qué corte vas a cruzar hoy?" }
   ];
   var appDe = function(id){ return APPS.filter(function(a){ return a.id === id; })[0] || APPS[0]; };
@@ -29278,24 +29278,48 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   var cambiando = false;
   var anim = function(el, kf, op){ try{ return el.animate(kf, op); }catch(e){ return null; } };
   var fin = function(a){ return new Promise(function(ok){ if(!a){ ok(); return; } a.onfinish = function(){ ok(); }; a.oncancel = function(){ ok(); }; }); };
-  var sonidoHoyo = function(){   // "sluuurp" grave que baja y un "pop" al escupir (WebAudio, corto)
-    try{
-      var C = W.__wittCtxHoyo || (W.__wittCtxHoyo = new (W.AudioContext || W.webkitAudioContext)());
-      if(C.state === "suspended") C.resume().catch(function(){});
-      var t = C.currentTime, o = C.createOscillator(), g = C.createGain();
-      o.type = "sine"; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.55);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-      o.connect(g); g.connect(C.destination); o.start(t); o.stop(t + 0.62);
-      var o2 = C.createOscillator(), g2 = C.createGain(), t2 = t + 0.72;
-      o2.type = "sine"; o2.frequency.setValueAtTime(160, t2); o2.frequency.exponentialRampToValueAtTime(900, t2 + 0.09);
-      g2.gain.setValueAtTime(0.0001, t2); g2.gain.exponentialRampToValueAtTime(0.5, t2 + 0.01); g2.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.16);
-      o2.connect(g2); g2.connect(C.destination); o2.start(t2); o2.stop(t2 + 0.18);
-    }catch(e){}
+  // Sonido: "sluuurp" grave mientras absorbe y un "blup" corto por cada pieza que escupe (WebAudio, programado)
+  var ctxH = function(){ try{ var C = W.__wittCtxHoyo || (W.__wittCtxHoyo = new (W.AudioContext || W.webkitAudioContext)()); if(C.state === "suspended") C.resume().catch(function(){}); return C; }catch(e){ return null; } };
+  var sorbo = function(dur){
+    var C = ctxH(); if(!C) return;
+    try{ var t = C.currentTime, o = C.createOscillator(), g = C.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(60, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05);
+      o.connect(g); g.connect(C.destination); o.start(t); o.stop(t + dur + 0.08); }catch(e){}
   };
+  var escupidas = function(retrasos){
+    var C = ctxH(); if(!C) return;
+    try{ retrasos.forEach(function(d, i){ var t = C.currentTime + d / 1000, o = C.createOscillator(), g = C.createGain(), f0 = 220 + i * 35;
+      o.type = "sine"; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 3.2, t + 0.07);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      o.connect(g); g.connect(C.destination); o.start(t); o.stop(t + 0.14); }); }catch(e){}
+  };
+  // Las PIEZAS del selector que se tragan y se escupen una por una (solo las que se ven en pantalla)
+  var piezas = function(){
+    var out = [], vh = W.innerHeight || 800;
+    var add = function(el){
+      if(!el || out.indexOf(el) >= 0) return;
+      var cs = getComputedStyle(el); if(cs.display === "none" || cs.visibility === "hidden") return;
+      var r = el.getBoundingClientRect(); if(r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > vh) return;
+      out.push(el);
+    };
+    $$("#app-launcher .launcher-brand > span").forEach(add);
+    $$("#app-launcher .witt-head-der > *").forEach(add);
+    var hero = $("#app-launcher .launcher-inner > div:nth-child(2)");
+    if(hero) $$(":scope > *", hero).forEach(function(el){ if(!el.classList.contains("witt-curva")) add(el); });
+    if(modo === "caja") $$("#wcj-home > *").forEach(add);
+    else { $$("#app-launcher .wcr-track > .app-card").forEach(add); add($("#app-launcher .wcr-dots")); }
+    $$("#app-launcher .launcher-inner > .launcher-danger, #app-launcher .launcher-inner > .launcher-foot, #witt-version").forEach(add);
+    return out;
+  };
+  var centroDe = function(el){ var r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  /* Cambio de herramienta (v4.2, pedido del usuario): el logo Witt VIAJA AL CENTRO de la pantalla, ABSORBE pieza por pieza
+     (girando hacia él), cambia la herramienta y ESCUPE cada pieza a su lugar con efecto gelatina; luego vuelve a su
+     esquina. Mismo color de la app. Solo transform/opacity (60 fps). Con "reducir movimiento": fundido simple. */
   var cambiar = async function(id){
     if(cambiando) return; cambiando = true;
     var todas = [], A = function(el, kf, op){ var a = anim(el, kf, op); if(a) todas.push(a); return a; };   // todas se cancelan al final
-    var L = $("#app-launcher"), inner = $("#app-launcher .launcher-inner"), logo = $("#app-launcher .launcher-brand .logo");
+    var L = $("#app-launcher"), inner = $("#app-launcher .launcher-inner"), logo = $("#app-launcher .launcher-brand .logo"), clon = null;
     try{
       if(!inner || !logo || menos() || typeof inner.animate !== "function"){
         if(inner) await fin(A(inner, [{ opacity:1 }, { opacity:0 }], { duration:160, fill:"forwards" }));
@@ -29303,45 +29327,72 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         if(inner) await fin(A(inner, [{ opacity:0 }, { opacity:1 }], { duration:220 }));
         return;
       }
-      var lr = logo.getBoundingClientRect(), ir = inner.getBoundingClientRect();
-      var cx = lr.left + lr.width / 2, cy = lr.top + lr.height / 2;
-      var origen = (cx - ir.left) + "px " + (cy - ir.top) + "px";
+      if(L){ L.scrollTop = 0; L.style.overflow = "hidden"; }
+      var vw = W.innerWidth || 375, vh = W.innerHeight || 800, cx = vw / 2, cy = vh * 0.46;
+      var lr = logo.getBoundingClientRect(), lx = lr.left + lr.width / 2, ly = lr.top + lr.height / 2;
+      var ESC = Math.max(2, Math.min(3, vw / 150)), alCentro = "translate(" + (cx - lx) + "px," + (cy - ly) + "px) scale(" + ESC + ")";
+      // el logo: un clon encima (el original se esconde) que viaja al centro
+      clon = logo.cloneNode(true);
+      clon.removeAttribute("tabindex"); clon.setAttribute("aria-hidden", "true");
+      clon.style.cssText = "position:fixed;margin:0;left:" + lr.left + "px;top:" + lr.top + "px;width:" + lr.width + "px;height:" + lr.height + "px;z-index:9996;pointer-events:none;will-change:transform;animation:none";
+      (D.body || D.documentElement).appendChild(clon);
+      logo.style.visibility = "hidden";
+      var anillo = $(".wh-anillo", hoyo);
       hoyo.style.transform = "translate(" + cx + "px," + cy + "px)";
-      var disco = $(".wh-disco", hoyo), anillo = $(".wh-anillo", hoyo);
-      inner.style.transformOrigin = origen; inner.style.willChange = "transform, opacity";
-      if(L) L.style.overflow = "hidden";
-      vibra([20, 60, 30, 60, 50]); sonidoHoyo();
-      // A) se abre el agujero y se traga todo en espiral
-      A(disco, [{ transform:"scale(0)", opacity:0 }, { transform:"scale(1.15)", opacity:1, offset:.35 }, { transform:"scale(.9)", opacity:1 }], { duration:620, easing:"cubic-bezier(.3,0,.2,1)", fill:"forwards" });
-      A(anillo, [{ transform:"scale(0) rotate(0deg)", opacity:0 }, { transform:"scale(1.1) rotate(220deg)", opacity:1, offset:.4 }, { transform:"scale(.75) rotate(720deg)", opacity:.9 }], { duration:620, easing:"linear", fill:"forwards" });
-      await fin(A(inner, [
-        { transform:"none", opacity:1 },
-        { transform:"rotate(-18deg) scale(.82)", opacity:1, offset:.3 },
-        { transform:"rotate(-160deg) scale(.22)", opacity:.85, offset:.75 },
-        { transform:"rotate(-300deg) scale(.01)", opacity:0 }
-      ], { duration:620, easing:"cubic-bezier(.55,0,.75,.3)", fill:"forwards" }));
-      // B) cambia de herramienta mientras todo está dentro del agujero
+      vibra([20, 50, 20]);
+      await fin(A(clon, [{ transform:"none" }, { transform:alCentro + " rotate(360deg)" }], { duration:460, easing:"cubic-bezier(.3,1.3,.4,1)", fill:"forwards" }));
+      // ABSORBE: pieza por pieza, en espiral hacia el logo
+      var viejas = piezas(), n = viejas.length, paso = Math.max(35, Math.min(75, 520 / Math.max(1, n))), absorb = [];
+      A(anillo, [{ transform:"scale(0) rotate(0deg)", opacity:0 }, { transform:"scale(.62) rotate(360deg)", opacity:1, offset:.2 }, { transform:"scale(.5) rotate(1080deg)", opacity:.9 }],
+        { duration:n * paso + 520, easing:"linear", fill:"forwards" });
+      sorbo((n * paso + 480) / 1000);
+      var svgL = clon.querySelector("svg");
+      if(svgL) A(svgL, [{ transform:"scale(1)" }, { transform:"scale(1.18)" }, { transform:"scale(1)" }], { duration:paso * 2, iterations:Math.ceil(n / 2) + 1, easing:"ease-in-out" });
+      viejas.forEach(function(el, i){
+        var c = centroDe(el), tx = cx - c[0], ty = cy - c[1], giro = (i % 2 ? 1 : -1) * (90 + (i % 3) * 40);
+        absorb.push(A(el, [
+          { transform:"none", opacity:1 },
+          { transform:"translate(" + tx * 0.3 + "px," + ty * 0.3 + "px) rotate(" + giro * 0.15 + "deg) scale(.9)", opacity:1, offset:.35 },
+          { transform:"translate(" + tx + "px," + ty + "px) rotate(" + giro + "deg) scale(0)", opacity:0 }
+        ], { duration:480, delay:i * paso, easing:"cubic-bezier(.6,0,.9,.45)", fill:"forwards" }));
+      });
+      if(absorb.length) await fin(absorb[absorb.length - 1]);
+      A(clon, [{ transform:alCentro + " rotate(360deg)" }, { transform:alCentro + " rotate(360deg) scale(1.25)" }, { transform:alCentro + " rotate(360deg)" }], { duration:260, easing:"ease-in-out", fill:"forwards" });   // "trago"
+      vibra([45]);
+      // CAMBIA de herramienta mientras todo está dentro del logo
       aplicarModo(id);
       if(L) L.scrollTop = 0;
-      var lr2 = logo.getBoundingClientRect(), ir2 = inner.getBoundingClientRect();
-      inner.style.transformOrigin = (lr2.left + lr2.width / 2 - ir2.left) + "px " + (lr2.top + lr2.height / 2 - ir2.top) + "px";
-      // C) lo escupe con efecto gelatina (se estira y rebota hasta asentarse)
-      A(disco, [{ transform:"scale(.9)", opacity:1 }, { transform:"scale(1.3)", opacity:.9, offset:.25 }, { transform:"scale(0)", opacity:0 }], { duration:520, easing:"cubic-bezier(.2,.8,.2,1)", fill:"forwards" });
-      A(anillo, [{ transform:"scale(.75) rotate(720deg)", opacity:.9 }, { transform:"scale(1.4) rotate(900deg)", opacity:0 }], { duration:480, easing:"ease-out", fill:"forwards" });
-      vibra([35]);
-      await fin(A(inner, [
-        { transform:"rotate(120deg) scale(.02)", opacity:0 },
-        { transform:"rotate(0deg) scale(1.12, .86)", opacity:1, offset:.38 },
-        { transform:"scale(.9, 1.1)", offset:.55 },
-        { transform:"scale(1.05, .96)", offset:.7 },
-        { transform:"scale(.98, 1.025)", offset:.84 },
-        { transform:"scale(1.006, .996)", offset:.93 },
-        { transform:"none", opacity:1 }
-      ], { duration:900, easing:"cubic-bezier(.22,.9,.3,1)" }));
-    }catch(e){ try{ aplicarModo(id); }catch(x){} }
+      // ESCUPE: cada pieza nueva sale del logo y cae en su lugar con gelatina (antes de salir, escondida en el centro).
+      // Primero se sueltan las absorbidas (si no, sus medidas son 0 y las que existen en las dos herramientas no se
+      // vuelven a escupir); todo en el mismo instante, sin pintar en medio, así que no hay parpadeo.
+      absorb.forEach(function(a){ try{ a.cancel(); }catch(e){} });
+      var nuevas = piezas(), m = nuevas.length, paso2 = Math.max(55, Math.min(110, 760 / Math.max(1, m))), ultima = null, retrasos = [];
+      nuevas.forEach(function(el, i){
+        var c = centroDe(el), tx = cx - c[0], ty = cy - c[1], giro = (i % 2 ? -1 : 1) * 70;
+        retrasos.push(260 + i * paso2);
+        ultima = A(el, [
+          { transform:"translate(" + tx + "px," + ty + "px) rotate(" + giro + "deg) scale(0)", opacity:0 },
+          { transform:"translate(" + tx * 0.08 + "px," + ty * 0.08 + "px) rotate(0deg) scale(1.14,.86)", opacity:1, offset:.5 },
+          { transform:"scale(.92,1.08)", offset:.66 },
+          { transform:"scale(1.04,.97)", offset:.8 },
+          { transform:"scale(.985,1.015)", offset:.91 },
+          { transform:"none", opacity:1 }
+        ], { duration:680, delay:260 + i * paso2, easing:"cubic-bezier(.2,.9,.3,1)", fill:"backwards" });
+      });
+      escupidas(retrasos);
+      if(svgL) A(svgL, [{ transform:"scale(1)" }, { transform:"scale(.82)" }, { transform:"scale(1.12)" }, { transform:"scale(1)" }], { duration:paso2, delay:260, iterations:Math.max(1, m), easing:"ease-out" });
+      if(ultima) await fin(ultima);
+      // el anillo se apaga y el logo regresa a su esquina
+      A(anillo, [{ transform:"scale(.5) rotate(1080deg)", opacity:.9 }, { transform:"scale(0) rotate(1260deg)", opacity:0 }], { duration:260, easing:"ease-in", fill:"forwards" });
+      var lr2 = logo.getBoundingClientRect();
+      clon.style.left = lr2.left + "px"; clon.style.top = lr2.top + "px";
+      var alCentro2 = "translate(" + (cx - (lr2.left + lr2.width / 2)) + "px," + (cy - (lr2.top + lr2.height / 2)) + "px) scale(" + ESC + ")";
+      await fin(A(clon, [{ transform:alCentro2 + " rotate(360deg)" }, { transform:"none" }], { duration:420, easing:"cubic-bezier(.3,1.25,.4,1)", fill:"forwards" }));
+    }catch(e){ try{ if(appDe(id).id !== modo) aplicarModo(id); }catch(x){} }
     finally{
       todas.forEach(function(a){ try{ a.cancel(); }catch(e){} });   // sin depender de getAnimations() (teléfonos viejos)
-      if(inner){ inner.style.transformOrigin = ""; inner.style.willChange = ""; }
+      if(clon && clon.parentNode) clon.parentNode.removeChild(clon);
+      if(logo) logo.style.visibility = "";
       if(L) L.style.overflow = "";
       cambiando = false;
     }
