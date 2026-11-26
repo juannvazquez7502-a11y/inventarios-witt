@@ -28331,7 +28331,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.4", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.5", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -28504,10 +28504,17 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         var cu = norm(rec.color || ""), mejorC = 0;
         // La FAMILIA del color (azul, gris, rojo…) manda: "AZUL ACERO" nunca puede quedar en "Gris Acero".
         var FAM = ["AZUL","GRIS","ROJO","BLANCO","NEGRO","CAFE","COBRE","PLATA","VERDE","NARANJA","AMARILLO","BEIGE","DORADO","VINO","MORADO"];
+        // nombres en inglés y tonos de una misma familia (p. ej. "RED WINE", "VINO", "BURDEOS" = rojo)
+        var SIN = { RED:"ROJO", WINE:"ROJO", VINO:"ROJO", BURDEOS:"ROJO", GUINDA:"ROJO", GRANATE:"ROJO", CEREZA:"ROJO",
+          BLUE:"AZUL", MARINO:"AZUL", GREY:"GRIS", GRAY:"GRIS", GRAFITO:"GRIS", OXFORD:"GRIS", TITANIO:"GRIS", WHITE:"BLANCO",
+          PERLA:"BLANCO", PERLADO:"BLANCO", BLACK:"NEGRO", SILVER:"PLATA", PLATEADO:"PLATA", BROWN:"CAFE", MARRON:"CAFE",
+          GREEN:"VERDE", ORANGE:"NARANJA", YELLOW:"AMARILLO", CHAMPAGNE:"BEIGE", ARENA:"BEIGE" };
+        var conFam = function(set){ var o = {}; Object.keys(set).forEach(function(w){ o[w] = 1; if(SIN[w]) o[SIN[w]] = 1; }); return o; };
+        cu = conFam(cu);
         var famDe = function(set){ for(var i = 0; i < FAM.length; i++) if(set[FAM[i]]) return FAM[i]; return null; };
         var famU = famDe(cu);
         Object.keys(cols).forEach(function(nombre){
-          var cn = norm(nombre), ws = Object.keys(cn);
+          var cn = conFam(norm(nombre)), ws = Object.keys(norm(nombre));
           if(famU && famDe(cn) !== famU) return;            // otra familia de color: no sirve
           var hits = ws.filter(function(w){ return cu[w]; }).length;
           var pts = hits === ws.length ? 100 + hits : hits;  // todas las palabras = el color exacto
