@@ -5966,6 +5966,173 @@ html.witt-cam-completa #toast{bottom:calc(210px + env(safe-area-inset-bottom)) !
 @keyframes witt-faros-luz{ 0%{opacity:0} 8%{opacity:1} 20%{opacity:.12} 32%{opacity:1} 60%{opacity:.85} 100%{opacity:0} }
 @keyframes witt-faros-haz{ 0%{transform:scale(.55)} 32%{transform:scale(1)} 100%{transform:scale(1.15)} }
 @media (prefers-reduced-motion: reduce){ #witt-faros.show, #witt-faros.show i{ animation-duration:.4s; } }
+
+/* ===================================================================================================================
+   WITT v4.1 · Cambio de herramienta (logo Witt → menú) · agujero negro + gelatina · CORTES DE CAJA
+   Solo transform/opacity en las animaciones (60 fps). Colores de la app (--g-*) para claro y oscuro.
+   =================================================================================================================== */
+
+/* ---------- Logo: se ve tocable ---------- */
+#app-launcher .launcher-brand .logo{ cursor:pointer; transition:transform var(--g-fast) var(--g-ease); }
+#app-launcher .launcher-brand .logo:active{ transform:scale(.92); }
+
+/* ---------- Menú de herramientas (sale del logo) ---------- */
+/* es .modal-bg (para el "atrás"): se neutralizan los estilos de ventana de la app */
+#witt-apps, #witt-apps.modal-bg{ position:fixed !important; inset:0 !important; z-index:9990 !important; display:none !important; padding:0 !important;
+  background:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; animation:none !important; }
+#witt-apps.modal-bg::before, #witt-apps.modal-bg::after{ content:none !important; display:none !important; }
+#witt-apps.show, #witt-apps.modal-bg.show{ display:block !important; }
+#witt-apps .wap-velo{ position:absolute; inset:0; background:var(--g-scrim); opacity:0; transition:opacity .22s ease; }
+#witt-apps.abierto .wap-velo{ opacity:1; }
+#witt-apps .wap-panel{ position:absolute; width:min(320px, calc(100vw - 32px)); padding:8px; border-radius:var(--g-r-sheet);
+  background:var(--g-card); color:var(--g-ink); box-shadow:var(--g-shadow-float); transform-origin:var(--wa-ox,24px) var(--wa-oy,0px);
+  transform:scale(.4); opacity:0; transition:transform .38s cubic-bezier(.2,1.35,.4,1), opacity .18s ease; }
+#witt-apps.abierto .wap-panel{ transform:scale(1); opacity:1; }
+#witt-apps .wap-tit{ font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--g-ink-2); padding:10px 12px 6px; }
+#witt-apps .wap-item{ display:flex; align-items:center; gap:12px; width:100%; padding:12px; border:0; border-radius:var(--g-r-ctl);
+  background:transparent; color:inherit; text-align:left; font:inherit; cursor:pointer; transition:background var(--g-fast) ease, transform var(--g-fast) var(--g-ease); }
+#witt-apps .wap-item:active{ transform:scale(.98); background:var(--g-soft); }
+#witt-apps .wap-item.on{ background:var(--g-accent-soft); }
+#witt-apps .wap-ico{ width:40px; height:40px; flex:none; border-radius:12px; display:grid; place-items:center; color:#fff; }
+#witt-apps .wap-ico svg{ width:22px; height:22px; }
+#witt-apps .wap-txt{ flex:1; min-width:0; }
+#witt-apps .wap-txt b{ display:block; font-size:16px; font-weight:700; }
+#witt-apps .wap-txt small{ display:block; font-size:13px; color:var(--g-ink-2); margin-top:2px; }
+#witt-apps .wap-ok{ width:22px; height:22px; color:var(--g-accent); opacity:0; }
+#witt-apps .wap-item.on .wap-ok{ opacity:1; }
+#witt-apps .wap-sep{ height:1px; background:var(--g-line); margin:6px 10px; }
+#witt-apps .wap-act{ color:var(--g-accent); }
+
+/* ---------- Agujero negro (sobre el logo) ---------- */
+#witt-hoyo{ position:fixed; left:0; top:0; width:0; height:0; z-index:9995; pointer-events:none; }
+#witt-hoyo .wh-disco{ position:absolute; width:220px; height:220px; margin:-110px 0 0 -110px; border-radius:50%;
+  background:radial-gradient(circle, #000 0 30%, rgba(0,0,0,.92) 36%, rgba(0,0,0,0) 62%);
+  transform:scale(0); opacity:0; will-change:transform, opacity; }
+#witt-hoyo .wh-anillo{ position:absolute; width:260px; height:260px; margin:-130px 0 0 -130px; border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(111,232,198,0), rgba(111,232,198,.9), rgba(255,255,255,.95), rgba(255,170,90,.85), rgba(111,232,198,0) 70%);
+  -webkit-mask:radial-gradient(circle, transparent 0 38%, #000 40% 46%, transparent 52%); mask:radial-gradient(circle, transparent 0 38%, #000 40% 46%, transparent 52%);
+  transform:scale(0) rotate(0deg); opacity:0; will-change:transform, opacity; }
+
+/* ---------- Modo CAJA dentro del selector ---------- */
+html.witt-modo-caja{ --g-hero:#123a5c; --g-hero-line:color-mix(in srgb,#ffffff 22%,#123a5c); }
+html.witt-modo-caja #app-launcher .launcher-inner > .app-card:not(.wcj-card),
+html.witt-modo-caja #app-launcher .launcher-inner > .wcr,
+html.witt-modo-caja #app-launcher #combined-dashboard-area,
+html.witt-modo-caja #app-launcher .launcher-danger,
+html.witt-modo-caja #app-launcher .launcher-inner > .launcher-foot{ display:none !important; }
+html:not(.witt-modo-caja) #wcj-home{ display:none; }
+#wcj-home{ display:flex; flex-direction:column; }
+#app-launcher .app-card.wcj-hero{ margin-top:-52px; }
+#app-launcher .wcj-card .app-icon{ color:var(--g-accent); display:grid; place-items:center; }
+#app-launcher .wcj-card .app-icon svg{ width:24px; height:24px; }
+#app-launcher .wcj-hero .app-icon{ background:#123a5c; color:#fff; }
+#app-launcher .wcj-card .wcj-stat{ font-size:14px; color:var(--g-ink-2); line-height:1.35; }
+#app-launcher .wcj-card .wcj-stat b{ color:var(--g-ink); font-weight:700; }
+#app-launcher .wcj-ring{ width:52px; height:52px; flex:none; }
+#app-launcher .wcj-ring circle{ fill:none; stroke-width:6; }
+#app-launcher .wcj-ring .fondo{ stroke:var(--g-soft-2); }
+#app-launcher .wcj-ring .valor{ stroke:var(--g-accent); stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%;
+  transition:stroke-dashoffset .9s var(--g-ease); }
+#app-launcher .wcj-ring text{ font:700 13px Inter,system-ui,sans-serif; fill:var(--g-ink); }
+#wcj-home .wcj-foot{ font-size:13px; color:var(--g-ink-2); text-align:center; margin:6px 12px 0; }
+
+/* ---------- Pantallas de Caja (ventana propia; es .modal-bg para que "atrás" la cierre) ---------- */
+/* .modal-bg de la app trae fondo transparente !important + velo en ::before; aquí es pantalla completa y opaca */
+#witt-caja-app.modal-bg{ position:fixed !important; inset:0 !important; z-index:60 !important; display:none; padding:0 !important; align-items:stretch; justify-content:stretch;
+  background:var(--g-bg) !important; color:var(--g-ink); overflow:hidden; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+#witt-caja-app.modal-bg::before, #witt-caja-app.modal-bg::after{ content:none !important; display:none !important; }
+#witt-caja-app.modal-bg.show{ display:block !important; animation:wcj-entra .32s var(--g-ease) both !important; }
+@keyframes wcj-entra{ from{ transform:translateY(24px); opacity:0; } to{ transform:none; opacity:1; } }
+#witt-caja-app .wcj-shell{ height:100%; display:flex; flex-direction:column; max-width:620px; margin:0 auto; }
+#witt-caja-app .wcj-top{ display:flex; align-items:center; gap:8px; padding:calc(12px + env(safe-area-inset-top)) 12px 6px; }
+#witt-caja-app .wcj-back{ border:0; background:var(--g-soft); color:var(--g-ink); font:600 15px Inter,system-ui,sans-serif; padding:10px 14px;
+  border-radius:999px; cursor:pointer; }
+#witt-caja-app .wcj-back:active{ transform:scale(.96); }
+#witt-caja-app .wcj-top h1{ font-size:20px; font-weight:800; margin:0; flex:1; text-align:center; padding-right:64px; }
+#witt-caja-app .wcj-tabs{ position:relative; display:grid; grid-template-columns:repeat(4,1fr); margin:8px 16px 10px; padding:4px; border-radius:999px; background:var(--g-soft); }
+#witt-caja-app .wcj-tabs button{ position:relative; z-index:1; border:0; background:transparent; color:var(--g-ink-2); font:600 13px Inter,system-ui,sans-serif;
+  padding:9px 4px; border-radius:999px; cursor:pointer; transition:color var(--g-base) ease; }
+#witt-caja-app .wcj-tabs button.on{ color:var(--g-ink); }
+#witt-caja-app .wcj-tabs .wcj-knob{ position:absolute; z-index:0; top:4px; bottom:4px; left:4px; width:calc((100% - 8px)/4); border-radius:999px;
+  background:var(--g-card); box-shadow:var(--g-shadow); transition:transform .32s cubic-bezier(.2,1.2,.4,1); }
+#witt-caja-app .wcj-main{ flex:1; overflow-y:auto; padding:4px 16px calc(28px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling:touch; }
+#witt-caja-app .wcj-pag{ display:none; }
+#witt-caja-app .wcj-pag.on{ display:block; animation:wcj-pag .26s var(--g-ease) both; }
+@keyframes wcj-pag{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+#witt-caja-app .wcj-box{ background:var(--g-card); border-radius:var(--g-r-card); box-shadow:var(--g-shadow); padding:16px; margin-bottom:12px; }
+#witt-caja-app .wcj-box h2{ font-size:16px; margin:0 0 4px; }
+#witt-caja-app .wcj-box p{ margin:0; color:var(--g-ink-2); font-size:14px; line-height:1.4; }
+#witt-caja-app .wcj-btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:var(--g-r-ctl);
+  padding:13px 18px; font:700 15px Inter,system-ui,sans-serif; cursor:pointer; background:var(--g-soft); color:var(--g-ink);
+  transition:transform var(--g-fast) var(--g-ease), opacity var(--g-fast) ease; }
+#witt-caja-app .wcj-btn:active{ transform:scale(.97); }
+#witt-caja-app .wcj-btn.pri{ background:var(--g-btn); color:var(--g-on-btn); }
+#witt-caja-app .wcj-btn.ancho{ width:100%; }
+#witt-caja-app .wcj-btn[disabled]{ opacity:.45; pointer-events:none; }
+#witt-caja-app .wcj-archivo{ display:flex; align-items:center; gap:12px; width:100%; border:2px dashed var(--g-line); border-radius:var(--g-r-card);
+  background:transparent; color:inherit; padding:16px; text-align:left; font:inherit; cursor:pointer; }
+#witt-caja-app .wcj-archivo.listo{ border-style:solid; border-color:var(--g-accent); background:var(--g-accent-soft); }
+#witt-caja-app .wcj-archivo .ic{ width:44px; height:44px; border-radius:12px; background:#123a5c; color:#fff; display:grid; place-items:center; flex:none; }
+#witt-caja-app .wcj-archivo b{ display:block; font-size:15px; word-break:break-word; }
+#witt-caja-app .wcj-archivo small{ color:var(--g-ink-2); font-size:13px; }
+#witt-caja-app .wcj-pasos{ list-style:none; margin:12px 0 0; padding:0; display:grid; gap:8px; }
+#witt-caja-app .wcj-pasos li{ display:flex; align-items:center; gap:10px; font-size:14px; color:var(--g-ink-2); }
+#witt-caja-app .wcj-pasos li i{ width:22px; height:22px; border-radius:50%; border:2px solid var(--g-soft-2); flex:none; position:relative; }
+#witt-caja-app .wcj-pasos li.hecho{ color:var(--g-ink); }
+#witt-caja-app .wcj-pasos li.hecho i{ background:var(--g-accent); border-color:var(--g-accent); }
+#witt-caja-app .wcj-pasos li.hecho i::after{ content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+#witt-caja-app .wcj-pasos li.vivo i{ border-color:var(--g-accent); border-top-color:transparent; animation:wcj-gira .8s linear infinite; }
+@keyframes wcj-gira{ to{ transform:rotate(360deg); } }
+#witt-caja-app .wcj-barra{ height:6px; border-radius:999px; background:var(--g-soft); overflow:hidden; margin-top:12px; }
+#witt-caja-app .wcj-barra span{ display:block; height:100%; width:100%; background:var(--g-accent); transform-origin:0 50%; transform:scaleX(0); transition:transform .3s var(--g-ease); }
+#witt-caja-app .wcj-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+#witt-caja-app .wcj-tile{ background:var(--g-card); border-radius:var(--g-r-ctl); box-shadow:var(--g-shadow); padding:14px; }
+#witt-caja-app .wcj-tile.ancho{ grid-column:1 / -1; }
+#witt-caja-app .wcj-tile small{ display:block; font-size:12px; color:var(--g-ink-2); font-weight:600; }
+#witt-caja-app .wcj-tile b{ display:block; font-size:26px; font-weight:800; margin-top:4px; font-variant-numeric:tabular-nums; }
+#witt-caja-app .wcj-tile em{ font-style:normal; font-size:13px; color:var(--g-ink-2); font-variant-numeric:tabular-nums; }
+#witt-caja-app .wcj-tile.ok b{ color:var(--g-ok); } #witt-caja-app .wcj-tile.warn b{ color:var(--g-warn); } #witt-caja-app .wcj-tile.bad b{ color:var(--g-bad); }
+#witt-caja-app .wcj-acciones{ display:grid; gap:10px; }
+#witt-caja-app .wcj-buscar{ display:flex; align-items:center; gap:8px; background:var(--g-soft); border-radius:999px; padding:0 14px; margin-bottom:10px; }
+#witt-caja-app .wcj-buscar input{ flex:1; border:0; background:transparent; color:var(--g-ink); font:500 15px Inter,system-ui,sans-serif; padding:12px 0; outline:none; min-width:0; }
+#witt-caja-app .wcj-chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:6px; scrollbar-width:none; }
+#witt-caja-app .wcj-chips button{ flex:none; border:0; border-radius:999px; padding:8px 12px; background:var(--g-soft); color:var(--g-ink-2); font:600 13px Inter,system-ui,sans-serif; cursor:pointer; }
+#witt-caja-app .wcj-chips button.on{ background:var(--g-ink); color:var(--g-card); }
+#witt-caja-app .wcj-chips em{ font-style:normal; opacity:.7; margin-left:4px; }
+#witt-caja-app .wcj-fila{ background:var(--g-card); border-radius:var(--g-r-ctl); box-shadow:var(--g-shadow); padding:12px 14px; margin-bottom:8px; cursor:pointer; }
+#witt-caja-app .wcj-fila .l1{ display:flex; align-items:baseline; gap:8px; }
+#witt-caja-app .wcj-fila .l1 b{ flex:1; min-width:0; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#witt-caja-app .wcj-fila .l1 span{ font-weight:700; font-variant-numeric:tabular-nums; }
+#witt-caja-app .wcj-fila .l2{ display:flex; align-items:center; gap:8px; margin-top:6px; font-size:12px; color:var(--g-ink-2); flex-wrap:wrap; }
+#witt-caja-app .wcj-fila .ex{ display:none; margin-top:8px; font-size:13px; line-height:1.45; color:var(--g-ink); }
+#witt-caja-app .wcj-fila.abierta .ex{ display:block; }
+#witt-caja-app .wcj-pill{ display:inline-block; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:700; }
+#witt-caja-app .wcj-pill.ok{ background:var(--g-ok-soft); color:var(--g-ok); }
+#witt-caja-app .wcj-pill.suma{ background:var(--g-accent-soft); color:var(--g-accent); }
+#witt-caja-app .wcj-pill.warn{ background:var(--g-warn-soft); color:var(--g-warn); }
+#witt-caja-app .wcj-pill.bad{ background:var(--g-bad-soft); color:var(--g-bad); }
+#witt-caja-app .wcj-mas{ margin:8px 0; }
+#witt-caja-app .wcj-hal h3{ font-size:16px; margin:0 0 8px; display:flex; align-items:center; gap:8px; justify-content:space-between; }
+#witt-caja-app .wcj-hal dl{ margin:0; display:grid; gap:8px; }
+#witt-caja-app .wcj-hal dt{ font-size:12px; font-weight:700; color:var(--g-ink-2); text-transform:uppercase; letter-spacing:.04em; }
+#witt-caja-app .wcj-hal dd{ margin:2px 0 0; font-size:14px; line-height:1.45; word-break:break-word; }
+#witt-caja-app .wcj-vacio{ text-align:center; padding:28px 16px; color:var(--g-ink-2); }
+#witt-caja-app .wcj-vacio b{ display:block; color:var(--g-ink); font-size:17px; margin:10px 0 4px; }
+#witt-caja-app .wcj-form{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+#witt-caja-app .wcj-form label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; color:var(--g-ink-2); }
+#witt-caja-app .wcj-form label.ancho{ grid-column:1 / -1; }
+#witt-caja-app .wcj-form input{ border:0; border-radius:12px; background:var(--g-soft); color:var(--g-ink); padding:11px 12px; font:600 15px Inter,system-ui,sans-serif; min-width:0; }
+#witt-caja-app .wcj-sw{ display:flex; align-items:center; justify-content:space-between; gap:12px; grid-column:1 / -1; font-size:14px; color:var(--g-ink); }
+#witt-caja-app .wcj-sw button{ width:52px; height:32px; border-radius:999px; border:0; background:var(--g-soft-2); position:relative; cursor:pointer; transition:background var(--g-base) ease; }
+#witt-caja-app .wcj-sw button::after{ content:""; position:absolute; top:3px; left:3px; width:26px; height:26px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3);
+  transition:transform .28s cubic-bezier(.2,1.3,.4,1); }
+#witt-caja-app .wcj-sw button.on{ background:var(--g-accent); }
+#witt-caja-app .wcj-sw button.on::after{ transform:translateX(20px); }
+#witt-caja-app .wcj-msg{ font-size:13px; color:var(--g-ink-2); margin-top:10px; min-height:18px; }
+#witt-caja-app .wcj-msg.mal{ color:var(--g-bad); }
+@media (prefers-reduced-motion: reduce){
+  #witt-apps .wap-panel, #witt-caja-app.modal-bg.show, #witt-caja-app .wcj-pag.on{ transition:none; animation:none; }
+}
 </style>
 </head>
 <body>
@@ -28394,7 +28561,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "4.0", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "4.1", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -28555,6 +28722,1089 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       if(t) arrancar();
     }, true);
   }catch(e){}
+})();
+
+/* =====================================================================================================================
+   WITT · MOTOR DEL CRUCE DE CAJA (v4.1) — traducción fiel de laboratorio_cruce.py (clase Cruce) a JavaScript.
+   Cortes de caja (recibos) contra Claves de validación (depósitos):
+     · individual: monto con tolerancia (±0.07) y MISMO nombre (errores de escritura menores sí; muy distinto, NO)
+     · por suma: varias claves del mismo nombre = un recibo (y varios recibos = una clave); se pone UNA clave y las
+       demás quedan APARTADAS. Ninguna clave se repite.
+   Todo corre en el teléfono: el archivo NO se sube a ningún lado.
+   Uso: W.__wittCruce.ejecutar({ caja:[{r,m,n,f}], claves:[{r,m,n,f,id,extra:{col:texto}}], cfg, hdrClaves:{col:titulo},
+        colsClaves:{id,monto,nombre,fecha} }, avance) -> Promise<resultado>
+   ===================================================================================================================== */
+(function(){
+  "use strict";
+  var W = window;
+
+  // ---------------------------------------------------------------- utilidades (iguales a las de Python)
+  var STOP = { SA:1, DE:1, CV:1, SAPI:1, Y:1, LA:1, LOS:1, LAS:1, DEL:1, EL:1, GRUPO:1, FINANCIERO:1, MEXICO:1, COMPANIA:1,
+               SEGUROS:1, SAB:1, RL:1, SC:1, S:1, A:1, C:1, V:1 };
+  var LEGALES = { SA:1, DE:1, CV:1, SAPI:1, SAB:1, Y:1, LA:1, LOS:1, LAS:1, DEL:1, EL:1, RL:1, SC:1, S:1, A:1, C:1, V:1 };
+  var EMPRESA = { GRUPO:1, COMPANIA:1, SEGUROS:1, SA:1, CV:1, SAPI:1, SAB:1, SC:1, RL:1, INSTITUTO:1, CORPORATIVO:1,
+                  SERVICIOS:1, ASOCIACION:1, ASEGURADORA:1, AFIANZADORA:1, FINANCIERA:1, BANCO:1, INMOBILIARIA:1 };
+  var ALIAS = { GNP: ["GRUPO NACIONAL PROVINCIAL", "GRUPO NACIONAL PROVICIONAL", "GNP SEGUROS"] };
+
+  function sinAcentos(s){ return String(s == null ? "" : s).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+  function palabras(s){
+    var t = sinAcentos(s).replace(/[^A-Z0-9 ]/g, " ");
+    t = t.replace(/\b([A-Z]) (?=[A-Z]\b)/g, "$1");          // "A N A" -> "ANA"
+    return t.split(/\s+/).filter(Boolean);
+  }
+  function tokens(s){ var t = palabras(s).filter(function(x){ return !STOP[x] && x.length > 1; }); return t.length ? t : palabras(s); }
+  function sinLegales(s){ return palabras(s).filter(function(w){ return !LEGALES[w] && w !== "SEGUROS"; }); }
+  function claveAlias(s){
+    var txt = sinLegales(s).join(" ");
+    for(var sig in ALIAS){
+      if(txt === sig) return sig;
+      if(ALIAS[sig].some(function(n){ return txt === sinLegales(n).join(" "); })) return sig;
+    }
+    return null;
+  }
+  function esSigla(a, b){
+    var pares = [[a, b], [b, a]];
+    for(var i = 0; i < 2; i++){
+      var x = sinLegales(pares[i][0]), py = palabras(pares[i][1]);
+      if(!py.some(function(w){ return EMPRESA[w]; })) continue;
+      var y = py.filter(function(w){ return !LEGALES[w] && w !== "SEGUROS"; });
+      if(x.length === 1 && x[0].length >= 2 && x[0].length <= 6 && y.length >= 2 && y.map(function(w){ return w[0]; }).join("") === x[0]) return true;
+    }
+    return false;
+  }
+  // difflib.SequenceMatcher(None, a, b).ratio() — mismo algoritmo (Ratcliff/Obershelp), sin "junk" (cadenas < 200)
+  function ratio(a, b){
+    var la = a.length, lb = b.length;
+    if(!la && !lb) return 1;
+    var b2j = {};
+    for(var j = 0; j < lb; j++){ (b2j[b[j]] || (b2j[b[j]] = [])).push(j); }
+    function larga(alo, ahi, blo, bhi){
+      var bi = alo, bj = blo, bs = 0, j2len = {};
+      for(var i = alo; i < ahi; i++){
+        var nuevo = {}, idx = b2j[a[i]] || [];
+        for(var q = 0; q < idx.length; q++){
+          var jj = idx[q]; if(jj < blo) continue; if(jj >= bhi) break;
+          var k = (j2len[jj - 1] || 0) + 1; nuevo[jj] = k;
+          if(k > bs){ bi = i - k + 1; bj = jj - k + 1; bs = k; }
+        }
+        j2len = nuevo;
+      }
+      return [bi, bj, bs];
+    }
+    var cola = [[0, la, 0, lb]], M = 0;
+    while(cola.length){
+      var t = cola.pop(), r = larga(t[0], t[1], t[2], t[3]);
+      if(r[2]){
+        M += r[2];
+        if(t[0] < r[0] && t[2] < r[1]) cola.push([t[0], r[0], t[2], r[1]]);
+        if(r[0] + r[2] < t[1] && r[1] + r[2] < t[3]) cola.push([r[0] + r[2], t[1], r[1] + r[2], t[3]]);
+      }
+    }
+    return 2 * M / (la + lb);
+  }
+  var memoNom = new Map();
+  function parecidoNombre(a, b){
+    var key = a + "\u0001" + b, v = memoNom.get(key);
+    if(v !== undefined) return v;
+    v = parecidoNombre0(a, b); memoNom.set(key, v); return v;
+  }
+  function parecidoNombre0(a, b){
+    var ka = claveAlias(a), kb = claveAlias(b);
+    if(ka && ka === kb) return 1;
+    if(esSigla(a, b)) return 1;
+    var A = tokens(a), B = tokens(b);
+    if(!A.length || !B.length) return 0;
+    var S = A.length <= B.length ? A : B, L = (A.length <= B.length ? B : A).slice(), tot = 0;
+    for(var i = 0; i < S.length; i++){
+      if(!L.length) break;
+      var mejor = 0, mr = -1;
+      for(var k = 0; k < L.length; k++){ var r = ratio(S[i], L[k]); if(r > mr){ mr = r; mejor = k; } }   // primer máximo, como max()
+      tot += mr; L.splice(mejor, 1);
+    }
+    return tot / S.length;
+  }
+  // round() de Python: redondea el valor binario EXACTO y, solo si es un empate exacto, al par.
+  // (x*10^d en flotante se equivocaba: Python round(0.8875, 3) = 0.887 porque 0.8875 vale 0.88749999…)
+  function pyRound(x, d){
+    d = d || 0;
+    if(!isFinite(x) || Math.abs(x) >= 1e15) return x;
+    var neg = x < 0, s = Math.abs(x).toFixed(Math.min(100, d + 40));   // toFixed usa el valor exacto del flotante
+    var p = s.indexOf("."), ent = s.slice(0, p), dec = s.slice(p + 1);
+    var keep = ent + dec.slice(0, d), resto = dec.slice(d), sube;
+    if(resto[0] > "5") sube = true;
+    else if(resto[0] < "5") sube = false;
+    else if(/[1-9]/.test(resto.slice(1))) sube = true;
+    else sube = Number(keep.slice(-1)) % 2 === 1;                      // empate exacto: al par
+    var t = keep;
+    if(sube){   // +1 sobre la cadena de dígitos (sin BigInt: WebViews viejos)
+      var dig = t.split(""), i = dig.length - 1;
+      while(i >= 0 && dig[i] === "9"){ dig[i] = "0"; i--; }
+      if(i < 0) dig.unshift("1"); else dig[i] = String(Number(dig[i]) + 1);
+      t = dig.join("");
+    }
+    while(t.length <= d) t = "0" + t;
+    var r = Number(d ? t.slice(0, t.length - d) + "." + t.slice(t.length - d) : t);
+    return neg ? -r : r;
+  }
+  function m(v){ return Number(v).toLocaleString("en-US", { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+  function signo2(v){ return (v >= 0 ? "+" : "") + v.toFixed(2); }
+  // fechas como número de serie de Excel (días desde 1899-12-30); diferencia en días = floor, como timedelta.days
+  function dmy(f){
+    if(f == null) return "";
+    var d = new Date(Math.round((f - 25569) * 864e5));
+    var p = function(n){ return (n < 10 ? "0" : "") + n; };
+    return p(d.getUTCDate()) + "/" + p(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear();
+  }
+  function combinaciones(arr, n, fn){   // itertools.combinations: mismo orden
+    var idx = []; for(var i = 0; i < n; i++) idx.push(i);
+    var len = arr.length; if(n > len) return;
+    while(true){
+      if(fn(idx.map(function(k){ return arr[k]; })) === false) return;
+      var j = n - 1; while(j >= 0 && idx[j] === j + len - n) j--;
+      if(j < 0) return;
+      idx[j]++; for(var q = j + 1; q < n; q++) idx[q] = idx[q - 1] + 1;
+    }
+  }
+  function cmpArr(a, b){ for(var i = 0; i < Math.min(a.length, b.length); i++){ if(a[i] !== b[i]) return a[i] < b[i] ? -1 : 1; } return a.length - b.length; }
+  var espera = function(){ return new Promise(function(r){ setTimeout(r, 0); }); };
+
+  // ---------------------------------------------------------------- el cruce
+  function Cruce(datos, cfg){
+    this.cfg = cfg; this.caja = datos.caja; this.claves = datos.claves;
+    this.hdrK = datos.hdrClaves || {}; this.colsK = datos.colsClaves || {};
+    this.cmap = {}; this.kmap = {}; this.idx = {};
+    var self = this;
+    this.caja.forEach(function(c){ self.cmap[c.r] = c; });
+    this.claves.forEach(function(k){ self.kmap[k.r] = k; var b = pyRound(k.m * 100); (self.idx[b] || (self.idx[b] = [])).push(k); });
+  }
+  Cruce.prototype.dias = function(c, k){ return (c.f != null && k.f != null) ? Math.floor(c.f - k.f + 1e-9) : null; };
+  Cruce.prototype.candidatasMonto = function(monto){
+    var tol = pyRound(this.cfg.tolerancia * 100), base = pyRound(monto * 100), out = [];
+    for(var d = -tol; d <= tol; d++){ var l = this.idx[base + d]; if(l) out.push.apply(out, l); }
+    return out;
+  };
+  Cruce.prototype.cruceIndividual = function(){
+    var self = this, cfg = this.cfg, pares = [];
+    this.caja.forEach(function(c){
+      self.candidatasMonto(c.m).forEach(function(k){
+        if(Math.abs(k.m - c.m) > cfg.tolerancia + 1e-9) return;
+        var s = parecidoNombre(c.n, k.n);
+        if(s < cfg.umbral_nombre) return;
+        var dd = self.dias(c, k), pen = dd == null ? 999 : (dd >= 0 ? dd : 1000 - dd);
+        pares.push([-pyRound(s, 3), pen, Math.abs(k.m - c.m), c.r, k.r, s]);
+      });
+    });
+    pares.sort(function(a, b){ return cmpArr(a.slice(0, 5), b.slice(0, 5)); });
+    this.match = {}; this.usadas = new Set(); this.matchOrden = [];   // orden de inserción (como el dict de Python)
+    pares.forEach(function(p){
+      if(self.match[p[3]] || self.usadas.has(p[4])) return;
+      self.match[p[3]] = [p[4], p[5]]; self.usadas.add(p[4]); self.matchOrden.push(p[3]);
+    });
+  };
+  Cruce.prototype.cruceSuma = async function(avance){
+    var self = this, cfg = this.cfg;
+    var libres = this.claves.filter(function(k){ return !self.usadas.has(k.r); });
+    var sin = this.caja.filter(function(c){ return !self.match[c.r]; });
+    var cands = [];
+    for(var ci = 0; ci < sin.length; ci++){
+      var c = sin[ci];
+      if(ci % 4 === 0){ if(avance) avance(ci / Math.max(1, sin.length)); await espera(); }
+      var ks = libres.filter(function(k){ var d = self.dias(c, k); return parecidoNombre(c.n, k.n) >= cfg.umbral_suma && (d == null || (d >= -3 && d <= cfg.dias_suma)); });
+      ks = ks.map(function(k, i){ return [Math.abs(self.dias(c, k) || 0), i, k]; }).sort(function(a, b){ return a[0] - b[0] || a[1] - b[1]; }).map(function(x){ return x[2]; }).slice(0, 15);
+      var grp = cfg.permitir_suma_recibos
+        ? sin.filter(function(x){ return parecidoNombre(c.n, x.n) >= cfg.umbral_suma && (c.f == null || x.f == null || Math.abs(Math.floor(x.f - c.f + 1e-9)) <= 10); }).slice(0, 8)
+        : [c];
+      for(var n = 1; n <= Math.min(cfg.max_recibos_suma, grp.length); n++){
+        combinaciones(grp, n, function(cc){
+          if(cc.indexOf(c) < 0) return;
+          var s = cc.reduce(function(t, x){ return t + x.m; }, 0);
+          for(var kn = 1; kn <= Math.min(cfg.max_claves_suma, ks.length); kn++){
+            if(n === 1 && kn === 1) continue;
+            combinaciones(ks, kn, function(kk){
+              var sk = kk.reduce(function(t, k){ return t + k.m; }, 0);
+              if(Math.abs(sk - s) <= cfg.tolerancia + 1e-9){
+                var dd = 0; cc.forEach(function(x){ kk.forEach(function(k){ dd += Math.abs(self.dias(x, k) || 0); }); });
+                cands.push([n + kn, dd, cc.map(function(x){ return x.r; }).sort(function(a, b){ return a - b; }),
+                            kk.map(function(k, i){ return [-k.m, i, k]; }).sort(function(a, b){ return a[0] - b[0] || a[1] - b[1]; }).map(function(x){ return x[2]; })]);
+              }
+            });
+          }
+        });
+      }
+    }
+    cands.sort(function(a, b){ return (a[0] - b[0]) || (a[1] - b[1]) || cmpArr(a[2], b[2]); });
+    var uc = new Set(), uk = new Set(); this.sumas = [];
+    cands.forEach(function(t){
+      var cc = t[2], kk = t[3];
+      if(cc.some(function(r){ return uc.has(r); }) || kk.some(function(k){ return uk.has(k.r); })) return;
+      cc.forEach(function(r){ uc.add(r); }); kk.forEach(function(k){ uk.add(k.r); });
+      self.sumas.push([cc, kk.map(function(k){ return k.r; })]);
+    });
+    this.apartadas = uk;
+  };
+  Cruce.prototype.revisarOrtografia = function(){
+    var self = this, excl = {}; ["id", "monto", "nombre", "fecha"].forEach(function(k){ if(self.colsK[k] != null) excl[self.colsK[k]] = 1; });
+    this.contCol = {};
+    Object.keys(this.hdrK).forEach(function(col){
+      if(excl[col]) return;
+      var cnt = new Map();
+      self.claves.forEach(function(k){ var v = k.extra && k.extra[col]; if(typeof v === "string" && v.trim()){ v = v.trim().toUpperCase(); cnt.set(v, (cnt.get(v) || 0) + 1); } });
+      self.contCol[col] = cnt;
+    });
+    this.orto = {};
+  };
+  Cruce.prototype.ortoCampos = function(cr, kr){
+    var out = [], k = this.kmap[kr], self = this;
+    Object.keys(this.contCol).forEach(function(col){
+      var cnt = self.contCol[col], v = k.extra && k.extra[col];
+      if(typeof v !== "string" || !v.trim()) return;
+      v = v.trim().toUpperCase();
+      if((cnt.get(v) || 0) > 2) return;
+      // most_common(40): de mayor a menor frecuencia (empates en orden de aparición)
+      var comunes = Array.from(cnt.entries()).map(function(e, i){ return [e[0], e[1], i]; }).sort(function(a, b){ return b[1] - a[1] || a[2] - b[2]; }).slice(0, 40);
+      for(var i = 0; i < comunes.length; i++){
+        var w = comunes[i][0], fr = comunes[i][1];
+        if(fr >= 10 && w !== v && ratio(v, w) >= 0.85){
+          out.push([col, "Error ortográfico en " + sinAcentos(self.hdrK[col]).replace(/\s+/g, " ").trim() + ": dice '" + v + "' (debe ser '" + w + "')."]);
+          break;
+        }
+      }
+    });
+    return out;
+  };
+  Cruce.prototype.explicar = function(){
+    var self = this, cfg = this.cfg, cm = this.cmap, km = this.kmap;
+    var todasUsadas = new Set(Array.from(this.usadas).concat(Array.from(this.apartadas)));
+    this.estat = {}; this.expl = {}; this.orden = [];
+    this.tipos = { orto:[], abrev:[], desfase:[], centavos:[], alternas:[], suma:[], negativas:[], fraccion:[], doble:[], centavos_rec:[], duplicado:[], sin_clave:[] };
+    var T = this.tipos;
+    this.revisarOrtografia();
+    var pon = function(r, e, t){ if(!(r in self.estat)) self.orden.push(r); self.estat[r] = e; self.expl[r] = t; };
+    var ortoDe = function(r){ return self.orto[r] || (self.orto[r] = []); };
+    this.caja.forEach(function(c){
+      var r = c.r; if(!self.match[r]) return;
+      var kr = self.match[r][0], s = self.match[r][1], k = km[kr], obs = false;
+      var d = pyRound(k.m - c.m, 2);
+      var pm = !d ? "monto exacto" : "monto con diferencia de " + signo2(d) + " (dentro de tolerancia " + cfg.tolerancia + ")";
+      var pn;
+      if(palabras(c.n).join(" ") === palabras(k.n).join(" ")) pn = "nombre igual";
+      else if(s < 0.999){ pn = "nombre con ERROR DE ESCRITURA: en Claves dice '" + k.n + "'"; obs = true;
+        ortoDe(r).push(["nombre", "Error ortográfico en NOMBRE: Claves '" + k.n + "' vs Caja '" + c.n + "'."]); T.orto.push(r); }
+      else { pn = "nombre abreviado en Claves ('" + k.n + "'), mismo cliente"; T.abrev.push(r); }
+      if(/[¥�]/.test(k.n)) ortoDe(r).push(["nombre", "Error de codificación en NOMBRE (carácter extraño en lugar de Ñ/acentos)."]);
+      var t = "CRUZA con " + k.id + ": " + pm + ", " + pn + ".";
+      if(k.f != null) t += " Depósito " + dmy(k.f) + ".";
+      var dd = self.dias(c, k);
+      if(dd != null && dd > cfg.dias_desfase){ t += " Ojo: depósito " + dd + " días antes del recibo."; obs = true; T.desfase.push([r, dd]); }
+      if(dd != null && dd < 0){ t += " Ojo: depósito " + (-dd) + " días DESPUÉS del recibo."; obs = true; T.desfase.push([r, dd]); }
+      if(d){ obs = true; T.centavos.push([r, d]); }
+      var alt = self.candidatasMonto(c.m).filter(function(x){ return x.r !== kr && !todasUsadas.has(x.r) && Math.abs(x.m - c.m) <= cfg.tolerancia + 1e-9 && parecidoNombre(c.n, x.n) >= cfg.umbral_nombre; });
+      if(alt.length){
+        t += " Existe otra clave igual sin usar: " + alt.map(function(x){ return String(x.id) + (x.f != null ? " (" + dmy(x.f) + ")" : ""); }).join(", ") + "; se eligió la de fecha más cercana.";
+        obs = true; T.alternas.push(r);
+      }
+      self.ortoCampos(r, kr).forEach(function(x){ ortoDe(r).push(x); T.orto.push(r); });
+      if(self.orto[r] && self.orto[r].length){
+        var extra = self.orto[r].filter(function(x){ return x[1].indexOf("Error ortográfico en NOMBRE") !== 0; }).map(function(x){ return x[1]; }).join(" ");
+        t += (extra ? " " + extra : "") + " (resaltado en rojo)";
+        obs = true;
+      }
+      pon(r, obs ? "CRUZADO CON OBSERVACIÓN" : "CRUZADO", t.trim());
+    });
+    // sumas
+    this.sumas.forEach(function(su){
+      var cc = su[0], kk = su[1];
+      var opsC = cc.map(function(x){ return m(cm[x].m) + " (fila " + x + ")"; }).join(" + ");
+      var opsK = kk.map(function(k, i){ return (i === 0 ? "" : (km[k].m < 0 ? "- " : "+ ")) + km[k].id + " (" + m(i ? Math.abs(km[k].m) : km[k].m) + ")"; }).join(" ");
+      var tot = m(kk.reduce(function(t, k){ return t + km[k].m; }, 0));
+      cc.forEach(function(x, i){
+        var t;
+        if(i === 0){
+          t = "CRUZA POR SUMA (" + (cc.length > 1 ? opsC : m(cm[x].m)) + " = " + opsK + " = " + tot + "), mismo nombre, claves libres.";
+          if(kk.length > 1) t += " Se pone como cruce solo " + km[kk[0]].id + "; las otras (" + kk.slice(1).map(function(k){ return km[k].id; }).join(", ") +
+            ") quedan APARTADAS y no se usan en ningún otro cruce. Detalle en la hoja 'Cruces por suma'.";
+          if(cc.length > 1) t += " La clave se muestra solo en esta fila para no repetirla.";
+        } else {
+          t = "CRUZA POR SUMA junto con la fila " + cc[0] + ": " + opsC + " = " + tot + ". La clave se muestra en la fila " + cc[0] + " (no se repite).";
+        }
+        pon(x, "CRUZADO POR SUMA", t);
+      });
+      T.suma.push([cc, kk]);
+      if(kk.some(function(k){ return km[k].m < 0; })) T.negativas.push(cc[0]);
+      if(cc.length > 1) T.fraccion.push.apply(T.fraccion, cc);
+    });
+    // no cruzados: diagnóstico
+    var sin = this.caja.filter(function(c){ return !(c.r in self.estat); });
+    var usadasPor = {}; Object.keys(this.match).forEach(function(r){ usadasPor[self.match[r][0]] = Number(r); });
+    var hechos = new Set();
+    sin.forEach(function(c){
+      if(hechos.has(c.r)) return;
+      var grp = sin.filter(function(x){ return parecidoNombre(c.n, x.n) >= cfg.umbral_suma && (c.f == null || x.f == null || Math.abs(Math.floor(x.f - c.f + 1e-9)) <= 10); }).slice(0, 8);
+      var encontrado = false;
+      for(var n = Math.min(4, grp.length); n > 1 && !encontrado; n--){
+        combinaciones(grp, n, function(cc){
+          if(cc.indexOf(c) < 0 || cc.some(function(x){ return hechos.has(x.r); })) return;
+          var s = cc.reduce(function(t, x){ return t + x.m; }, 0);
+          var cs = self.candidatasMonto(s);
+          for(var i = 0; i < cs.length; i++){
+            var k = cs[i];
+            if((k.r in usadasPor) && Math.abs(k.m - s) <= cfg.tolerancia + 1e-9 && parecidoNombre(c.n, k.n) >= cfg.umbral_suma){
+              var ops = cc.map(function(x){ return m(x.m) + " (fila " + x.r + ")"; }).join(" + ");
+              cc.forEach(function(x){
+                pon(x.r, "NO CRUZADO", "NO CRUZA. La suma " + ops + " = " + m(k.m) + " es del mismo nombre, pero la clave " + k.id + " YA se usó en la fila " +
+                  usadasPor[k.r] + "; se DESCARTA (no se repiten claves). Posible doble aplicación del mismo depósito.");
+                hechos.add(x.r);
+              });
+              T.doble.push([cc.map(function(x){ return x.r; }), usadasPor[k.r]]);
+              encontrado = true; return false;
+            }
+          }
+        });
+      }
+    });
+    sin.forEach(function(c){
+      var r = c.r; if(hechos.has(r)) return;
+      var dup = self.matchOrden.filter(function(cr){ return Math.abs(cm[cr].m - c.m) <= 0.001 && parecidoNombre(c.n, cm[cr].n) >= 0.999 && cr !== r; });
+      var comp = null;
+      if(c.m <= 1){
+        var ms = self.matchOrden;
+        for(var i = 0; i < ms.length; i++){
+          var cr = ms[i], kr = self.match[cr][0];
+          if(parecidoNombre(c.n, cm[cr].n) >= cfg.umbral_suma && Math.abs(cm[cr].m + c.m - km[kr].m) <= 0.001){ comp = [cr, kr]; break; }
+        }
+      }
+      var t;
+      if(comp){
+        t = "NO CRUZA. No hay clave de " + m(c.m) + ". Con la fila " + comp[0] + " sumaría " + m(km[comp[1]].m) + " = clave " + km[comp[1]].id +
+            ", pero esa clave YA se usó en la fila " + comp[0] + "; se DESCARTA. Son centavos complementarios.";
+        T.centavos_rec.push(r);
+      } else if(dup.length){
+        t = "NO CRUZA. Hay un recibo idéntico (fila " + dup[0] + ") ya cruzado y no existe otra clave libre del mismo nombre y monto; se DESCARTA. Posible recibo duplicado o falta una clave.";
+        T.duplicado.push([r, dup[0]]);
+        self.estat[dup[0]] = "CRUZADO CON OBSERVACIÓN";
+        self.expl[dup[0]] += " La fila " + r + " tiene un recibo idéntico que quedó sin clave (posible duplicado).";
+      } else {
+        t = "NO CRUZA. No existe clave a nombre de " + c.n + " por " + m(c.m) + ", ni suma de claves de ese nombre que cuadre. Falta clave de validación.";
+        T.sin_clave.push(r);
+      }
+      pon(r, "NO CRUZADO", t);
+    });
+  };
+  Cruce.prototype.tipoObs = function(r){
+    var e = this.expl[r], t = [];
+    if(this.estat[r] === "NO CRUZADO") t.push(e.indexOf("DESCARTA") >= 0 ? "Descartado: clave ya usada" : "Sin clave");
+    if(this.estat[r] === "CRUZADO POR SUMA") t.push("Cruce por suma");
+    if(this.orto[r] && this.orto[r].length) t.push("Error ortográfico");
+    if(e.indexOf("diferencia de") >= 0) t.push("Diferencia de centavos");
+    if(e.indexOf("días antes") >= 0 || e.indexOf("DESPUÉS") >= 0) t.push("Desfase de fechas");
+    if(e.indexOf("otra clave igual") >= 0) t.push("Otra clave igual disponible");
+    return t.join(" / ");
+  };
+  Cruce.prototype.hallazgos = function(){
+    var T = this.tipos, cm = this.cmap, self = this, H = [];
+    var S = function(rows){ return rows.reduce(function(t, r){ return t + cm[r].m; }, 0); };
+    var L = function(a){ return a.join(", "); };
+    if(T.doble.length){ var rows = []; T.doble.forEach(function(g){ rows.push.apply(rows, g[0]); });
+      H.push(["Alto", "Posible doble aplicación de depósitos", "Recibos cuya suma (mismo nombre) es igual a una clave que ya respalda otro recibo: " +
+        T.doble.map(function(g){ return "filas " + L(g[0]) + " vs fila " + g[1]; }).join("; ") + ".", L(rows), S(rows),
+        "Ingresos registrados dos veces con un solo depósito.", "Confirmar si los recibos son sustitución/reaplicación y si se canceló el original."]); }
+    if(T.duplicado.length){ var rows2 = T.duplicado.map(function(x){ return x[0]; });
+      H.push(["Alto", "Posible recibo duplicado", T.duplicado.map(function(x){ return "Fila " + x[0] + " idéntica a la fila " + x[1] + " (mismo nombre y monto) y solo existe una clave"; }).join("; ") + ".",
+        L(rows2), S(rows2), "Ingreso sin respaldo bancario o duplicado.", "Validar si existen dos depósitos; si no, cancelar el recibo sin soporte."]); }
+    if(T.sin_clave.length) H.push(["Alto", "Recibos sin clave de validación", "No existe clave ni suma de claves del mismo nombre: " +
+        T.sin_clave.map(function(r){ return cm[r].n + " " + m(cm[r].m); }).join("; ") + ".", L(T.sin_clave), S(T.sin_clave), "Ingreso sin evidencia de depósito.", "Solicitar comprobante y alta de clave, o cancelar el recibo."]);
+    var ids = new Map(); this.claves.forEach(function(k){ if(k.id) ids.set(k.id, (ids.get(k.id) || 0) + 1); });
+    var dup = Array.from(ids.entries()).filter(function(e){ return e[1] > 1; });
+    if(dup.length) H.push(["Alto", "IDs de clave de validación repetidos", dup.length + " IDs aparecen en " + dup.reduce(function(t, e){ return t + e[1]; }, 0) +
+        " registros (ej. " + dup.slice(0, 3).map(function(e){ return e[0]; }).join(", ") + ").", "Hoja de claves", null, "La clave deja de ser un identificador único.", "Depurar la base y generar IDs únicos."]);
+    if(T.orto.length){ var ro = Array.from(new Set(T.orto)).sort(function(a, b){ return a - b; });
+      var det = []; ro.forEach(function(r){ (self.orto[r] || []).forEach(function(x){ det.push("fila " + r + ": " + x[1]); }); });
+      H.push(["Medio", "Errores ortográficos / de captura", det.join("; "), L(ro) + " (en rojo)", S(ro), "Dificulta el cruce y puede ocultar aplicaciones incorrectas.", "Corregir capturas; usar catálogo de clientes."]); }
+    if(T.negativas.length) H.push(["Medio", "Cruces con claves negativas (ajustes)", "Recibos que solo cuadran restando claves negativas.", L(T.negativas), S(T.negativas), "Descuentos/ajustes no documentados.", "Obtener soporte de cada clave negativa."]);
+    if(T.desfase.length){ var rd = T.desfase.map(function(x){ return x[0]; });
+      H.push(["Medio", "Depósitos aplicados con desfase de fechas", rd.length + " cruces con más de " + this.cfg.dias_desfase + " días entre depósito y recibo (máximo " +
+        Math.max.apply(null, T.desfase.map(function(x){ return Math.abs(x[1]); })) + ").", L(rd), S(rd), "Ingresos en periodo distinto; posible uso de depósitos antiguos.", "Establecer plazo máximo de aplicación."]); }
+    if(T.alternas.length) H.push(["Medio", "Claves idénticas pendientes de aplicar", T.alternas.length + " cruces tienen otra clave igual (mismo nombre y monto) sin usar.",
+        L(T.alternas), S(T.alternas), "Depósitos sin recibo o claves duplicadas.", "Verificar si esos depósitos ya tienen recibo en otros periodos."]);
+    var fr = Array.from(new Set(T.fraccion.concat(T.centavos_rec))).sort(function(a, b){ return a - b; });
+    if(fr.length) H.push(["Bajo", "Recibos fraccionados y de centavos", "Un depósito aplicado en varios recibos, o recibos de centavos para completar.", L(fr), S(fr), "Más movimientos por controlar.", "Aplicar cada depósito en un solo recibo."]);
+    if(T.centavos.length){ var rc = T.centavos.map(function(x){ return x[0]; }), neto = T.centavos.reduce(function(t, x){ return t + x[1]; }, 0);
+      H.push(["Bajo", "Diferencias de centavos", rc.length + " cruces con diferencia de centavos (neto " + signo2(neto) + "). El importe es el de los recibos, no la diferencia.", L(rc), S(rc), "Diferencias menores acumulables.", "Capturar el importe exacto."]); }
+    if(T.abrev.length) H.push(["Bajo", "Falta de estandarización de nombres", T.abrev.length + " claves con nombre abreviado respecto a la razón social del recibo.", "Ver Observaciones", null, "Impide cruces automáticos confiables.", "Definir catálogo de clientes."]);
+    return H;
+  };
+
+  async function ejecutar(datos, cfg, avance){
+    memoNom.clear();
+    var c = new Cruce(datos, cfg), paso = function(i, p){ if(avance) try{ avance(i, p || 0); }catch(e){} };
+    paso(0, 1); await espera();
+    c.cruceIndividual(); paso(1, 1); await espera();
+    await c.cruceSuma(function(p){ paso(2, p); }); paso(2, 1); await espera();
+    c.explicar(); var H = c.hallazgos(); paso(3, 1);
+    var cuenta = {}; Object.keys(c.estat).forEach(function(r){ cuenta[c.estat[r]] = (cuenta[c.estat[r]] || 0) + 1; });
+    return { cruce: c, hallazgos: H, cuenta: cuenta };
+  }
+
+  W.__wittCruce = { ejecutar: ejecutar, parecidoNombre: parecidoNombre, ratio: ratio, pyRound: pyRound, palabras: palabras, dmy: dmy, m: m,
+                    preajustes: {
+                      hoja_caja: "CAJA", fila_enc_caja: 7, fila_ini_caja: 8, fila_fin_caja: "", col_nombre_caja: "I", col_importe_caja: "K", col_fecha_caja: "E",
+                      hoja_claves: "BANCOS", fila_enc_claves: 1, fila_ini_claves: 2, fila_fin_claves: "", col_id_claves: "A", col_monto_claves: "D",
+                      col_nombre_claves: "J", col_fecha_claves: "E", tolerancia: 0.07, umbral_nombre: 0.8, umbral_suma: 0.95, max_claves_suma: 5,
+                      max_recibos_suma: 4, dias_suma: 45, dias_desfase: 10, permitir_suma_recibos: true } };
+})();
+
+/* =====================================================================================================================
+   WITT v4.1 · VARIAS HERRAMIENTAS EN UNA APP (pedido del usuario 26-nov-2026)
+   1. Tocar el logo Witt del selector abre el MENÚ de herramientas (Inventarios, Cortes de caja… y las que se sumen).
+      Si hay versión nueva, el menú trae "Actualizar" (antes tocar el logo actualizaba directo).
+   2. Cambiar de herramienta: el logo es un AGUJERO NEGRO que se traga la pantalla y la escupe con efecto GELATINA
+      ya con el hero de la otra herramienta. Solo transform/opacity (60 fps); con "reducir movimiento", fundido simple.
+   3. CORTES DE CAJA: hero propio en el selector + pantallas Cruce · Muestras · Hallazgos · Ajustes. El motor es el de
+      laboratorio_cruce.py (cruce-motor.js). Todo se procesa en el teléfono: nada se sube y no es en equipo.
+   ===================================================================================================================== */
+(function(){
+  "use strict";
+  var W = window, D = document;
+  var $ = function(s, r){ return (r || D).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
+  var lg = function(k, d){ try{ var v = W.localStorage.getItem(k); return v == null ? d : v; }catch(e){ return d; } };
+  var ls = function(k, v){ try{ if(v == null) W.localStorage.removeItem(k); else W.localStorage.setItem(k, v); }catch(e){} };
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; }); };
+  var menos = function(){ try{ return W.matchMedia && W.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } };
+  var vibra = function(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} };
+  var SVG = {
+    inv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>',
+    caja: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 10v4M18 10v4"/></svg>',
+    lista: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>',
+    alerta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+    ajustes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    act: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>',
+    excel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13l4 5M12 13l-4 5"/></svg>'
+  };
+  // Herramientas: para sumar otra, se agrega aquí (y su hero, como el de Caja).
+  var APPS = [
+    { id:"inventarios", nombre:"Inventarios", desc:"Vehículos, refacciones y físico", color:"#00574a", ico:SVG.inv,
+      marca:"Sistema de Inventarios", sub:"¿Qué inventario vas a trabajar hoy?" },
+    { id:"caja", nombre:"Cortes de caja", desc:"Cruce de caja contra claves de validación", color:"#123a5c", ico:SVG.caja,
+      marca:"Cortes de caja", sub:"¿Qué corte vas a cruzar hoy?" }
+  ];
+  var appDe = function(id){ return APPS.filter(function(a){ return a.id === id; })[0] || APPS[0]; };
+  var modo = appDe(lg("witt-app", "inventarios")).id;
+
+  /* ------------------------------------------------------------------ 1. MODO (qué herramienta se ve en el selector) */
+  var aplicarModo = function(id){
+    modo = appDe(id).id; ls("witt-app", modo);
+    D.documentElement.classList.toggle("witt-modo-caja", modo === "caja");
+    var a = appDe(modo), marca = $("#app-launcher .launcher-brand span"), sub = $("#app-launcher .launcher-sub");
+    if(marca) marca.textContent = a.marca;
+    if(sub) sub.textContent = a.sub;
+    if(modo === "caja") pintarInicioCaja();
+  };
+
+  /* ------------------------------------------------------------------ 2. MENÚ DEL LOGO */
+  var menu = D.createElement("div");
+  // .modal-bg: así el "atrás" lo trata como ventana (salir-fluido no pregunta "¿salir?" y nativa.js lo cierra)
+  menu.id = "witt-apps"; menu.className = "modal-bg"; menu.setAttribute("role", "dialog"); menu.setAttribute("aria-label", "Cambiar de herramienta");
+  menu.innerHTML = '<div class="wap-velo"></div><div class="wap-panel" role="menu"></div>';
+  (D.body || D.documentElement).appendChild(menu);
+  var hayVersion = function(){ return D.documentElement.classList.contains("witt-nueva-version"); };
+  var actualizar = function(){
+    try{
+      if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+        navigator.serviceWorker.getRegistration().then(function(reg){ try{ reg && reg.update(); }catch(e){} location.reload(); }, function(){ location.reload(); });
+      } else location.reload();
+    }catch(e){ location.reload(); }
+  };
+  var abrirMenu = function(){
+    var logo = $("#app-launcher .launcher-brand .logo"), r = logo ? logo.getBoundingClientRect() : { left:16, bottom:60, width:46 };
+    var panel = $(".wap-panel", menu);
+    var html = '<div class="wap-tit">Herramientas</div>' + APPS.map(function(a){
+      return '<button type="button" class="wap-item' + (a.id === modo ? " on" : "") + '" role="menuitemradio" aria-checked="' + (a.id === modo) + '" data-app="' + a.id + '">' +
+        '<span class="wap-ico" style="background:' + a.color + '">' + a.ico + '</span><span class="wap-txt"><b>' + esc(a.nombre) + '</b><small>' + esc(a.desc) + '</small></span>' +
+        '<span class="wap-ok">' + SVG.ok + '</span></button>';
+    }).join("");
+    if(hayVersion()) html += '<div class="wap-sep"></div><button type="button" class="wap-item wap-act" data-act="1"><span class="wap-ico" style="background:var(--g-accent)">' + SVG.act +
+      '</span><span class="wap-txt"><b>Actualizar la app</b><small>Hay una versión nueva</small></span></button>';
+    panel.innerHTML = html;
+    var x = Math.max(16, Math.min(r.left, W.innerWidth - Math.min(320, W.innerWidth - 32) - 16));
+    panel.style.left = x + "px"; panel.style.top = (r.bottom + 10) + "px";
+    panel.style.setProperty("--wa-ox", (r.left + r.width / 2 - x) + "px"); panel.style.setProperty("--wa-oy", "-10px");
+    menu.classList.add("show"); void menu.offsetWidth; menu.classList.add("abierto");
+    vibra(12);
+    var f = $(".wap-item.on", menu) || $(".wap-item", menu); try{ f && f.focus({ preventScroll:true }); }catch(e){}
+  };
+  var cerrarMenu = function(){
+    if(!menu.classList.contains("show")) return;
+    menu.classList.remove("abierto");
+    setTimeout(function(){ if(!menu.classList.contains("abierto")) menu.classList.remove("show"); }, 240);
+  };
+  menu.addEventListener("click", function(e){
+    if(e.target.closest(".wap-velo")){ cerrarMenu(); return; }
+    var b = e.target.closest(".wap-item"); if(!b) return;
+    if(b.getAttribute("data-act")){ cerrarMenu(); actualizar(); return; }
+    var id = b.getAttribute("data-app");
+    cerrarMenu();
+    if(id && id !== modo) setTimeout(function(){ cambiar(id); }, 120);
+  });
+  D.addEventListener("keydown", function(e){ if(e.key === "Escape") cerrarMenu(); });
+  // si otro (nativa.js con el "atrás" de Android) le quita "show", también se quita "abierto"
+  // OJO: classList.remove() reescribe el atributo aunque la clase no esté, y eso vuelve a disparar al observador:
+  // solo se toca si de verdad hay que quitarla (si no, ciclo infinito que congela la página).
+  try{ new MutationObserver(function(){ if(!menu.classList.contains("show") && menu.classList.contains("abierto")) menu.classList.remove("abierto"); }).observe(menu, { attributes:true, attributeFilter:["class"] }); }catch(e){}
+  // El logo abre el MENÚ (en captura: antes que el "tocar para actualizar" de actualizar.js, que ahora va en el menú)
+  var esLogo = function(t){ return t && t.closest && t.closest("#app-launcher .launcher-brand .logo"); };
+  D.addEventListener("click", function(e){
+    if(!esLogo(e.target)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if(menu.classList.contains("show")) cerrarMenu(); else abrirMenu();
+  }, true);
+  D.addEventListener("keydown", function(e){
+    if((e.key === "Enter" || e.key === " ") && esLogo(e.target)){ e.preventDefault(); e.stopImmediatePropagation(); abrirMenu(); }
+  }, true);
+  var marcarLogo = function(){
+    var l = $("#app-launcher .launcher-brand .logo"); if(!l) return;
+    l.setAttribute("role", "button"); l.setAttribute("tabindex", "0");
+    l.setAttribute("aria-label", "Cambiar de herramienta" + (hayVersion() ? " (hay una versión nueva)" : ""));
+    l.title = "Cambiar de herramienta";
+  };
+  try{ new MutationObserver(marcarLogo).observe(D.documentElement, { attributes:true, attributeFilter:["class"] }); }catch(e){}
+
+  /* ------------------------------------------------------------------ 3. AGUJERO NEGRO + GELATINA */
+  var hoyo = D.createElement("div");
+  hoyo.id = "witt-hoyo"; hoyo.setAttribute("aria-hidden", "true");
+  hoyo.innerHTML = '<div class="wh-disco"></div><div class="wh-anillo"></div>';
+  (D.body || D.documentElement).appendChild(hoyo);
+  var cambiando = false;
+  var anim = function(el, kf, op){ try{ return el.animate(kf, op); }catch(e){ return null; } };
+  var fin = function(a){ return new Promise(function(ok){ if(!a){ ok(); return; } a.onfinish = function(){ ok(); }; a.oncancel = function(){ ok(); }; }); };
+  var sonidoHoyo = function(){   // "sluuurp" grave que baja y un "pop" al escupir (WebAudio, corto)
+    try{
+      var C = W.__wittCtxHoyo || (W.__wittCtxHoyo = new (W.AudioContext || W.webkitAudioContext)());
+      if(C.state === "suspended") C.resume().catch(function(){});
+      var t = C.currentTime, o = C.createOscillator(), g = C.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.55);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      o.connect(g); g.connect(C.destination); o.start(t); o.stop(t + 0.62);
+      var o2 = C.createOscillator(), g2 = C.createGain(), t2 = t + 0.72;
+      o2.type = "sine"; o2.frequency.setValueAtTime(160, t2); o2.frequency.exponentialRampToValueAtTime(900, t2 + 0.09);
+      g2.gain.setValueAtTime(0.0001, t2); g2.gain.exponentialRampToValueAtTime(0.5, t2 + 0.01); g2.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.16);
+      o2.connect(g2); g2.connect(C.destination); o2.start(t2); o2.stop(t2 + 0.18);
+    }catch(e){}
+  };
+  var cambiar = async function(id){
+    if(cambiando) return; cambiando = true;
+    var todas = [], A = function(el, kf, op){ var a = anim(el, kf, op); if(a) todas.push(a); return a; };   // todas se cancelan al final
+    var L = $("#app-launcher"), inner = $("#app-launcher .launcher-inner"), logo = $("#app-launcher .launcher-brand .logo");
+    try{
+      if(!inner || !logo || menos() || typeof inner.animate !== "function"){
+        if(inner) await fin(A(inner, [{ opacity:1 }, { opacity:0 }], { duration:160, fill:"forwards" }));
+        aplicarModo(id);
+        if(inner) await fin(A(inner, [{ opacity:0 }, { opacity:1 }], { duration:220 }));
+        return;
+      }
+      var lr = logo.getBoundingClientRect(), ir = inner.getBoundingClientRect();
+      var cx = lr.left + lr.width / 2, cy = lr.top + lr.height / 2;
+      var origen = (cx - ir.left) + "px " + (cy - ir.top) + "px";
+      hoyo.style.transform = "translate(" + cx + "px," + cy + "px)";
+      var disco = $(".wh-disco", hoyo), anillo = $(".wh-anillo", hoyo);
+      inner.style.transformOrigin = origen; inner.style.willChange = "transform, opacity";
+      if(L) L.style.overflow = "hidden";
+      vibra([20, 60, 30, 60, 50]); sonidoHoyo();
+      // A) se abre el agujero y se traga todo en espiral
+      A(disco, [{ transform:"scale(0)", opacity:0 }, { transform:"scale(1.15)", opacity:1, offset:.35 }, { transform:"scale(.9)", opacity:1 }], { duration:620, easing:"cubic-bezier(.3,0,.2,1)", fill:"forwards" });
+      A(anillo, [{ transform:"scale(0) rotate(0deg)", opacity:0 }, { transform:"scale(1.1) rotate(220deg)", opacity:1, offset:.4 }, { transform:"scale(.75) rotate(720deg)", opacity:.9 }], { duration:620, easing:"linear", fill:"forwards" });
+      await fin(A(inner, [
+        { transform:"none", opacity:1 },
+        { transform:"rotate(-18deg) scale(.82)", opacity:1, offset:.3 },
+        { transform:"rotate(-160deg) scale(.22)", opacity:.85, offset:.75 },
+        { transform:"rotate(-300deg) scale(.01)", opacity:0 }
+      ], { duration:620, easing:"cubic-bezier(.55,0,.75,.3)", fill:"forwards" }));
+      // B) cambia de herramienta mientras todo está dentro del agujero
+      aplicarModo(id);
+      if(L) L.scrollTop = 0;
+      var lr2 = logo.getBoundingClientRect(), ir2 = inner.getBoundingClientRect();
+      inner.style.transformOrigin = (lr2.left + lr2.width / 2 - ir2.left) + "px " + (lr2.top + lr2.height / 2 - ir2.top) + "px";
+      // C) lo escupe con efecto gelatina (se estira y rebota hasta asentarse)
+      A(disco, [{ transform:"scale(.9)", opacity:1 }, { transform:"scale(1.3)", opacity:.9, offset:.25 }, { transform:"scale(0)", opacity:0 }], { duration:520, easing:"cubic-bezier(.2,.8,.2,1)", fill:"forwards" });
+      A(anillo, [{ transform:"scale(.75) rotate(720deg)", opacity:.9 }, { transform:"scale(1.4) rotate(900deg)", opacity:0 }], { duration:480, easing:"ease-out", fill:"forwards" });
+      vibra([35]);
+      await fin(A(inner, [
+        { transform:"rotate(120deg) scale(.02)", opacity:0 },
+        { transform:"rotate(0deg) scale(1.12, .86)", opacity:1, offset:.38 },
+        { transform:"scale(.9, 1.1)", offset:.55 },
+        { transform:"scale(1.05, .96)", offset:.7 },
+        { transform:"scale(.98, 1.025)", offset:.84 },
+        { transform:"scale(1.006, .996)", offset:.93 },
+        { transform:"none", opacity:1 }
+      ], { duration:900, easing:"cubic-bezier(.22,.9,.3,1)" }));
+    }catch(e){ try{ aplicarModo(id); }catch(x){} }
+    finally{
+      todas.forEach(function(a){ try{ a.cancel(); }catch(e){} });   // sin depender de getAnimations() (teléfonos viejos)
+      if(inner){ inner.style.transformOrigin = ""; inner.style.willChange = ""; }
+      if(L) L.style.overflow = "";
+      cambiando = false;
+    }
+  };
+  W.__wittApps = { cambiar:cambiar, abrirMenu:abrirMenu, modo:function(){ return modo; }, lista:APPS };
+
+  /* ------------------------------------------------------------------ 4. CORTES DE CAJA: inicio (hero) en el selector */
+  var R = null;            // último cruce (solo en memoria: nombres y montos NO se guardan en el teléfono)
+  var ARCH = null;         // { nombre, wb }
+  var resumenGuardado = function(){ try{ return JSON.parse(lg("witt-caja-ultimo", "null")); }catch(e){ return null; } };
+  var anillo = function(p){
+    var c = 2 * Math.PI * 22, v = Math.max(0, Math.min(1, p || 0));
+    return '<svg class="wcj-ring" viewBox="0 0 52 52" aria-hidden="true"><circle class="fondo" cx="26" cy="26" r="22"/><circle class="valor" cx="26" cy="26" r="22" stroke-dasharray="' +
+      c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - v)).toFixed(1) + '"/><text x="26" y="30.5" text-anchor="middle">' + Math.round(v * 100) + '%</text></svg>';
+  };
+  var pintarInicioCaja = function(){
+    var inner = $("#app-launcher .launcher-inner"); if(!inner) return;
+    var home = $("#wcj-home");
+    if(!home){
+      home = D.createElement("div"); home.id = "wcj-home";
+      // va donde está el carrusel de Inventarios (.wcr); sin carrusel, antes de la primera tarjeta
+      var ancla = $("#app-launcher .launcher-inner > .wcr") || $("#app-launcher .launcher-inner > .app-card");
+      inner.insertBefore(home, ancla || null);
+    }
+    var u = R ? { recibos:Object.keys(R.cruce.estat).length, cruz:cuenta("CRUZADO") + cuenta("CRUZADO CON OBSERVACIÓN") + cuenta("CRUZADO POR SUMA"),
+                  no:cuenta("NO CRUZADO"), hal:R.hallazgos.length, archivo:ARCH && ARCH.nombre, cuando:Date.now() } : resumenGuardado();
+    var pc = u && u.recibos ? u.cruz / u.recibos : 0;
+    var statCruce = u ? "<b>" + u.recibos + "</b> recibos · <b>" + u.cruz + "</b> cruzados · <b>" + u.no + "</b> sin cruzar" + (R ? "" : " · último cruce")
+                      : "Toca para elegir el Excel del corte y cruzarlo contra las claves.";
+    home.innerHTML =
+      '<button type="button" class="app-card wcj-card wcj-hero" data-wcj="cruce"><div class="app-top"><div class="app-icon">' + SVG.caja + '</div><div class="app-text">' +
+        '<div class="app-name"><h2>Cruce de caja</h2></div><p class="app-desc">Corte de caja contra claves de validación</p></div>' + (u ? anillo(pc) : "") + '</div>' +
+        '<div class="wcj-stat">' + statCruce + '</div></button>' +
+      '<button type="button" class="app-card wcj-card" data-wcj="muestras"><div class="app-top"><div class="app-icon">' + SVG.lista + '</div><div class="app-text">' +
+        '<div class="app-name"><h2>Muestras</h2></div><p class="app-desc">Cada recibo con su clave, estatus y explicación</p></div></div></button>' +
+      '<button type="button" class="app-card wcj-card" data-wcj="hallazgos"><div class="app-top"><div class="app-icon">' + SVG.alerta + '</div><div class="app-text">' +
+        '<div class="app-name"><h2>Hallazgos</h2></div><p class="app-desc">' + (u && u.hal != null ? u.hal + " hallazgos de auditoría" : "Condición, efecto y recomendación") + '</p></div></div></button>' +
+      '<button type="button" class="app-card wcj-card" data-wcj="ajustes"><div class="app-top"><div class="app-icon">' + SVG.ajustes + '</div><div class="app-text">' +
+        '<div class="app-name"><h2>Ajustes del cruce</h2></div><p class="app-desc">Hojas, filas, columnas y reglas</p></div></div></button>' +
+      '<p class="wcj-foot">Todo se procesa en este teléfono: el archivo no se sube a ningún lado.</p>';
+  };
+  D.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("#wcj-home [data-wcj]"); if(!b) return;
+    abrirCaja(b.getAttribute("data-wcj"));
+  });
+
+  /* ------------------------------------------------------------------ 5. CORTES DE CAJA: pantallas */
+  var app = D.createElement("div");
+  app.id = "witt-caja-app"; app.className = "modal-bg"; app.setAttribute("role", "dialog"); app.setAttribute("aria-label", "Cortes de caja");
+  var PAGS = [["cruce", "Cruce"], ["muestras", "Muestras"], ["hallazgos", "Hallazgos"], ["ajustes", "Ajustes"]];
+  app.innerHTML =
+    '<div class="wcj-shell"><header class="wcj-top"><button type="button" class="wcj-back" aria-label="Volver al inicio">‹ Caja</button><h1 id="wcj-tit">Cruce</h1></header>' +
+    '<nav class="wcj-tabs" role="tablist"><span class="wcj-knob"></span>' + PAGS.map(function(p){ return '<button type="button" role="tab" data-pag="' + p[0] + '">' + p[1] + "</button>"; }).join("") + "</nav>" +
+    '<main class="wcj-main">' + PAGS.map(function(p){ return '<section class="wcj-pag" id="wcj-p-' + p[0] + '"></section>'; }).join("") + "</main></div>" +
+    '<input type="file" id="wcj-file" accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden>';
+  (D.body || D.documentElement).appendChild(app);
+  var pagActual = "cruce";
+  var abrirCaja = function(p){
+    irA(p || "cruce");
+    app.classList.add("show");
+  };
+  var cerrarCaja = function(){ app.classList.remove("show"); pintarInicioCaja(); };
+  // "Atrás" del navegador con Caja abierta: la cierra (la capa salir-fluido ve una .modal-bg abierta y no pregunta salir).
+  // En la app nativa, nativa.js la cierra solo (quita "show" a la ventana de arriba).
+  W.addEventListener("popstate", function(){ if(app.classList.contains("show")) cerrarCaja(); if(menu.classList.contains("show")) cerrarMenu(); });
+  try{ new MutationObserver(function(){ if(!app.classList.contains("show")) pintarInicioCaja(); }).observe(app, { attributes:true, attributeFilter:["class"] }); }catch(e){}
+  $(".wcj-back", app).addEventListener("click", function(){ cerrarCaja(); });
+  var irA = function(p){
+    pagActual = p;
+    var i = PAGS.map(function(x){ return x[0]; }).indexOf(p);
+    $$(".wcj-tabs button", app).forEach(function(b){ var on = b.getAttribute("data-pag") === p; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+    $(".wcj-knob", app).style.transform = "translateX(" + (i * 100) + "%)";
+    $$(".wcj-pag", app).forEach(function(s){ s.classList.toggle("on", s.id === "wcj-p-" + p); });
+    $("#wcj-tit").textContent = PAGS[i][1];
+    ({ cruce:pintarCruce, muestras:pintarMuestras, hallazgos:pintarHallazgos, ajustes:pintarAjustes })[p]();
+    try{ $(".wcj-main", app).scrollTop = 0; }catch(e){}
+  };
+  $(".wcj-tabs", app).addEventListener("click", function(e){ var b = e.target.closest("[data-pag]"); if(b) irA(b.getAttribute("data-pag")); });
+
+  // ---- ajustes (se guardan en el teléfono; son solo filas/columnas/reglas, nada de clientes)
+  var P0 = function(){ return JSON.parse(JSON.stringify(W.__wittCruce.preajustes)); };
+  var ajustes = function(){ try{ var a = JSON.parse(lg("witt-caja-ajustes", "null")); if(a) return Object.assign(P0(), a); }catch(e){} return P0(); };
+  var guardarAjustes = function(a){ ls("witt-caja-ajustes", JSON.stringify(a)); };
+
+  // ---- lectura del Excel (en el teléfono)
+  var colIdx = function(l){ l = String(l || "").trim().toUpperCase(); if(!l) return null; if(!/^[A-Z]{1,3}$/.test(l)) throw new Error("Columna inválida: '" + l + "' (usa letras como A, K, AB)"); var n = 0; for(var i = 0; i < l.length; i++) n = n * 26 + (l.charCodeAt(i) - 64); return n; };
+  var colLetra = function(n){ var s = ""; while(n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  var entero = function(v, nombre, opcional){
+    v = String(v == null ? "" : v).trim();
+    if(!v){ if(opcional) return null; throw new Error("Falta el valor de '" + nombre + "'"); }
+    if(!/^\d+$/.test(v) || Number(v) < 1) throw new Error("'" + nombre + "' debe ser un número de fila válido");
+    return Number(v);
+  };
+  var celda = function(ws, r, c){ return ws[XLSX.utils.encode_cell({ r:r - 1, c:c - 1 })] || null; };
+  // celda de ERROR (#N/A, #¡VALOR!…): SheetJS guarda en v el código numérico del error (#N/A = 42); se devuelve el TEXTO,
+  // como openpyxl, para que no entre como monto. Fórmulas: se usa su valor calculado (el laboratorio de Python las salta
+  // porque abre sin data_only; aquí sí cuentan, que es lo correcto para un corte).
+  var valor = function(ws, r, c){ var x = celda(ws, r, c); if(!x) return null; if(x.t === "e") return String(x.w || "#ERROR"); return x.v === undefined ? null : x.v; };
+  var maxFila = function(ws){ try{ return XLSX.utils.decode_range(ws["!ref"]).e.r + 1; }catch(e){ return 0; } };
+  var maxCol = function(ws){ try{ return XLSX.utils.decode_range(ws["!ref"]).e.c + 1; }catch(e){ return 0; } };
+  var aNumero = function(v){
+    if(typeof v === "number") return isFinite(v) ? v : null;
+    if(typeof v === "string"){ var s = v.replace(/\$/g, "").replace(/,/g, "").trim(); if(!s) return null; var n = Number(s); return isFinite(n) ? n : null; }
+    return null;
+  };
+  var fecha1904 = false;   // libros con sistema de fechas 1904 (Mac): se corrige la época
+  // fecha válida (como strptime de Python: 31/02 o mes 13 NO son fecha; Date.UTC los "recorría" a otro día)
+  var fechaUTC = function(a, mes, d){
+    if(mes < 1 || mes > 12 || d < 1 || d > 31) return null;
+    var t = new Date(Date.UTC(a, mes - 1, d));
+    if(t.getUTCFullYear() !== a || t.getUTCMonth() !== mes - 1 || t.getUTCDate() !== d) return null;
+    return t.getTime() / 864e5 + 25569;
+  };
+  var aFecha = function(x){
+    if(!x || x.v == null || x.t === "e") return null;
+    if(x.v instanceof Date) return x.v.getTime() / 864e5 + 25569;
+    if(typeof x.v === "number"){
+      // solo si la celda TIENE formato de fecha (openpyxl solo da datetime en esas; un número suelto no es fecha)
+      var esF = x.t === "d"; try{ esF = esF || (!!x.z && XLSX.SSF.is_date(x.z)); }catch(e){}
+      return esF ? x.v + (fecha1904 ? 1462 : 0) : null;
+    }
+    if(typeof x.v === "string"){
+      var s = x.v.trim().slice(0, 10), m, f;   // mismos formatos y mismo orden que el laboratorio
+      if((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s)) && (f = fechaUTC(+m[3], +m[2], +m[1])) != null) return f;
+      if((m = /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/.exec(s)) && (f = fechaUTC(+m[3] < 69 ? 2000 + +m[3] : 1900 + +m[3], +m[2], +m[1])) != null) return f;
+      if((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s)) && (f = fechaUTC(+m[1], +m[2], +m[3])) != null) return f;
+      if((m = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s)) && (f = fechaUTC(+m[3], +m[2], +m[1])) != null) return f;
+    }
+    return null;
+  };
+  var normH = function(s){ return String(s == null ? "" : s).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim(); };
+  var detectarHojas = function(wb){
+    var caja = null, claves = null;
+    wb.SheetNames.forEach(function(n){ var nn = normH(n); if(nn.indexOf("CLAVE") >= 0 && claves == null) claves = n; else if((nn.indexOf("CAJA") >= 0 || nn.indexOf("CORTE") >= 0) && caja == null) caja = n; });
+    return [caja || wb.SheetNames[0], claves || (wb.SheetNames.length > 1 ? wb.SheetNames[1] : wb.SheetNames[0])];
+  };
+  var encabezados = function(ws, fila){ var o = {}, mc = maxCol(ws); for(var c = 1; c <= mc; c++){ var v = valor(ws, fila, c); if(v != null && String(v).trim()) o[c] = String(v).trim(); } return o; };
+  var detectarEnc = function(ws, claves){ var mf = Math.min(maxFila(ws), 40), mc = maxCol(ws);
+    for(var r = 1; r <= mf; r++){ var vals = []; for(var c = 1; c <= mc; c++) vals.push(normH(valor(ws, r, c)));
+      if(claves.every(function(k){ return vals.some(function(v){ return v.indexOf(k) >= 0; }); })) return r; }
+    return 1; };
+  var buscarCol = function(h, ops){ var hn = {}; Object.keys(h).forEach(function(c){ hn[c] = normH(h[c]); });
+    for(var i = 0; i < ops.length; i++) for(var c in hn) if(hn[c] === ops[i]) return Number(c);
+    for(var j = 0; j < ops.length; j++) for(var c2 in hn) if(hn[c2].indexOf(ops[j]) >= 0) return Number(c2);
+    return null; };
+  var preparar = function(wb, a, avisos){
+    var hcN = a.hoja_caja, hkN = a.hoja_claves, det = detectarHojas(wb);
+    if(wb.SheetNames.indexOf(hcN) < 0){ avisos.push("No existe la hoja '" + hcN + "', se usó '" + det[0] + "'."); hcN = det[0]; }
+    if(wb.SheetNames.indexOf(hkN) < 0){ avisos.push("No existe la hoja '" + hkN + "', se usó '" + det[1] + "'."); hkN = det[1]; }
+    var mc = { nombre:colIdx(a.col_nombre_caja), importe:colIdx(a.col_importe_caja), fecha:colIdx(a.col_fecha_caja) };
+    var mk = { id:colIdx(a.col_id_claves), monto:colIdx(a.col_monto_claves), nombre:colIdx(a.col_nombre_claves), fecha:colIdx(a.col_fecha_claves) };
+    if(!(mc.nombre && mc.importe && mk.monto && mk.nombre)) throw new Error("Faltan columnas obligatorias: Nombre e Importe (Caja), Nombre y Monto (Claves).");
+    // como float()/int() de Python: vacío o con letras = error (antes "" pasaba como 0); enteros sin decimales
+    var num = function(v, n){ var s = String(v == null ? "" : v).trim(); if(!s) throw new Error("Falta el valor de '" + n + "'");
+      if(!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) throw new Error("'" + n + "' debe ser un número"); return Number(s); };
+    var ent = function(v, n){ var s = String(v == null ? "" : v).trim(); if(!s) throw new Error("Falta el valor de '" + n + "'");
+      if(!/^[-+]?\d+$/.test(s)) throw new Error("'" + n + "' debe ser un número entero"); return Number(s); };
+    var cfg = { tolerancia:num(a.tolerancia, "Tolerancia"), umbral_nombre:num(a.umbral_nombre, "Parecido de nombre"), umbral_suma:num(a.umbral_suma, "Parecido en sumas"),
+                max_claves_suma:ent(a.max_claves_suma, "Máx. claves por suma"), max_recibos_suma:ent(a.max_recibos_suma, "Máx. recibos por suma"),
+                dias_suma:ent(a.dias_suma, "Días en sumas"), dias_desfase:ent(a.dias_desfase, "Días de desfase"), permitir_suma_recibos:!!a.permitir_suma_recibos };
+    return { hojaCaja:hcN, hojaClaves:hkN, hc:entero(a.fila_enc_caja, "Fila encabezado Caja"), hk:entero(a.fila_enc_claves, "Fila encabezado Claves"), mc:mc, mk:mk, cfg:cfg,
+             rCaja:[entero(a.fila_ini_caja, "Fila inicio Caja", true), entero(a.fila_fin_caja, "Fila fin Caja", true)],
+             rClaves:[entero(a.fila_ini_claves, "Fila inicio Claves", true), entero(a.fila_fin_claves, "Fila fin Claves", true)] };
+  };
+  var leer = function(wb, p){
+    var wc = wb.Sheets[p.hojaCaja], wk = wb.Sheets[p.hojaClaves], caja = [], claves = [];
+    try{ fecha1904 = !!(wb.Workbook && wb.Workbook.WBProps && wb.Workbook.WBProps.date1904); }catch(e){ fecha1904 = false; }
+    for(var r = p.rCaja[0] || p.hc + 1, f = p.rCaja[1] || maxFila(wc); r <= f; r++){
+      var v = aNumero(valor(wc, r, p.mc.importe)), n = valor(wc, r, p.mc.nombre);
+      if(v == null || n == null) continue;
+      caja.push({ r:r, m:v, n:String(n).trim(), f:p.mc.fecha ? aFecha(celda(wc, r, p.mc.fecha)) : null });
+    }
+    var hdr = encabezados(wk, p.hk);
+    for(var r2 = p.rClaves[0] || p.hk + 1, f2 = p.rClaves[1] || maxFila(wk); r2 <= f2; r2++){
+      var vk = aNumero(valor(wk, r2, p.mk.monto)); if(vk == null) continue;
+      var extra = {}; Object.keys(hdr).forEach(function(c){ var x = valor(wk, r2, Number(c)); if(typeof x === "string") extra[c] = x; });
+      var idv = p.mk.id ? valor(wk, r2, p.mk.id) : "fila " + r2;
+      claves.push({ r:r2, m:vk, n:String(valor(wk, r2, p.mk.nombre) == null ? "" : valor(wk, r2, p.mk.nombre)).trim(),
+                    f:p.mk.fecha ? aFecha(celda(wk, r2, p.mk.fecha)) : null, id:idv, extra:extra });
+    }
+    var colsK = {}; ["id", "monto", "nombre", "fecha"].forEach(function(k){ if(p.mk[k]) colsK[k] = String(p.mk[k]); });
+    return { caja:caja, claves:claves, hdrClaves:hdr, colsClaves:colsK };
+  };
+
+  // ---- pantalla CRUCE
+  var cuenta = function(e){ if(!R) return 0; var c = R.cruce, n = 0; Object.keys(c.estat).forEach(function(r){ if(c.estat[r] === e) n++; }); return n; };
+  var suma = function(fn){ if(!R) return 0; var c = R.cruce, s = 0; Object.keys(c.estat).forEach(function(r){ if(fn(c.estat[r])) s += c.cmap[r].m; }); return s; };
+  var M = function(v){ return "$" + W.__wittCruce.m(v); };
+  var PASOS = ["Leer el corte y las claves", "Cruce individual (monto y nombre)", "Cruce por suma", "Explicaciones y hallazgos"];
+  var estadoPasos = null, msg = "", msgMal = false;   // msgMal: el mensaje es un error (rojo); los avisos van en gris
+  var pintarCruce = function(){
+    var s = $("#wcj-p-cruce"), a = ajustes();
+    var arch = ARCH ? '<b>' + esc(ARCH.nombre) + '</b><small>Hojas: ' + esc(ARCH.wb.SheetNames.join(" · ")) + '</small>' : '<b>Elegir el Excel del corte</b><small>Con la hoja de caja (' + esc(a.hoja_caja) + ') y la de claves (' + esc(a.hoja_claves) + ')</small>';
+    var html = '<div class="wcj-box"><button type="button" class="wcj-archivo' + (ARCH ? " listo" : "") + '" id="wcj-elegir"><span class="ic">' + SVG.excel + '</span><span>' + arch + '</span></button>' +
+      '<ul class="wcj-pasos">' + PASOS.map(function(t, i){ var st = estadoPasos ? estadoPasos[i] : ""; return '<li class="' + st + '"><i></i>' + t + "</li>"; }).join("") + "</ul>" +
+      '<div class="wcj-barra"><span id="wcj-barra"></span></div><p class="wcj-msg' + (msgMal ? " mal" : "") + '" id="wcj-msg">' + esc(msg) + '</p>' +
+      '<button type="button" class="wcj-btn pri ancho" id="wcj-correr"' + (ARCH && !corriendo ? "" : " disabled") + ">" + (R ? "Cruzar otra vez" : "Cruzar") + "</button></div>";
+    if(R){
+      var rec = Object.keys(R.cruce.estat).length;
+      html += '<div class="wcj-tiles">' +
+        '<div class="wcj-tile ancho"><small>Recibos en el corte</small><b>' + rec + '</b><em>' + M(suma(function(){ return true; })) + '</em></div>' +
+        '<div class="wcj-tile ok"><small>Cruzados</small><b>' + cuenta("CRUZADO") + '</b><em>' + M(suma(function(e){ return e === "CRUZADO"; })) + '</em></div>' +
+        '<div class="wcj-tile warn"><small>Con observación</small><b>' + cuenta("CRUZADO CON OBSERVACIÓN") + '</b><em>' + M(suma(function(e){ return e === "CRUZADO CON OBSERVACIÓN"; })) + '</em></div>' +
+        '<div class="wcj-tile ok"><small>Cruzados por suma</small><b>' + cuenta("CRUZADO POR SUMA") + '</b><em>' + M(suma(function(e){ return e === "CRUZADO POR SUMA"; })) + '</em></div>' +
+        '<div class="wcj-tile bad"><small>No cruzados</small><b>' + cuenta("NO CRUZADO") + '</b><em>' + M(suma(function(e){ return e === "NO CRUZADO"; })) + '</em></div></div>' +
+        '<div class="wcj-acciones"><button type="button" class="wcj-btn pri" id="wcj-excel">' + SVG.excel.replace("<svg", '<svg width="18" height="18"') + ' Descargar Excel del cruce</button>' +
+        '<button type="button" class="wcj-btn" data-ir="muestras">Ver muestras</button><button type="button" class="wcj-btn" data-ir="hallazgos">Ver hallazgos (' + R.hallazgos.length + ')</button></div>';
+    }
+    s.innerHTML = html;
+  };
+  var corriendo = false;
+  app.addEventListener("click", function(e){
+    var t = e.target;
+    if(t.closest("#wcj-elegir")){ if(corriendo) return; $("#wcj-file").value = ""; $("#wcj-file").click(); return; }   // no se cambia de archivo a media corrida
+    if(t.closest("#wcj-correr")){ correr(); return; }
+    if(t.closest("#wcj-excel")){ exportar(); return; }
+    var ir = t.closest("[data-ir]"); if(ir){ irA(ir.getAttribute("data-ir")); return; }
+  });
+  var cargarBuffer = function(nombre, buf){
+    if(corriendo){ msg = "Espera a que termine el cruce para cambiar de archivo."; return; }
+    try{
+      var wb = XLSX.read(new Uint8Array(buf), { type:"array", cellNF:true, cellDates:false });
+      ARCH = { nombre:nombre, wb:wb }; R = null; estadoPasos = null;
+      msg = "Listo para cruzar."; msgMal = false; vibra(15);
+    }catch(err){ ARCH = null; msg = "No se pudo leer el archivo: " + (err && err.message || err); msgMal = true; }
+    pintarCruce();
+  };
+  W.__wittCaja = { cargar:cargarBuffer, correr:function(){ return correr(); }, abrir:function(p){ abrirCaja(p); }, resultado:function(){ return R; } };   // también para las pruebas
+  $("#wcj-file", app).addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0]; if(!f) return;
+    msg = "Abriendo " + f.name + "…"; pintarCruce();
+    var rd = new FileReader();
+    rd.onload = function(){ cargarBuffer(f.name, rd.result); };
+    rd.onerror = function(){ msg = "No se pudo leer el archivo."; msgMal = true; pintarCruce(); };
+    rd.readAsArrayBuffer(f);
+  });
+  var correr = async function(){
+    if(!ARCH || corriendo) return;
+    var arch = ARCH;   // el resultado se queda con ESTE libro (R.wb), aunque luego se cargue otro
+    corriendo = true; estadoPasos = ["vivo", "", "", ""]; msg = ""; msgMal = false; pintarCruce();
+    var barra = function(p){ var b = $("#wcj-barra"); if(b) b.style.transform = "scaleX(" + Math.max(0, Math.min(1, p)) + ")"; };
+    try{
+      var avisos = [], p = preparar(arch.wb, ajustes(), avisos), datos = leer(arch.wb, p);
+      if(!datos.caja.length) throw new Error("No se encontraron recibos en la hoja '" + p.hojaCaja + "'. Revisa filas y columnas en Ajustes.");
+      if(!datos.claves.length) throw new Error("No se encontraron claves en la hoja '" + p.hojaClaves + "'. Revisa filas y columnas en Ajustes.");
+      var res = await W.__wittCruce.ejecutar(datos, p.cfg, function(i, pr){
+        estadoPasos = PASOS.map(function(_, k){ return k < i ? "hecho" : (k === i ? (pr >= 1 ? "hecho" : "vivo") : ""); });
+        if(i < 3 && pr >= 1) estadoPasos[i + 1] = "vivo";
+        $$("#wcj-p-cruce .wcj-pasos li").forEach(function(li, k){ li.className = estadoPasos[k]; });
+        barra((i + Math.min(1, pr)) / PASOS.length);
+      });
+      R = { cruce:res.cruce, hallazgos:res.hallazgos, p:p, datos:datos, wb:arch.wb, nombre:arch.nombre };
+      estadoPasos = ["hecho", "hecho", "hecho", "hecho"];
+      msg = (avisos.length ? avisos.join(" ") + " " : "") + datos.caja.length + " recibos y " + datos.claves.length + " claves leídos.";
+      var rec = Object.keys(R.cruce.estat).length, cz = cuenta("CRUZADO") + cuenta("CRUZADO CON OBSERVACIÓN") + cuenta("CRUZADO POR SUMA");
+      ls("witt-caja-ultimo", JSON.stringify({ recibos:rec, cruz:cz, no:cuenta("NO CRUZADO"), hal:R.hallazgos.length, cuando:Date.now() }));   // solo conteos
+      try{ if(W.__wittBurbuja) W.__wittBurbuja(cuenta("NO CRUZADO") ? "amarillo" : "verde"); }catch(e){}
+      vibra(cuenta("NO CRUZADO") ? [60, 80, 60] : 40);
+    }catch(err){ msg = String(err && err.message || err); msgMal = true; estadoPasos = null; }
+    corriendo = false; pintarCruce(); barra(R ? 1 : 0);
+  };
+
+  // ---- Excel de resultado: el MISMO libro con el cruce a la derecha del corte + 3 hojas (como el laboratorio)
+  var exportar = function(){
+    if(!R || !R.wb) return;
+    try{
+      var wb = XLSX.read(XLSX.write(R.wb, { type:"array", bookType:"xlsx" }), { type:"array", cellNF:true }), c = R.cruce, p = R.p;
+      var wc = wb.Sheets[p.hojaCaja], wk = wb.Sheets[p.hojaClaves];
+      var colsK = Object.keys(encabezados(wk, p.hk)).map(Number).sort(function(a, b){ return a - b; });
+      var ult = Math.max.apply(null, Object.keys(encabezados(wc, p.hc)).map(Number)), col0 = ult + 2;
+      var put = function(ws, r, col, v, z){
+        var a = XLSX.utils.encode_cell({ r:r - 1, c:col - 1 });
+        if(v == null || v === ""){ delete ws[a]; return; }
+        ws[a] = typeof v === "number" ? { t:"n", v:v } : { t:"s", v:String(v) }; if(z) ws[a].z = z;
+        var rg = XLSX.utils.decode_range(ws["!ref"] || "A1"); rg.e.r = Math.max(rg.e.r, r - 1); rg.e.c = Math.max(rg.e.c, col - 1); ws["!ref"] = XLSX.utils.encode_range(rg);
+      };
+      var copiarClave = function(kr, ws, fila, c0){ colsK.forEach(function(col, j){ var s = celda(wk, kr, col); if(s){ put(ws, fila, c0 + j, s.v, s.z); } }); };
+      colsK.forEach(function(col, j){ put(wc, p.hc, col0 + j, valor(wk, p.hk, col)); });
+      c.matchOrden.forEach(function(r){ copiarClave(c.match[r][0], wc, r, col0); });
+      c.sumas.forEach(function(su){ copiarClave(su[1][0], wc, su[0][0], col0); });
+      var ce = col0 + colsK.length, cx = ce + 1;
+      put(wc, p.hc, ce, "ESTATUS CRUCE"); put(wc, p.hc, cx, "EXPLICACIÓN");
+      c.orden.forEach(function(r){ put(wc, r, ce, c.estat[r]); put(wc, r, cx, c.expl[r]); });
+      // En la web no se puede pintar de rojo (SheetJS libre no escribe estilos): lo que el laboratorio resalta en rojo
+      // va escrito en una columna aparte para que nada se pierda.
+      var cr = cx + 1;
+      put(wc, p.hc, cr, "ERRORES DE CAPTURA (en el laboratorio van en rojo)");
+      c.orden.forEach(function(r){ var o = c.orto[r]; if(o && o.length) put(wc, r, cr, o.map(function(x){ return x[1]; }).join(" ")); });
+      var cols = wc["!cols"] || (wc["!cols"] = []); cols[ce - 1] = { wch:26 }; cols[cx - 1] = { wch:120 }; cols[cr - 1] = { wch:60 };
+      ["Cruces por suma", "Observaciones cruce", "Hallazgos de auditoría"].forEach(function(n){ var i = wb.SheetNames.indexOf(n); if(i >= 0){ wb.SheetNames.splice(i, 1); delete wb.Sheets[n]; } });
+      // Cruces por suma
+      var hs = XLSX.utils.aoa_to_sheet([["Fila(s) en Caja", "Nombre en Caja", "Monto(s) en Caja", "Total Caja", ""].concat(colsK.map(function(col){ return valor(wk, p.hk, col); }))]);
+      var row = 2;
+      c.sumas.forEach(function(su){
+        su[1].forEach(function(k, i){
+          if(i === 0){ put(hs, row, 1, su[0].join(", ")); put(hs, row, 2, c.cmap[su[0][0]].n); put(hs, row, 3, su[0].map(function(x){ return W.__wittCruce.m(c.cmap[x].m); }).join("; "));
+                       put(hs, row, 4, su[0].reduce(function(t, x){ return t + c.cmap[x].m; }, 0), "#,##0.00"); }
+          copiarClave(k, hs, row, 6); if(i) put(hs, row, 5, "APARTADA"); row++;
+        });
+        row++;
+      });
+      hs["!cols"] = [{ wch:14 }, { wch:36 }, { wch:26 }, { wch:14 }, { wch:11 }];
+      // Observaciones
+      var orden = ["Descartado", "Sin clave", "Error", "Cruce", "Diferencia", "Desfase", "Otra"];
+      var filas = c.orden.map(function(r){ return [c.tipoObs(r), r]; }).filter(function(x){ return x[0]; })
+        .sort(function(a, b){ var ia = orden.findIndex(function(k){ return a[0].indexOf(k) >= 0; }), ib = orden.findIndex(function(k){ return b[0].indexOf(k) >= 0; }); return (ia - ib) || (a[1] - b[1]); });
+      var ho = XLSX.utils.aoa_to_sheet([["Tipo de observación", "Fila en Caja", "Nombre en Caja", "Monto en Caja", "ESTATUS", "Explicación"]].concat(
+        filas.map(function(x){ var r = x[1]; return [x[0], r, c.cmap[r].n, c.cmap[r].m, c.estat[r], c.expl[r]]; })));
+      ho["!cols"] = [{ wch:34 }, { wch:10 }, { wch:38 }, { wch:14 }, { wch:24 }, { wch:110 }];
+      ho["!autofilter"] = { ref:"A1:F" + Math.max(filas.length + 1, 2) };
+      // Hallazgos
+      var S = function(fn){ var s = 0; c.orden.forEach(function(r){ if(fn(c.estat[r])) s += c.cmap[r].m; }); return s; };
+      var N = function(fn){ return c.orden.filter(function(r){ return fn(c.estat[r]); }).length; };
+      var hh = XLSX.utils.aoa_to_sheet([["RESUMEN DEL CRUCE"],
+        ["Recibos en corte", N(function(){ return true; }), S(function(){ return true; })],
+        ["Cruzados (directo)", N(function(e){ return e === "CRUZADO" || e === "CRUZADO CON OBSERVACIÓN"; }), S(function(e){ return e === "CRUZADO" || e === "CRUZADO CON OBSERVACIÓN"; })],
+        ["Cruzados por suma", N(function(e){ return e === "CRUZADO POR SUMA"; }), S(function(e){ return e === "CRUZADO POR SUMA"; })],
+        ["No cruzados", N(function(e){ return e === "NO CRUZADO"; }), S(function(e){ return e === "NO CRUZADO"; })], [], [],
+        ["No.", "Riesgo", "Hallazgo", "Condición (qué se encontró)", "Filas / referencia", "Importe involucrado", "Efecto / riesgo", "Recomendación"]
+      ].concat(R.hallazgos.map(function(h, i){ return [i + 1].concat(h); })));
+      hh["!cols"] = [{ wch:20 }, { wch:10 }, { wch:30 }, { wch:60 }, { wch:22 }, { wch:16 }, { wch:40 }, { wch:50 }];
+      XLSX.utils.book_append_sheet(wb, hs, "Cruces por suma");
+      XLSX.utils.book_append_sheet(wb, ho, "Observaciones cruce");
+      XLSX.utils.book_append_sheet(wb, hh, "Hallazgos de auditoría");
+      // "Hallazgos" en la 3ª posición (como el laboratorio), salvo que haya nombres definidos por hoja que se moverían
+      var dn = (wb.Workbook && wb.Workbook.Names) || [];
+      if(!dn.some(function(x){ return x.Sheet != null; })){
+        var ih = wb.SheetNames.indexOf("Hallazgos de auditoría"); wb.SheetNames.splice(ih, 1); wb.SheetNames.splice(Math.min(2, wb.SheetNames.length), 0, "Hallazgos de auditoría");
+      }
+      // SheetJS guarda "hoja oculta" por POSICIÓN en Workbook.Sheets: se rehace en el mismo orden que SheetNames
+      if(wb.Workbook && wb.Workbook.Sheets){
+        var porNombre = {}; wb.Workbook.Sheets.forEach(function(s){ if(s && s.name) porNombre[s.name] = s; });
+        wb.Workbook.Sheets = wb.SheetNames.map(function(n){ return porNombre[n] || { name:n, Hidden:0 }; });
+      }
+      var base = String(R.nombre || "corte").replace(/\.[^.]+$/, "");
+      XLSX.writeFile(wb, base + "_CRUCE.xlsx");
+      vibra(30);
+    }catch(err){ msg = "No se pudo armar el Excel: " + (err && err.message || err); pintarCruce(); }
+  };
+
+  // ---- pantalla MUESTRAS
+  var FILTROS = [["todos", "Todos", function(){ return true; }], ["cruz", "Cruzados", function(e){ return e === "CRUZADO"; }],
+                 ["obs", "Con observación", function(e){ return e === "CRUZADO CON OBSERVACIÓN"; }], ["suma", "Por suma", function(e){ return e === "CRUZADO POR SUMA"; }],
+                 ["no", "No cruzados", function(e){ return e === "NO CRUZADO"; }]];
+  var filtro = "todos", q = "", tope = 120;
+  var pill = function(e){ var k = e === "CRUZADO" ? "ok" : e === "CRUZADO POR SUMA" ? "suma" : e === "NO CRUZADO" ? "bad" : "warn"; return '<span class="wcj-pill ' + k + '">' + esc(e) + "</span>"; };
+  var vacio = function(t){ return '<div class="wcj-vacio">' + SVG.caja.replace("<svg", '<svg width="54" height="54"') + "<b>Aún no hay resultados</b>" + t +
+    '<div style="margin-top:14px"><button type="button" class="wcj-btn pri" data-ir="cruce">Ir al cruce</button></div></div>'; };
+  // Muestras: el buscador se pinta UNA vez; al escribir solo se repintan chips y lista (el <input> no se destruye y el
+  // teclado de Android no pierde la palabra que está componiendo).
+  var filtrarMuestras = function(){
+    var c = R.cruce, fn = FILTROS.filter(function(f){ return f[0] === filtro; })[0][2], qq = q.trim().toUpperCase();
+    return c.orden.filter(function(r){
+      if(!fn(c.estat[r])) return false;
+      if(!qq) return true;
+      var k = c.match[r] ? c.kmap[c.match[r][0]] : null;
+      return (String(r) + " " + c.cmap[r].n + " " + W.__wittCruce.m(c.cmap[r].m) + " " + c.cmap[r].m + " " + (k ? k.id : "") + " " + c.expl[r]).toUpperCase().indexOf(qq) >= 0;
+    });
+  };
+  var pintarLista = function(){
+    var cont = $("#wcj-lista"); if(!cont || !R) return;
+    var c = R.cruce, F = c.orden, lista = filtrarMuestras();
+    $("#wcj-chips").innerHTML = FILTROS.map(function(f){ return '<button type="button" data-f="' + f[0] + '" class="' + (f[0] === filtro ? "on" : "") + '">' + f[1] + "<em>" + F.filter(function(r){ return f[2](c.estat[r]); }).length + "</em></button>"; }).join("");
+    cont.innerHTML = (lista.length ? "" : '<div class="wcj-vacio">Sin coincidencias.</div>') +
+      lista.slice(0, tope).map(function(r){
+        var k = c.match[r] ? c.kmap[c.match[r][0]] : null, su = !k && c.sumas.filter(function(x){ return x[0].indexOf(r) >= 0; })[0];
+        var clave = k ? k.id : (su ? c.kmap[su[1][0]].id : "");
+        return '<div class="wcj-fila" data-r="' + r + '"><div class="l1"><b>' + esc(c.cmap[r].n) + "</b><span>" + M(c.cmap[r].m) + "</span></div>" +
+          '<div class="l2">Fila ' + r + (clave ? " · Clave " + esc(clave) : "") + (c.cmap[r].f != null ? " · " + W.__wittCruce.dmy(c.cmap[r].f) : "") + " " + pill(c.estat[r]) + "</div>" +
+          '<div class="ex">' + esc(c.expl[r]) + "</div></div>";
+      }).join("") +
+      (lista.length > tope ? '<button type="button" class="wcj-btn ancho wcj-mas" id="wcj-mas">Ver ' + Math.min(120, lista.length - tope) + " más de " + (lista.length - tope) + "</button>" : "");
+  };
+  var pintarMuestras = function(){
+    var s = $("#wcj-p-muestras");
+    if(!R){ s.innerHTML = vacio("Cruza un corte para ver cada recibo con su clave y su explicación."); return; }
+    s.innerHTML = '<label class="wcj-buscar">' + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' +
+      '<input id="wcj-q" type="search" placeholder="Buscar nombre, fila, clave o monto" aria-label="Buscar en las muestras" value="' + esc(q) + '" autocomplete="off"></label>' +
+      '<div class="wcj-chips" id="wcj-chips"></div><div id="wcj-lista"></div>';
+    pintarLista();
+  };
+  app.addEventListener("click", function(e){
+    var f = e.target.closest("#wcj-p-muestras [data-f]"); if(f){ filtro = f.getAttribute("data-f"); tope = 120; pintarLista(); return; }
+    if(e.target.closest("#wcj-mas")){ tope += 120; pintarLista(); return; }
+    var fila = e.target.closest("#wcj-p-muestras .wcj-fila"); if(fila) fila.classList.toggle("abierta");
+  });
+  var buscarT = 0;
+  app.addEventListener("input", function(e){
+    if(e.target.id !== "wcj-q" || e.isComposing) return;
+    q = e.target.value; tope = 120;
+    clearTimeout(buscarT); buscarT = setTimeout(pintarLista, 120);   // con miles de recibos no se traba al teclear
+  });
+  app.addEventListener("compositionend", function(e){ if(e.target.id === "wcj-q"){ q = e.target.value; tope = 120; pintarLista(); } });
+  // ---- pantalla HALLAZGOS
+  var pintarHallazgos = function(){
+    var s = $("#wcj-p-hallazgos");
+    if(!R){ s.innerHTML = vacio("Cruza un corte para ver los hallazgos de auditoría."); return; }
+    if(!R.hallazgos.length){ s.innerHTML = '<div class="wcj-vacio"><b>Sin hallazgos</b>El corte cuadra sin observaciones de auditoría.</div>'; return; }
+    var cls = { Alto:"bad", Medio:"warn", Bajo:"ok" };
+    s.innerHTML = R.hallazgos.map(function(h, i){
+      return '<div class="wcj-box wcj-hal"><h3><span>' + (i + 1) + ". " + esc(h[1]) + '</span><span class="wcj-pill ' + cls[h[0]] + '">' + esc(h[0]) + "</span></h3><dl>" +
+        "<div><dt>Condición</dt><dd>" + esc(h[2]) + "</dd></div><div><dt>Filas / referencia</dt><dd>" + esc(h[3]) + "</dd></div>" +
+        (h[4] != null ? "<div><dt>Importe involucrado</dt><dd>" + M(h[4]) + "</dd></div>" : "") +
+        "<div><dt>Efecto / riesgo</dt><dd>" + esc(h[5]) + "</dd></div><div><dt>Recomendación</dt><dd>" + esc(h[6]) + "</dd></div></dl></div>";
+    }).join("");
+  };
+
+  // ---- pantalla AJUSTES
+  var CAMPOS = [
+    ["Hoja de caja (recibos)", [["hoja_caja", "Nombre de la hoja", "ancho"], ["fila_enc_caja", "Fila de encabezados"], ["fila_ini_caja", "Primera fila"], ["fila_fin_caja", "Última fila (vacío = hasta el final)", "ancho"],
+                                ["col_nombre_caja", "Columna NOMBRE"], ["col_importe_caja", "Columna IMPORTE"], ["col_fecha_caja", "Columna FECHA"]]],
+    ["Hoja de claves (depósitos)", [["hoja_claves", "Nombre de la hoja", "ancho"], ["fila_enc_claves", "Fila de encabezados"], ["fila_ini_claves", "Primera fila"], ["fila_fin_claves", "Última fila (vacío = hasta el final)", "ancho"],
+                                    ["col_id_claves", "Columna ID / CLAVE"], ["col_monto_claves", "Columna MONTO"], ["col_nombre_claves", "Columna NOMBRE"], ["col_fecha_claves", "Columna FECHA DEPÓSITO"]]],
+    ["Reglas del cruce", [["tolerancia", "Tolerancia de monto (±)"], ["umbral_nombre", "Parecido de nombre (0–1)"], ["umbral_suma", "Parecido en sumas (0–1)"], ["max_claves_suma", "Máx. claves por suma"],
+                          ["max_recibos_suma", "Máx. recibos por suma"], ["dias_suma", "Días máx. en sumas"], ["dias_desfase", "Días para reportar desfase"]]]
+  ];
+  var msgAj = "";
+  var pintarAjustes = function(){
+    var a = ajustes(), s = $("#wcj-p-ajustes");
+    s.innerHTML = CAMPOS.map(function(g, gi){
+      return '<div class="wcj-box"><h2>' + g[0] + '</h2><div class="wcj-form">' + g[1].map(function(f){
+        return '<label class="' + (f[2] || "") + '">' + f[1] + '<input data-k="' + f[0] + '" value="' + esc(a[f[0]]) + '" inputmode="' + (/^(hoja|col)_/.test(f[0]) ? "text" : "decimal") + '" autocomplete="off"></label>';
+      }).join("") + (gi === 2 ? '<div class="wcj-sw">Permitir que varios recibos sumen una clave<button type="button" data-sw="permitir_suma_recibos" class="' + (a.permitir_suma_recibos ? "on" : "") + '" aria-pressed="' + !!a.permitir_suma_recibos + '"></button></div>' : "") + "</div></div>";
+    }).join("") +
+      '<div class="wcj-acciones"><button type="button" class="wcj-btn pri" id="wcj-guardar">Guardar ajustes</button>' +
+      '<button type="button" class="wcj-btn" id="wcj-detectar"' + (ARCH ? "" : " disabled") + '>Detectar desde el archivo cargado</button>' +
+      '<button type="button" class="wcj-btn" id="wcj-restaurar">Restaurar preajustes</button></div><p class="wcj-msg" id="wcj-msgaj">' + esc(msgAj) + "</p>";
+  };
+  var leerForm = function(){
+    var a = ajustes();
+    $$("#wcj-p-ajustes [data-k]").forEach(function(i){ a[i.getAttribute("data-k")] = i.value.trim(); });
+    var sw = $('#wcj-p-ajustes [data-sw="permitir_suma_recibos"]'); if(sw) a.permitir_suma_recibos = sw.classList.contains("on");
+    return a;
+  };
+  app.addEventListener("click", function(e){
+    var sw = e.target.closest("#wcj-p-ajustes [data-sw]"); if(sw){ sw.classList.toggle("on"); sw.setAttribute("aria-pressed", sw.classList.contains("on")); return; }
+    if(e.target.closest("#wcj-guardar")){
+      var a = leerForm();
+      try{ ["col_nombre_caja", "col_importe_caja", "col_fecha_caja", "col_id_claves", "col_monto_claves", "col_nombre_claves", "col_fecha_claves"].forEach(function(k){ colIdx(a[k]); });
+           guardarAjustes(a); msgAj = "Ajustes guardados."; vibra(15); }
+      catch(err){ msgAj = String(err.message || err); }
+      pintarAjustes(); return;
+    }
+    if(e.target.closest("#wcj-restaurar")){ ls("witt-caja-ajustes", null); msgAj = "Se restauraron los preajustes."; pintarAjustes(); return; }
+    if(e.target.closest("#wcj-detectar") && ARCH){
+      try{
+        var wb = ARCH.wb, h = detectarHojas(wb), a2 = leerForm(), wc = wb.Sheets[h[0]], wk = wb.Sheets[h[1]];
+        var hc = detectarEnc(wc, ["IMPORTE", "NOMBRE"]), hk = detectarEnc(wk, ["MONTO", "NOMBRE"]);
+        var Hc = encabezados(wc, hc), Hk = encabezados(wk, hk);
+        var L = function(n){ return n ? colLetra(n) : ""; };
+        Object.assign(a2, { hoja_caja:h[0], hoja_claves:h[1], fila_enc_caja:hc, fila_ini_caja:hc + 1, fila_fin_caja:"", fila_enc_claves:hk, fila_ini_claves:hk + 1, fila_fin_claves:"",
+          col_nombre_caja:L(buscarCol(Hc, ["NOMBRE", "RAZON SOCIAL", "CLIENTE"])), col_importe_caja:L(buscarCol(Hc, ["IMPORTE", "MONTO", "TOTAL"])), col_fecha_caja:L(buscarCol(Hc, ["FECHA"])),
+          col_id_claves:L(buscarCol(Hk, ["ID", "CLAVE", "FOLIO"])), col_monto_claves:L(buscarCol(Hk, ["MONTO", "IMPORTE"])), col_nombre_claves:L(buscarCol(Hk, ["NOMBRE", "RAZON SOCIAL", "CLIENTE"])),
+          col_fecha_claves:L(buscarCol(Hk, ["FECHA DE DEPOSITO", "FECHA DEPOSITO", "FECHA"])) });
+        guardarAjustes(a2); msgAj = "Detectado y guardado desde " + ARCH.nombre + ". Revisa que las columnas sean las correctas.";
+      }catch(err){ msgAj = "No se pudo detectar: " + (err.message || err); }
+      pintarAjustes();
+    }
+  });
+
+  /* ------------------------------------------------------------------ arranque */
+  var arrancar = function(){ marcarLogo(); aplicarModo(modo); };
+  if(D.readyState === "loading") D.addEventListener("DOMContentLoaded", arrancar); else arrancar();
 })();
 </script>
 </body>
