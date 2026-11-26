@@ -5866,6 +5866,7 @@ button.wal-mini:focus-visible{outline:2px solid var(--g-accent,#00574a);outline-
 #witt-registrado.show .wr-ico svg{animation:wr-palomita .45s .12s ease-out forwards;}
 @keyframes wr-palomita{to{stroke-dashoffset:0;}}
 #witt-registrado[data-color="rojo"] .wr-ico{background:#ff6b6b;color:#3a0000;}
+#witt-registrado[data-color="amarillo"] .wr-ico{background:#ffd166;color:#3d2c00;}
 #witt-registrado .wr-txt{display:flex;flex-direction:column;gap:3px;min-width:0;}
 #witt-registrado b{font:800 16px/1.2 var(--font,inherit);}
 #witt-registrado small{font:500 13px/1.3 var(--font,inherit);opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -27765,6 +27766,45 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   }catch(e){}
 
+  /* ---------------- 13. Vibración en la versión WEB de iPhone ----------------
+     Safari (iPhone) no tiene navigator.vibrate: la app no vibraba. Desde iOS 18, al cambiar un interruptor
+     (<input type="checkbox" switch>) el teléfono da un toque háptico; se usa ese toque como vibración (1 a 3 toques según
+     el patrón). Funciona cuando la acción viene de un toque de la persona (Safari no deja vibrar "solo"). Android ya vibra. */
+  // Android (web y APK web): navigator.vibrate existe pero los patrones eran muy cortos (30 ms casi no se siente).
+  // La web no controla la fuerza del motor: la "intensidad" se marca con la duración. Se alargan los patrones de la app:
+  // verde (un toque 30 ms) -> 80 ms · amarillo ([60,80,60]) -> [150,100,150] · rojo ([220,90,220]) -> [450,120,450].
+  // Los demás patrones de la app se duplican (tope 600 ms). En la app nativa manda el plugin (no pasa por aquí).
+  try{
+    if(("vibrate" in navigator) && typeof navigator.vibrate === "function" && !(W.Capacitor && W.Capacitor.isNativePlatform && W.Capacitor.isNativePlatform())){
+      var vibOrig = navigator.vibrate.bind(navigator);
+      var MAPA = { "30":80, "60,80,60":[150,100,150], "220,90,220":[450,120,450] };
+      var fuerte = function(p){
+        var k = Array.isArray(p) ? p.join(",") : String(p);
+        if(MAPA[k] !== undefined) return MAPA[k];
+        if(Array.isArray(p)) return p.map(function(v, i){ return i % 2 === 0 ? Math.min(600, Math.round(v * 2)) : v; });
+        var n = Number(p); return n > 0 ? Math.min(600, Math.round(n * 2)) : p;
+      };
+      navigator.vibrate = function(p){ try{ return vibOrig(fuerte(p)); }catch(e){ return false; } };
+      W.__wittVibra = { fuerte: fuerte };
+    }
+  }catch(e){}
+  try{
+    if(!("vibrate" in navigator)){
+      var sw = D.createElement("label"); sw.setAttribute("aria-hidden", "true");
+      sw.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;";
+      var inp = D.createElement("input"); inp.type = "checkbox"; inp.setAttribute("switch", ""); inp.tabIndex = -1;
+      sw.appendChild(inp); (D.body || D.documentElement).appendChild(sw);
+      var toque = function(){ try{ sw.click(); }catch(e){} };
+      navigator.vibrate = function(p){
+        try{
+          var n = Array.isArray(p) ? Math.min(3, Math.ceil(p.length / 2)) : (p ? 1 : 0);
+          for(var i = 0; i < n; i++) setTimeout(toque, i * 140);
+        }catch(e){}
+        return true;
+      };
+    }
+  }catch(e){}
+
   /* ---------------- 12. Voz FEMENINA en toda la app (pedido del usuario) ----------------
      Reemplaza sayAloud (la voz de la app; todas las frases pasan por ahí). Busca una voz de mujer en español (México,
      luego EE. UU., luego cualquier español) por nombre conocido; si el teléfono no dice cuál es de mujer (Android no lo
@@ -27971,9 +28011,12 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         aviso.querySelector("small").textContent = sub || "";
         aviso.classList.remove("show"); void aviso.offsetWidth; aviso.classList.add("show");
         clearTimeout(avisoT); avisoT = setTimeout(function(){ aviso.classList.remove("show"); }, 2200);
+        // v3.3: al MARCAR, la misma señal que al ENCONTRAR (capa de alertas): verde = marcable (toque suave, pitido agudo),
+        // amarillo = ya la había registrado alguien (doble), rojo = fuera de inventario (fuerte y grave). El pitido verde y
+        // el rojo ya los da la app al guardar; aquí solo se agrega el del amarillo para no sonar doble.
         try{
-          if(typeof W.__wittHapticsColor === "function") W.__wittHapticsColor(color === "rojo" ? "amarillo" : "verde");
-          else if(navigator.vibrate) navigator.vibrate(color === "rojo" ? [40, 60, 40] : 35);
+          if(typeof W.__wittAlerta === "function") W.__wittAlerta(color || "verde", { origen:"guardar", marco:false, sonido: color === "amarillo" });
+          else if(navigator.vibrate) navigator.vibrate(color === "rojo" ? [220, 90, 220] : color === "amarillo" ? [60, 80, 60] : 30);
         }catch(e){}
       }catch(e){}
     };
@@ -28019,6 +28062,13 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         try{ nombre = ($("#modal-vehicle-name") || {}).textContent || ""; vin = ($("#modal-val") || {}).textContent || ""; }catch(e){}
         try{ tipo = (W.activeModalData && W.activeModalData.type) || ""; }catch(e){}
         try{ if(!tipo && typeof activeModalData !== "undefined" && activeModalData) tipo = activeModalData.type || ""; }catch(e){}
+        // ¿ya estaba registrada (por ti o por alguien) ANTES de guardar? -> amarillo
+        var yaEstaba = false;
+        try{
+          var rv = (typeof activeModalData !== "undefined" && activeModalData && activeModalData.record) ? activeModalData.record.vin : null;
+          if(rv && typeof State !== "undefined") yaEstaba = (State.sessionLogs || []).some(function(l){ return l.vin === rv && l.status === "ENCONTRADO"; });
+          if(!rv && typeof activeModalData !== "undefined" && activeModalData && activeModalData.existingLog) yaEstaba = true;
+        }catch(e){}
         var t0 = Date.now();
         mirar = setInterval(function(){
           if(!md.classList.contains("show")){
@@ -28026,7 +28076,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
             var fuera = /not_found|nf/i.test(tipo);
             var sub = (nombre && !/Cargando/i.test(nombre) ? nombre.trim() : "") + (vin && vin.trim() !== "-" ? (nombre ? " · " : "") + vin.trim() : "");
             var fv = frase("vehiculo", fuera);
-            avisar(fv, sub, fuera ? "rojo" : "verde", fraseVoz("vehiculo", fuera));
+            avisar(fv, sub, fuera ? "rojo" : (yaEstaba ? "amarillo" : "verde"), fraseVoz("vehiculo", fuera));
           } else if(Date.now() - t0 > 15000){ clearInterval(mirar); mirar = 0; }   // no se guardó (faltaba algo): sin aviso
         }, 120);
       }, { passive:true });
@@ -28281,7 +28331,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.2", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.3", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -28413,7 +28463,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 (function(){
   "use strict";
   var W = window, D = document;
-  var CAT = {"nissanBase":"https://www.nissan.com.mx/content/dam/Nissan/mexico/assets/","modelos":[{"id":"versa","marca":"Nissan","nombre":"Versa","kw":[["VERSA"]],"desde":2020,"def":"advance cvt","v":[["sense base tm","versa/my26/vap/Carrusel_Versa_sense_base_TM.jpg"],["sense cvt","versa/my26/vap/Carrusel_Versa_sense_CVT.jpg"],["sense","versa/my26/vap/Carrusel_Versa_sense_TM.jpg"],["advance cvt","versa/my26/vap/Carrusel_Versa_advance_CVT.jpg"],["advance","versa/my26/vap/Carrusel_Versa_advance_TM.jpg"],["exclusive","versa/my26/vap/Carrusel_Versa_exclusive_CVT.jpg"]]},{"id":"sentra","marca":"Nissan","nombre":"Sentra","kw":[["SENTRA"]],"desde":2026,"def":"advance","v":[["sr platinum","sentra/my26/vap/nissan-2026-sentra-version-sr_platinum-cvt-d.jpg"],["sr","sentra/my26/vap/nissan-2026-sentra-version-sr-cvt-d.jpg"],["advance","sentra/my26/vap/nissan-2026-sentra-version-advance-cvt-d.jpg"],["sense","sentra/my26/vap/nissan-2026-sentra-version-sense-cvt-d.jpg"]]},{"id":"march","marca":"Nissan","nombre":"March","kw":[["MARCH"]],"desde":2021,"def":"advance","v":[["advance","march/my26/vap/nissan-2026-march_advance_ta_rojo.jpg"],["sense","march/my26/vap/nissan-2026-march_sense_tm_rojo.jpg"]]},{"id":"kicks-epower","marca":"Nissan","nombre":"Kicks e-POWER","kw":[["KICKS","EPOWER"],["KICKS","PLAY"]],"desde":2022,"def":"advance","v":[["platinum","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER_platinum.jpg"],["exclusive","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER_exclusive.jpg"],["advance","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER-advance.jpg"]]},{"id":"kicks","marca":"Nissan","nombre":"Kicks","kw":[["KICKS"]],"desde":2025,"def":"advance","v":[["platinum","kicks/my27/vap/nissan-2027-kicks-version_platinum_cvt_v3-d.webp"],["exclusive","kicks/my27/vap/nissan-2027-kicks-version_exclusive_cvt_v3-d.webp"],["advance","kicks/my27/vap/nissan-2027-kicks-version_advance_cvt_v3-d.webp"]]},{"id":"xtrail-epower","marca":"Nissan","nombre":"X-Trail e-POWER","kw":[["XTRAIL","EPOWER"]],"desde":2024,"def":"exclusive","v":[["platinum","xtrail_e_power/my27/vap/nissan-2027-x-trail_e-power-platinum_e-4orce_2-row-d.jpg"],["exclusive","xtrail_e_power/my27/vap/nissan-2027-xtrail_epower_exclusive_2_row-d.jpg"]]},{"id":"xtrail","marca":"Nissan","nombre":"X-Trail","kw":[["XTRAIL"]],"desde":2023,"def":"advance","png":true,"v":[["platinum plus","xtrail/my27/reveals/nissan-2027-x_trail-platinum_plus_v1-d.png"],["platinum","xtrail/my27/reveals/nissan-2027-x_trail-platinum-d.png"],["exclusive","xtrail/my27/reveals/nissan-2027-x_trail-axclusisve-d.png"],["advance","xtrail/my27/reveals/nissan-2027-x_trail-advance-d.png"]]},{"id":"frontier-phev","marca":"Nissan","nombre":"Frontier PRO-PHEV","kw":[["FRONTIER","PHEV"]],"desde":2027,"def":"le","v":[["platinum","frontier_pro_phev/my27/vap/nissan-2027-frontier-phev-version-platinum-d.jpg"],["le","frontier_pro_phev/my27/vap/nissan-2027-frontier-phev-version-le-d.jpg"]]},{"id":"frontier-v6","marca":"Nissan","nombre":"Frontier V6 PRO-4X","kw":[["FRONTIER","V6"]],"desde":2022,"def":"pro4x","v":[["pro4x","frontier_usa/my27/vap/nissan-2027-frontier_v6_pro_4x-d.jpg"]]},{"id":"frontier","marca":"Nissan","nombre":"Frontier","kw":[["FRONTIER"]],"desde":2021,"def":"le tm","v":[["pro4x","frontier/my26/vap/Carrusel_De_Frontier_PRO-4X_4X4_TA.jpg"],["platinum","frontier/my26/vap/Carrusel_De_Frontier_Platinum_LE_TM.jpg"],["le diesel","frontier/my26/vap/Carrusel_De_Frontier_LE_DIESEL_4X4_TA.jpg"],["dc diesel","frontier/my26/vap/Carrusel_De_Frontier_DC_DIESEL_4X4_TM.jpg"],["le","frontier/my26/vap/Carrusel_De_Frontier_LE_TM.jpg"],["se","frontier/my26/vap/Carrusel_De_Frontier_SE_TM.jpg"],["xe cvt","frontier/my26/vap/Carrusel_De_Frontier_XE_TA.jpg"],["xe","frontier/my26/vap/Carrusel_De_Frontier_XE_TM.jpg"]]},{"id":"np300","marca":"Nissan","nombre":"NP300","kw":[["NP300"]],"desde":2020,"def":"pickup","v":[["chasis diesel","np3001/my26/vap/nissan-2026-np300-chasis-diesel-tm-ac-vdc-d.jpg"],["chasis","np3001/my26/vap/nissan-2026-np300-chasis-tm-ac-vdc-d.jpg"],["pickup","np3001/my26/vap/nissan-2026-np300-pickup-tm-ac-d.jpg"]]},{"id":"urvan","marca":"Nissan","nombre":"Urvan","kw":[["URVAN"]],"desde":2022,"def":"panel","v":[["11","urvan/my27/vap/nissan-2027-urvan_11_pasajeros_AA.jpg"],["14","urvan/my27/vap/nissan-2027-urvan_14_pasajeros_amplia_AA.jpg"],["15","urvan/my27/vap/nissan-2027-urvan_14_pasajeros_amplia_AA.jpg"],["panel ventanas","urvan/my27/vap/nissan-2027-urvan_panel_ventanas_Amplia.jpg"],["panel","urvan/my27/vap/nissan-2027-urvan_panel_amplia_AA.jpg"]]},{"id":"pathfinder","marca":"Nissan","nombre":"Pathfinder","kw":[["PATHFINDER"]],"desde":2022,"def":"platinum","v":[["platinum","pathfinder/my26/vap/nissan-2026-pathfinder-platinum-d.jpg"]]},{"id":"magnite","marca":"Nissan","nombre":"Magnite","kw":[["MAGNITE"]],"desde":2024,"def":"advance cvt","v":[["advance cvt dark","magnite/my26/vap/nissan-2026-magnite-advance-cvt-dark-armour-d.jpg"],["advance tm dark","magnite/my26/vap/nissan-2026-magnite-advance-mt-dark-armour-d.jpg"],["exclusive","magnite/my26/vap/nissan-2026-magnite-exclusive-cvt-d.jpg"],["advance cvt","magnite/my26/vap/nissan-2026-magnite-advance-cvt-d.jpg"],["advance","magnite/my26/vap/nissan-2026-magnite-advance-mt-d.jpg"]]},{"id":"kait","marca":"Nissan","nombre":"Kait","kw":[["KAIT"]],"desde":2026,"def":"advance","v":[["platinum","kait/my27/vap/nissan-2027-kait-platinum-cvt-d.jpg"],["exclusive","kait/my27/vap/nissan-2027-kait-exclusive-cvt-d.jpg"],["advance","kait/my27/vap/nissan-2027-kait-advance-cvt-d.jpg"]]},{"id":"vdrive","marca":"Nissan","nombre":"V-Drive","kw":[["VDRIVE"]],"desde":2020,"def":"base","v":[["tm","v_drive/my26/vap/nissan-2026-vdrive-tm.jpg"],["base","v_drive/my26/vap/nissan-2026-vdrive-base.jpg"]]},{"id":"z","marca":"Nissan","nombre":"Nissan Z","kw":[["NISSANZ"],["Z","TOURING"]],"desde":2023,"def":"cvt","v":[["tm","z/my26/vap/nissan-2026-z-touring_mt-d.jpg"],["cvt","z/my26/vap/nissan-2026-z-touring_at-d.jpg"]]},{"id":"kwid","marca":"Renault","nombre":"Kwid","kw":[["KWID"]],"desde":2023,"renault":"https://mx.co.rplug.renault.com/product/model/BB1/kwid-ph2/c/A-ENS_0MDL2P1SERIELIM3_-OKNU"},{"id":"kardian","marca":"Renault","nombre":"Kardian","kw":[["KARDIAN"]],"desde":2024,"renault":"https://mx.co.rplug.renault.com/product/model/HM1/kardian/c/A-ENS_0MDL2P1SERIELIM2_-TERQH"},{"id":"duster","marca":"Renault","nombre":"Duster","kw":[["DUSTER"]],"desde":2025,"renault":"https://mx.co.rplug.renault.com/product/model/JM1/duster/c/A-TEKNH"},{"id":"arkana","marca":"Renault","nombre":"Arkana","kw":[["ARKANA"]],"desde":2022,"renault":"https://mx.co.rplug.renault.com/product/model/JL1/arkana/c/A-ENS_0MDL2P1SERIELIM1_-TEKQS"},{"id":"koleos","marca":"Renault","nombre":"Koleos","kw":[["KOLEOS"]],"desde":2025,"renault":"https://mx.co.rplug.renault.com/product/model/AU1/renault-koleos/c/A-TEKQS"},{"id":"oroch","marca":"Renault","nombre":"Oroch","kw":[["OROCH"]],"desde":2023,"renault":"https://mx.co.rplug.renault.com/product/model/M79;ck=VU/oroch/c/A-ENS_0MDL2P1SERIELIM3_"},{"id":"boreal","marca":"Renault","nombre":"Boreal","kw":[["BOREAL"]],"desde":2026,"renault":"https://mx.co.rplug.renault.com/product/model/RM1/proyecto-r1312/c/A-ENS_0MDL2P1SERIELIM3_-TERRM"},{"id":"megane-etech","marca":"Renault","nombre":"Mégane E-Tech","kw":[["MEGANE","ETECH"]],"desde":2024,"renault":"https://mx.co.rplug.renault.com/product/model/ZO1/megane-e-tech/c/A-BIYWU"}]};
+  var CAT = {"nissanBase":"https://www.nissan.com.mx/content/dam/Nissan/mexico/assets/","modelos":[{"id":"versa","marca":"Nissan","nombre":"Versa","kw":[["VERSA"]],"desde":2020,"def":"advance cvt","v":[["sense base tm","versa/my26/vap/Carrusel_Versa_sense_base_TM.jpg"],["sense cvt","versa/my26/vap/Carrusel_Versa_sense_CVT.jpg"],["sense","versa/my26/vap/Carrusel_Versa_sense_TM.jpg"],["advance cvt","versa/my26/vap/Carrusel_Versa_advance_CVT.jpg"],["advance","versa/my26/vap/Carrusel_Versa_advance_TM.jpg"],["exclusive","versa/my26/vap/Carrusel_Versa_exclusive_CVT.jpg"]]},{"id":"sentra","marca":"Nissan","nombre":"Sentra","kw":[["SENTRA"]],"desde":2026,"def":"advance","v":[["sr platinum","sentra/my26/vap/nissan-2026-sentra-version-sr_platinum-cvt-d.jpg"],["sr","sentra/my26/vap/nissan-2026-sentra-version-sr-cvt-d.jpg"],["advance","sentra/my26/vap/nissan-2026-sentra-version-advance-cvt-d.jpg"],["sense","sentra/my26/vap/nissan-2026-sentra-version-sense-cvt-d.jpg"]]},{"id":"march","marca":"Nissan","nombre":"March","kw":[["MARCH"]],"desde":2021,"def":"advance","v":[["advance","march/my26/vap/nissan-2026-march_advance_ta_rojo.jpg"],["sense","march/my26/vap/nissan-2026-march_sense_tm_rojo.jpg"]]},{"id":"kicks-epower","marca":"Nissan","nombre":"Kicks e-POWER","kw":[["KICKS","EPOWER"],["KICKS","PLAY"]],"desde":2022,"def":"advance","v":[["platinum","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER_platinum.jpg"],["exclusive","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER_exclusive.jpg"],["advance","kicks_play_e_power/my26/vap/nissan-2026-kicks_play_e_POWER-advance.jpg"]]},{"id":"kicks","marca":"Nissan","nombre":"Kicks","kw":[["KICKS"]],"desde":2025,"def":"advance","v":[["platinum","kicks/my27/vap/nissan-2027-kicks-version_platinum_cvt_v3-d.webp"],["exclusive","kicks/my27/vap/nissan-2027-kicks-version_exclusive_cvt_v3-d.webp"],["advance","kicks/my27/vap/nissan-2027-kicks-version_advance_cvt_v3-d.webp"]]},{"id":"xtrail-epower","marca":"Nissan","nombre":"X-Trail e-POWER","kw":[["XTRAIL","EPOWER"]],"desde":2024,"def":"exclusive","v":[["platinum","xtrail_e_power/my27/vap/nissan-2027-x-trail_e-power-platinum_e-4orce_2-row-d.jpg"],["exclusive","xtrail_e_power/my27/vap/nissan-2027-xtrail_epower_exclusive_2_row-d.jpg"]]},{"id":"xtrail","marca":"Nissan","nombre":"X-Trail","kw":[["XTRAIL"]],"desde":2023,"def":"advance","png":true,"v":[["platinum plus","xtrail/my27/reveals/nissan-2027-x_trail-platinum_plus_v1-d.png"],["platinum","xtrail/my27/reveals/nissan-2027-x_trail-platinum-d.png"],["exclusive","xtrail/my27/reveals/nissan-2027-x_trail-axclusisve-d.png"],["advance","xtrail/my27/reveals/nissan-2027-x_trail-advance-d.png"]]},{"id":"frontier-phev","marca":"Nissan","nombre":"Frontier PRO-PHEV","kw":[["FRONTIER","PHEV"]],"desde":2027,"def":"le","v":[["platinum","frontier_pro_phev/my27/vap/nissan-2027-frontier-phev-version-platinum-d.jpg"],["le","frontier_pro_phev/my27/vap/nissan-2027-frontier-phev-version-le-d.jpg"]]},{"id":"frontier-v6","marca":"Nissan","nombre":"Frontier V6 PRO-4X","kw":[["FRONTIER","V6"]],"desde":2022,"def":"pro4x","v":[["pro4x","frontier_usa/my27/vap/nissan-2027-frontier_v6_pro_4x-d.jpg"]]},{"id":"frontier","marca":"Nissan","nombre":"Frontier","kw":[["FRONTIER"]],"desde":2021,"def":"le tm","v":[["pro4x","frontier/my26/vap/Carrusel_De_Frontier_PRO-4X_4X4_TA.jpg"],["platinum","frontier/my26/vap/Carrusel_De_Frontier_Platinum_LE_TM.jpg"],["le diesel","frontier/my26/vap/Carrusel_De_Frontier_LE_DIESEL_4X4_TA.jpg"],["dc diesel","frontier/my26/vap/Carrusel_De_Frontier_DC_DIESEL_4X4_TM.jpg"],["le","frontier/my26/vap/Carrusel_De_Frontier_LE_TM.jpg"],["se","frontier/my26/vap/Carrusel_De_Frontier_SE_TM.jpg"],["xe cvt","frontier/my26/vap/Carrusel_De_Frontier_XE_TA.jpg"],["xe","frontier/my26/vap/Carrusel_De_Frontier_XE_TM.jpg"]]},{"id":"np300","marca":"Nissan","nombre":"NP300","kw":[["NP300"]],"desde":2020,"def":"pickup","v":[["chasis diesel","np3001/my26/vap/nissan-2026-np300-chasis-diesel-tm-ac-vdc-d.jpg"],["chasis","np3001/my26/vap/nissan-2026-np300-chasis-tm-ac-vdc-d.jpg"],["pickup","np3001/my26/vap/nissan-2026-np300-pickup-tm-ac-d.jpg"]]},{"id":"urvan","marca":"Nissan","nombre":"Urvan","kw":[["URVAN"]],"desde":2022,"def":"panel","v":[["11","urvan/my27/vap/nissan-2027-urvan_11_pasajeros_AA.jpg"],["14","urvan/my27/vap/nissan-2027-urvan_14_pasajeros_amplia_AA.jpg"],["15","urvan/my27/vap/nissan-2027-urvan_14_pasajeros_amplia_AA.jpg"],["panel ventanas","urvan/my27/vap/nissan-2027-urvan_panel_ventanas_Amplia.jpg"],["panel","urvan/my27/vap/nissan-2027-urvan_panel_amplia_AA.jpg"]]},{"id":"pathfinder","marca":"Nissan","nombre":"Pathfinder","kw":[["PATHFINDER"]],"desde":2022,"def":"platinum","v":[["platinum","pathfinder/my26/vap/nissan-2026-pathfinder-platinum-d.jpg"]]},{"id":"magnite","marca":"Nissan","nombre":"Magnite","kw":[["MAGNITE"]],"desde":2024,"def":"advance cvt","v":[["advance cvt dark","magnite/my26/vap/nissan-2026-magnite-advance-cvt-dark-armour-d.jpg"],["advance tm dark","magnite/my26/vap/nissan-2026-magnite-advance-mt-dark-armour-d.jpg"],["exclusive","magnite/my26/vap/nissan-2026-magnite-exclusive-cvt-d.jpg"],["advance cvt","magnite/my26/vap/nissan-2026-magnite-advance-cvt-d.jpg"],["advance","magnite/my26/vap/nissan-2026-magnite-advance-mt-d.jpg"]]},{"id":"kait","marca":"Nissan","nombre":"Kait","kw":[["KAIT"]],"desde":2026,"def":"advance","v":[["platinum","kait/my27/vap/nissan-2027-kait-platinum-cvt-d.jpg"],["exclusive","kait/my27/vap/nissan-2027-kait-exclusive-cvt-d.jpg"],["advance","kait/my27/vap/nissan-2027-kait-advance-cvt-d.jpg"]]},{"id":"vdrive","marca":"Nissan","nombre":"V-Drive","kw":[["VDRIVE"]],"desde":2020,"def":"base","v":[["tm","v_drive/my26/vap/nissan-2026-vdrive-tm.jpg"],["base","v_drive/my26/vap/nissan-2026-vdrive-base.jpg"]]},{"id":"z","marca":"Nissan","nombre":"Nissan Z","kw":[["NISSANZ"],["Z","TOURING"]],"desde":2023,"def":"cvt","v":[["tm","z/my26/vap/nissan-2026-z-touring_mt-d.jpg"],["cvt","z/my26/vap/nissan-2026-z-touring_at-d.jpg"]]},{"id":"kwid","marca":"Renault","nombre":"Kwid","kw":[["KWID"]],"desde":2023,"renault":"https://mx.co.rplug.renault.com/product/model/BB1/kwid-ph2/c/A-ENS_0MDL2P1SERIELIM3_-OKNU"},{"id":"kardian","marca":"Renault","nombre":"Kardian","kw":[["KARDIAN"]],"desde":2024,"renault":"https://mx.co.rplug.renault.com/product/model/HM1/kardian/c/A-ENS_0MDL2P1SERIELIM2_-TERQH"},{"id":"duster","marca":"Renault","nombre":"Duster","kw":[["DUSTER"]],"desde":2025,"renault":"https://mx.co.rplug.renault.com/product/model/JM1/duster/c/A-TEKNH"},{"id":"arkana","marca":"Renault","nombre":"Arkana","kw":[["ARKANA"]],"desde":2022,"renault":"https://mx.co.rplug.renault.com/product/model/JL1/arkana/c/A-ENS_0MDL2P1SERIELIM1_-TEKQS"},{"id":"koleos","marca":"Renault","nombre":"Koleos","kw":[["KOLEOS"]],"desde":2025,"renault":"https://mx.co.rplug.renault.com/product/model/AU1/renault-koleos/c/A-TEKQS"},{"id":"oroch","marca":"Renault","nombre":"Oroch","kw":[["OROCH"]],"desde":2023,"renault":"https://mx.co.rplug.renault.com/product/model/M79;ck=VU/oroch/c/A-ENS_0MDL2P1SERIELIM3_"},{"id":"boreal","marca":"Renault","nombre":"Boreal","kw":[["BOREAL"]],"desde":2026,"renault":"https://mx.co.rplug.renault.com/product/model/RM1/proyecto-r1312/c/A-ENS_0MDL2P1SERIELIM3_-TERRM"},{"id":"megane-etech","marca":"Renault","nombre":"Mégane E-Tech","kw":[["MEGANE","ETECH"]],"desde":2024,"renault":"https://mx.co.rplug.renault.com/product/model/ZO1/megane-e-tech/c/A-BIYWU"}],"renaultColores":{"kwid":{"Gris Estrella":"TEKNH","Gris Cassiopee":"TEKNG","Rojo Fuego":"TEB76","Blanco Glaciar":"OV369","Gris Pardo":"OKNU","Negro Nacarado":"NV676"},"kardian":{"Azul Acero":"TERQH","Gris Estrella":"TEKNH","Gris Cassiopee":"TEKNG","Blanco Glaciar":"OV369","Negro Nacarado":"NV676"},"duster":{"Gris Estrella":"TEKNH","Gris Cassiopee":"TEKNG","CafÃ© Caoba":"TECNM","Rojo Fuego":"TEB76","Blanco Glaciar":"OV369"},"arkana":{"Azul Zanzibar":"TERRE","Blanco Perla":"TEQXD","Rojo Flama":"TENNP","Gris Satinado":"TEKQS","Gris MetÃ¡lico":"TEKAD","Negro MetÃ¡lico":"TEGXA","Blanco":"OVQXB"},"koleos":{"blanco perla":"TEQXD","gris satinado":"TEKQS","gris metÃ¡lico":"TEKAD","negro metÃ¡lico":"TEGXA","cobre mineral":"TECPF"},"oroch":{"Gris Estrella":"TEKNH","Rojo Fuego":"TEB76","Blanco Glaciar":"OV369","Gris Acero":"OKNU"},"boreal":{"azul mercurio":"TERRM","gris estrella":"TEKNH","gris cassiopee":"TEKNG","rojo fuego":"TEB76","blanco glaciar":"OV369","negro nacarado":"NV676"},"megane-etech":{"BLEU RRE + NOIR GNE":"BIYWW","Gris Rafale":"BIYWU","Gris Austral":"BIYUY","Blanco":"BIXUF","Rojo Flama":"BIXPA"}}};
   if(!CAT) return;
   var RENAULT = "https://www.renault.com.mx/agg/vn/unique/ONE_DACIA_PP_LARGE_DENSITY1/r_brandSite_carPicker_1.png?uri=";
 
@@ -28447,7 +28497,22 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       var m = CAT.modelos[i];
       if(!m.kw.some(function(g){ return g.every(function(w){ return !!set[w]; }); })) continue;
       if(y && (y < 2020 || y < m.desde)){ r = { sin:"modelo " + y + " (otra generación)" }; break; }
-      if(m.renault){ r = { url: RENAULT + encodeURIComponent(m.renault), sinEncabezado:true, etiqueta: m.marca + " " + m.nombre }; break; }
+      if(m.renault){
+        // Color OFICIAL de Renault: el nombre del color de la unidad se busca en la lista de la marca (código de pintura)
+        var cols = (CAT.renaultColores && CAT.renaultColores[m.id]) || {}, cod = null, nomC = "";
+        var cu = norm(rec.color || ""), mejorC = 0;
+        Object.keys(cols).forEach(function(nombre){
+          var ws = Object.keys(norm(nombre));
+          var hits = ws.filter(function(w){ return cu[w]; }).length;
+          // todas las palabras del color oficial = empate exacto; si no, la que más palabras comparta (p. ej. "GRIS")
+          var pts = hits === ws.length ? 100 + hits : hits;
+          if(hits && pts > mejorC){ mejorC = pts; cod = cols[nombre]; nomC = nombre; }
+        });
+        var base = m.renault.split("/c/")[0];
+        r = { url: RENAULT + encodeURIComponent(cod ? base + "/c/A-" + cod : m.renault), sinEncabezado:true,
+              etiqueta: m.marca + " " + m.nombre + (cod ? " · " + nomC + " (color oficial)" : "") };
+        break;
+      }
       var mejor = null, pts = -1;
       m.v.forEach(function(v){ var k = String(v[0]).split(/\s+/).length; if(tiene(set, v[0]) && k > pts){ pts = k; mejor = v; } });
       if(!mejor) mejor = m.v.filter(function(v){ return v[0] === m.def; })[0] || m.v[0];
