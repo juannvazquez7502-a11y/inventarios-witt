@@ -27872,6 +27872,10 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     W.sayAloud = function(txt){
       try{
         if(!txt) return;
+        // v3.9 (pedido del usuario): al CONFIRMAR una cantidad ya no se habla. "Listo, quedan N" (sumar piezas en el
+        // físico: la burbuja la da fzAgainAdd) y el número dictado (eco de la cantidad: aquí suena la burbuja).
+        if(/^Listo, quedan \d+$/.test(String(txt))) return;
+        if(/^\d{1,5}$/.test(String(txt).trim())){ try{ W.__wittBurbuja && W.__wittBurbuja("verde"); }catch(e){} return; }
         var clip = porTexto[String(txt)];
         if(clip){
           delete porTexto[String(txt)];
@@ -28047,6 +28051,19 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       W[n] = function(){ if(Date.now() < callarHasta) return; return f.apply(this, arguments); };
     });
     W.__wittCallarPitidos = function(ms){ callarHasta = Date.now() + (ms || 1500); };
+    // Físico: "Sumar" piezas (fzAgainAdd) -> sin pitido ni voz, solo la burbuja (v3.9)
+    var fzAA = W.fzAgainAdd;
+    if(typeof fzAA === "function"){
+      W.fzAgainAdd = function(){
+        var antes = !!(W.FZ && W.FZ.again);
+        try{ if(typeof FZ !== "undefined") antes = !!FZ.again; }catch(e){}
+        callarHasta = Date.now() + 1500; audio();
+        var r = fzAA.apply(this, arguments);
+        var cerro = true; try{ if(typeof FZ !== "undefined") cerro = !FZ.again; }catch(e){}
+        if(antes && cerro){ try{ W.__wittBurbuja("verde"); }catch(e){} }    // solo si sí se sumó (si faltaba algo, no)
+        return r;
+      };
+    }
     var avisar = function(titulo, sub, color){
       try{
         try{ W.__wittBurbuja(color || "verde"); }catch(e){}
@@ -28376,7 +28393,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.8", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.9", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
