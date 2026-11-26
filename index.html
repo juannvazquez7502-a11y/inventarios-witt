@@ -6133,6 +6133,20 @@ html:not(.witt-modo-caja) #wcj-home{ display:none; }
 @media (prefers-reduced-motion: reduce){
   #witt-apps .wap-panel, #witt-caja-app.modal-bg.show, #witt-caja-app .wcj-pag.on{ transition:none; animation:none; }
 }
+
+/* ---------- v4.2b · Cambio de herramienta: TODO EN NEGRO menos el logo (pedido del usuario) ----------
+   Mientras el logo absorbe y escupe, se apagan los fondos del selector (verde del encabezado, curva, adorno); solo se ven
+   el logo y las piezas que salen de él. Al final vuelven con un fundido. */
+html.witt-hoyo-trans #app-launcher, html.witt-hoyo-trans #app-launcher .launcher-head,
+html.witt-hoyo-trans #app-launcher .launcher-inner > div:nth-child(2){ transition:background-color .35s ease; }
+html.witt-hoyo-trans #app-launcher .launcher-inner > div:nth-child(2)::after,
+html.witt-hoyo-trans #app-launcher .witt-curva{ transition:opacity .35s ease; }
+html.witt-hoyo-negro #app-launcher{ background:#000 !important; }
+html.witt-hoyo-negro #app-launcher .launcher-head,
+html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2){ background-color:transparent !important; }
+html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2)::after,
+html.witt-hoyo-negro #app-launcher .witt-curva{ opacity:0 !important; }
+.launcher-brand.wh-clon .logo{ box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 0 28px rgba(111,232,198,.35) !important; }
 </style>
 </head>
 <body>
@@ -28561,7 +28575,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "4.2", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "4.3", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -29331,12 +29345,19 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       var vw = W.innerWidth || 375, vh = W.innerHeight || 800, cx = vw / 2, cy = vh * 0.46;
       var lr = logo.getBoundingClientRect(), lx = lr.left + lr.width / 2, ly = lr.top + lr.height / 2;
       var ESC = Math.max(2, Math.min(3, vw / 150)), alCentro = "translate(" + (cx - lx) + "px," + (cy - ly) + "px) scale(" + ESC + ")";
-      // el logo: un clon encima (el original se esconde) que viaja al centro
-      clon = logo.cloneNode(true);
-      clon.removeAttribute("tabindex"); clon.setAttribute("aria-hidden", "true");
-      clon.style.cssText = "position:fixed;margin:0;left:" + lr.left + "px;top:" + lr.top + "px;width:" + lr.width + "px;height:" + lr.height + "px;z-index:9996;pointer-events:none;will-change:transform;animation:none";
+      // el logo: un clon encima (el original se esconde) que viaja al centro. Va DENTRO de un .launcher-brand para que
+      // se pinte igual que el de verdad (el logo Witt blanco se dibuja con ".launcher-brand .logo::after"; fuera de ahí
+      // salía el icono de capas de abajo). El logo NO cambia.
+      clon = D.createElement("div"); clon.className = "launcher-brand wh-clon"; clon.setAttribute("aria-hidden", "true");
+      var copia = logo.cloneNode(true); copia.removeAttribute("tabindex"); copia.removeAttribute("role");
+      copia.style.cssText = "margin:0;width:" + lr.width + "px;height:" + lr.height + "px;animation:none";
+      clon.appendChild(copia);
+      clon.style.cssText = "position:fixed;margin:0;padding:0;gap:0;display:block;left:" + lr.left + "px;top:" + lr.top + "px;width:" + lr.width + "px;height:" + lr.height +
+        "px;z-index:9996;pointer-events:none;will-change:transform";
       (D.body || D.documentElement).appendChild(clon);
       logo.style.visibility = "hidden";
+      // TODO EN NEGRO menos el logo (y las piezas, que se ven salir de él): se apagan los fondos del selector
+      D.documentElement.classList.add("witt-hoyo-trans"); void D.documentElement.offsetWidth; D.documentElement.classList.add("witt-hoyo-negro");
       var anillo = $(".wh-anillo", hoyo);
       hoyo.style.transform = "translate(" + cx + "px," + cy + "px)";
       vibra([20, 50, 20]);
@@ -29346,7 +29367,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       A(anillo, [{ transform:"scale(0) rotate(0deg)", opacity:0 }, { transform:"scale(.62) rotate(360deg)", opacity:1, offset:.2 }, { transform:"scale(.5) rotate(1080deg)", opacity:.9 }],
         { duration:n * paso + 520, easing:"linear", fill:"forwards" });
       sorbo((n * paso + 480) / 1000);
-      var svgL = clon.querySelector("svg");
+      var svgL = copia;   // el "trago" y los "escupitajos" laten en el logo mismo
       if(svgL) A(svgL, [{ transform:"scale(1)" }, { transform:"scale(1.18)" }, { transform:"scale(1)" }], { duration:paso * 2, iterations:Math.ceil(n / 2) + 1, easing:"ease-in-out" });
       viejas.forEach(function(el, i){
         var c = centroDe(el), tx = cx - c[0], ty = cy - c[1], giro = (i % 2 ? 1 : -1) * (90 + (i % 3) * 40);
@@ -29387,12 +29408,15 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       var lr2 = logo.getBoundingClientRect();
       clon.style.left = lr2.left + "px"; clon.style.top = lr2.top + "px";
       var alCentro2 = "translate(" + (cx - (lr2.left + lr2.width / 2)) + "px," + (cy - (lr2.top + lr2.height / 2)) + "px) scale(" + ESC + ")";
+      D.documentElement.classList.remove("witt-hoyo-negro");   // vuelven los fondos mientras el logo regresa
       await fin(A(clon, [{ transform:alCentro2 + " rotate(360deg)" }, { transform:"none" }], { duration:420, easing:"cubic-bezier(.3,1.25,.4,1)", fill:"forwards" }));
     }catch(e){ try{ if(appDe(id).id !== modo) aplicarModo(id); }catch(x){} }
     finally{
       todas.forEach(function(a){ try{ a.cancel(); }catch(e){} });   // sin depender de getAnimations() (teléfonos viejos)
       if(clon && clon.parentNode) clon.parentNode.removeChild(clon);
       if(logo) logo.style.visibility = "";
+      D.documentElement.classList.remove("witt-hoyo-negro");
+      setTimeout(function(){ if(!cambiando) D.documentElement.classList.remove("witt-hoyo-trans"); }, 450);
       if(L) L.style.overflow = "";
       cambiando = false;
     }
