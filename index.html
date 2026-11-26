@@ -5953,6 +5953,19 @@ html.witt-cam-completa #toast{bottom:calc(210px + env(safe-area-inset-bottom)) !
 /* Inventario físico · CÓDIGO: el servidor genera códigos de 6 letras (fisico_generate_code): 6 casillas, no 8, y centradas */
 #fisico-app #fz-code.fz-input.code{width:calc(6 * (1ch + var(--wa-ls)) + var(--wa-ls) / 2 + 1px);margin-left:auto;margin-right:auto;}
 #fisico-app .fz-row:has(> #fz-code.fz-input.code){justify-content:center;}
+
+/* ---------- v3.8 · Al entrar a Vehículos: faros (dos destellos) + claxon. Solo opacity/transform: 60 fps ---------- */
+#witt-faros{ position:fixed; inset:0; z-index:9998; pointer-events:none; opacity:0; overflow:hidden; }
+#witt-faros i{ position:absolute; top:42%; width:70vmax; height:38vmax; margin:-19vmax 0 0 -35vmax; border-radius:50%;
+  background:radial-gradient(closest-side, rgba(255,250,228,.95), rgba(255,236,170,.55) 35%, rgba(255,226,140,.18) 62%, rgba(255,226,140,0) 100%);
+  transform:scale(.55); will-change:transform, opacity; }
+#witt-faros .wf-l{ left:22%; }
+#witt-faros .wf-r{ left:78%; }
+#witt-faros.show{ animation:witt-faros-luz .9s linear both; }
+#witt-faros.show i{ animation:witt-faros-haz .9s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes witt-faros-luz{ 0%{opacity:0} 8%{opacity:1} 20%{opacity:.12} 32%{opacity:1} 60%{opacity:.85} 100%{opacity:0} }
+@keyframes witt-faros-haz{ 0%{transform:scale(.55)} 32%{transform:scale(1)} 100%{transform:scale(1.15)} }
+@media (prefers-reduced-motion: reduce){ #witt-faros.show, #witt-faros.show i{ animation-duration:.4s; } }
 </style>
 </head>
 <body>
@@ -27845,12 +27858,13 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
        Los audios están en voces/<nombre>-<frase>.mp3. Si falta el audio o no hay señal, se dice con la voz del teléfono. */
     var NOMBRES_PAISA = { papi1:"papi1", papiuno:"papi1", papi2:"papi2", papidos:"papi2", papi3:"papi3", papitres:"papi3",
       papi4:"papi4", papicuatro:"papi4", huguino:"huguino", papichulo:"papichulo", hugo:"hugo", israel:"israel", aaron:"aaron", juan:"juan" };
-    var GRABADOS = { papi1:1, papi2:1, papi3:1, papi4:1, huguino:1, papichulo:1, hugo:1, israel:1 };   // faltan aaron y juan (cuota de AI Studio)
+    var GRABADOS = { papi1:1, papi2:1, papi3:1, papi4:1, huguino:1, papichulo:1, hugo:1, israel:1, aaron:1, juan:1 };   // 26-nov: los 10
     var slug = function(n){ try{ return String(n || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, ""); }catch(e){ return ""; } };
     var esPaisa = function(n){ return NOMBRES_PAISA[slug(n)] || null; };
     // Frases grabadas que SÍ se usan. Regla del usuario (26-nov-2026): las voces ya NO dicen "amor". "veh-fuera" y
     // "pieza-fuera" lo decían: fuera (las dice la voz del teléfono sin "amor"). "ya-encontrada" falta grabarla.
-    var CLIPS_OK = { "veh":1, "pieza":1, "ya-fuera":1 };
+    // v3.8: al confirmar ya no se habla (burbuja); la voz grabada queda solo al ESCANEAR una unidad ya registrada.
+    var CLIPS_OK = { "ya-fuera":1, "ya-encontrada":1 };
     var clipDe = function(n, frase){ var s = esPaisa(n); return (s && GRABADOS[s] && CLIPS_OK[frase]) ? "voces/" + s + "-" + frase + ".mp3" : null; };
     var porTexto = {};            // texto que se va a decir -> audio grabado que lo dice
     var audioActual = null;
@@ -28003,10 +28017,39 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     aviso.innerHTML = '<span class="wr-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="wr-txt"><b></b><small></small></span>';
     (D.body || D.documentElement).appendChild(aviso);
     var avisoT = 0;
-    var avisar = function(titulo, sub, color, voz){
+    /* v3.8 (pedido del usuario 26-nov): al CONFIRMAR ya no habla; solo una BURBUJA ("blup", como globo).
+       verde = una burbuja aguda · amarillo = dos · rojo = una grave. Mientras se confirma se callan los pitidos de la app. */
+    var actx = null;
+    var audio = function(){
       try{
-        // voz (pedido del usuario): "Vehículo registrado" / "Pieza registrada", con la voz de la app
-        if(voz){ try{ if(typeof W.sayAloud === "function") W.sayAloud(voz); }catch(e){} }
+        if(!actx || actx.state === "closed") actx = new (W.AudioContext || W.webkitAudioContext)();
+        if(actx.state === "suspended") actx.resume().catch(function(){});
+        return actx;
+      }catch(e){ return null; }
+    };
+    var burbuja = function(ini, f0, f1, vol){
+      var c = audio(); if(!c) return;
+      var t = c.currentTime + ini, o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + 0.085);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.16);
+    };
+    var BURBUJA = {
+      verde: function(){ burbuja(0, 420, 1250, 0.55); },
+      amarillo: function(){ burbuja(0, 420, 1250, 0.5); burbuja(0.15, 520, 1500, 0.45); },
+      rojo: function(){ burbuja(0, 180, 520, 0.7); }
+    };
+    W.__wittBurbuja = function(color){ try{ (BURBUJA[color] || BURBUJA.verde)(); }catch(e){} };
+    // silencio de los pitidos de la app mientras se confirma (la burbuja los sustituye)
+    var callarHasta = 0;
+    ["beep", "playSuccessSound", "playNotFoundSound", "playErrorSound"].forEach(function(n){
+      var f = W[n]; if(typeof f !== "function") return;
+      W[n] = function(){ if(Date.now() < callarHasta) return; return f.apply(this, arguments); };
+    });
+    W.__wittCallarPitidos = function(ms){ callarHasta = Date.now() + (ms || 1500); };
+    var avisar = function(titulo, sub, color){
+      try{
+        try{ W.__wittBurbuja(color || "verde"); }catch(e){}
         aviso.setAttribute("data-color", color || "verde");
         aviso.querySelector("b").textContent = titulo;
         aviso.querySelector("small").textContent = sub || "";
@@ -28016,7 +28059,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         // amarillo = ya la había registrado alguien (doble), rojo = fuera de inventario (fuerte y grave). El pitido verde y
         // el rojo ya los da la app al guardar; aquí solo se agrega el del amarillo para no sonar doble.
         try{
-          if(typeof W.__wittAlerta === "function") W.__wittAlerta(color || "verde", { origen:"guardar", marco:false, sonido: color === "amarillo" });
+          if(typeof W.__wittAlerta === "function") W.__wittAlerta(color || "verde", { origen:"guardar", marco:false, sonido:false });
           else if(navigator.vibrate) navigator.vibrate(color === "rojo" ? [220, 90, 220] : color === "amarillo" ? [60, 80, 60] : 30);
         }catch(e){}
       }catch(e){}
@@ -28059,6 +28102,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       if(cancelar) cancelar.addEventListener("click", function(){ clearInterval(mirar); mirar = 0; }, { passive:true, capture:true });
       bc.addEventListener("click", function(){
         clearInterval(mirar);
+        try{ W.__wittCallarPitidos(2500); audio(); }catch(e){}     // el audio se despierta con el toque (iPhone lo pide)
         var nombre = "", tipo = "", vin = "";
         try{ nombre = ($("#modal-vehicle-name") || {}).textContent || ""; vin = ($("#modal-val") || {}).textContent || ""; }catch(e){}
         try{ tipo = (W.activeModalData && W.activeModalData.type) || ""; }catch(e){}
@@ -28077,7 +28121,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
             var fuera = /not_found|nf/i.test(tipo);
             var sub = (nombre && !/Cargando/i.test(nombre) ? nombre.trim() : "") + (vin && vin.trim() !== "-" ? (nombre ? " · " : "") + vin.trim() : "");
             var fv = frase("vehiculo", fuera);
-            avisar(fv, sub, fuera ? "rojo" : (yaEstaba ? "amarillo" : "verde"), fraseVoz("vehiculo", fuera));
+            avisar(fv, sub, fuera ? "rojo" : (yaEstaba ? "amarillo" : "verde"));
           } else if(Date.now() - t0 > 15000){ clearInterval(mirar); mirar = 0; }   // no se guardó (faltaba algo): sin aviso
         }, 120);
       }, { passive:true });
@@ -28087,13 +28131,13 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     var tocoPieza = 0;
     ["quickAdjustPartQty", "setPartFound"].forEach(function(n){
       var f = W[n]; if(typeof f !== "function") return;
-      W[n] = function(){ tocoPieza = Date.now(); return f.apply(this, arguments); };
+      W[n] = function(){ tocoPieza = Date.now(); try{ audio(); }catch(e){} return f.apply(this, arguments); };
     });
     var aph = W.addPartHistory;
     if(typeof aph === "function"){
       W.addPartHistory = function(pn, desc, qty, prev){
         var r = aph.apply(this, arguments);
-        try{ if(Date.now() - tocoPieza < 2500) { var fp = frase("pieza", false); avisar(fp, String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde", fraseVoz("pieza", false)); } }catch(e){}
+        try{ if(Date.now() - tocoPieza < 2500) { var fp = frase("pieza", false); avisar(fp, String(pn || "") + " · cantidad " + qty + (desc ? " · " + String(desc).slice(0, 40) : ""), "verde"); } }catch(e){}
         return r;
       };
     }
@@ -28101,7 +28145,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(typeof rpo === "function"){
       W.registerPartOOI = function(pn, desc, qty){
         var r = rpo.apply(this, arguments);
-        try{ var fo = frase("pieza", true); avisar(fo, String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo", fraseVoz("pieza", true)); }catch(e){}
+        try{ W.__wittCallarPitidos(1200); var fo = frase("pieza", true); avisar(fo, String(pn || "") + " · cantidad " + (Math.round(Number(qty) || 0)), "rojo"); }catch(e){}
         return r;
       };
     }
@@ -28332,7 +28376,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "3.7", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "3.8", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -28449,6 +28493,49 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         if(launcherAbierto() && !hayVentana() && !(typeof W.pvIsOpen === "function" && W.pvIsOpen())) abrir();
       }catch(e){}
     });
+  }catch(e){}
+
+  /* ---------------- 14. Al entrar a Vehículos: faros y claxon (v3.8, pedido del usuario) ----------------
+     Al tocar la tarjeta Vehículos del selector: dos destellos de faros (luz cálida que barre la pantalla) con un "pi-pi"
+     de claxon, como al abrir el carro con el control. Solo opacity/transform (60 fps), 0.9 s, no bloquea los toques. */
+  try{
+    var faros = D.createElement("div");
+    faros.id = "witt-faros"; faros.setAttribute("aria-hidden", "true");
+    faros.innerHTML = '<i class="wf-l"></i><i class="wf-r"></i>';
+    (D.body || D.documentElement).appendChild(faros);
+    var fctx = null;
+    var claxon = function(){
+      try{
+        if(!fctx || fctx.state === "closed") fctx = new (W.AudioContext || W.webkitAudioContext)();
+        if(fctx.state === "suspended") fctx.resume().catch(function(){});
+        var c = fctx, sal = c.createGain(), filtro = c.createBiquadFilter();
+        filtro.type = "lowpass"; filtro.frequency.value = 2400; filtro.Q.value = 0.7;
+        filtro.connect(sal); sal.connect(c.destination); sal.gain.value = 0.22;
+        // claxon de carro: dos notas juntas (≈ Fa y La), sierra con filtro; dos toques cortos
+        [0, 0.2].forEach(function(ini){
+          [349, 440].forEach(function(f){
+            var t = c.currentTime + ini, o = c.createOscillator(), g = c.createGain();
+            o.type = "sawtooth"; o.frequency.value = f;
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1, t + 0.012);
+            g.gain.setValueAtTime(1, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+            o.connect(g); g.connect(filtro); o.start(t); o.stop(t + 0.16);
+          });
+        });
+      }catch(e){}
+    };
+    var fT = 0;
+    var arrancar = function(){
+      if(D.documentElement.classList.contains("witt-sin-movimiento")) { claxon(); return; }
+      faros.classList.remove("show"); void faros.offsetWidth; faros.classList.add("show");
+      clearTimeout(fT); fT = setTimeout(function(){ faros.classList.remove("show"); }, 1000);
+      claxon();
+      try{ if(W.__wittVibra && W.__wittVibra.vibrar) W.__wittVibra.vibrar([40, 160, 40]); else if(navigator.vibrate) navigator.vibrate([40, 160, 40]); }catch(e){}
+    };
+    W.__wittFarosClaxon = arrancar;
+    D.addEventListener("click", function(e){
+      var t = e.target && e.target.closest && e.target.closest('#app-launcher [data-launch="autos"]');
+      if(t) arrancar();
+    }, true);
   }catch(e){}
 })();
 
