@@ -6142,7 +6142,8 @@ html.witt-hoyo-trans #app-launcher .launcher-inner > div:nth-child(2)::after,
 html.witt-hoyo-trans #app-launcher .witt-curva{ transition:opacity .35s ease; }
 html.witt-hoyo-negro #app-launcher{ background:#000 !important; }
 html.witt-hoyo-negro #app-launcher .launcher-head,
-html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2){ background-color:transparent !important; }
+html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2){ background:transparent !important; box-shadow:none !important; }
+html.witt-hoyo-negro #app-launcher .launcher-head::before, html.witt-hoyo-negro #app-launcher .launcher-head::after{ opacity:0 !important; }
 html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2)::after,
 html.witt-hoyo-negro #app-launcher .witt-curva{ opacity:0 !important; }
 .launcher-brand.wh-clon .logo{ box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 0 28px rgba(111,232,198,.35) !important; }
@@ -28607,7 +28608,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "4.4", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "4.5", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -29434,24 +29435,28 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       // Primero se sueltan las absorbidas (si no, sus medidas son 0 y las que existen en las dos herramientas no se
       // vuelven a escupir); todo en el mismo instante, sin pintar en medio, así que no hay parpadeo.
       absorb.forEach(function(a){ try{ a.cancel(); }catch(e){} });
-      var nuevas = piezas(), m = nuevas.length, paso2 = Math.max(150, Math.min(230, 1500 / Math.max(1, m))), ultima = null, retrasos = [];
+      var DUR_ESC = 1250, nuevas = piezas(), m = nuevas.length, paso2 = Math.max(150, Math.min(230, 1500 / Math.max(1, m))), ultima = null, retrasos = [];
       nuevas.forEach(function(el, i){
         var c = centroDe(el), tx = cx - c[0], ty = cy - c[1], giro = (i % 2 ? -1 : 1) * 70;
         retrasos.push(260 + i * paso2);
+        // v4.5 (pedido del usuario): que SE VEA salir del logo. Brota del logo (visible desde el principio, chiquita, por
+        // detrás de él), vuela en ARCO hacia su lugar creciendo, y aterriza con gelatina (se aplasta y rebota).
+        var alto = 60 + Math.min(120, Math.abs(ty) * 0.18 + Math.abs(tx) * 0.1);
         ultima = A(el, [
-          { transform:"translate(" + pxz(tx) + "," + pxz(ty) + ") rotate(" + giro + "deg) scale(0)", opacity:0 },
-          { transform:"translate(" + pxz(tx * 0.08) + "," + pxz(ty * 0.08) + ") rotate(0deg) scale(1.14,.86)", opacity:1, offset:.5 },
-          { transform:"scale(.92,1.08)", offset:.66 },
-          { transform:"scale(1.04,.97)", offset:.8 },
-          { transform:"scale(.985,1.015)", offset:.91 },
+          { transform:"translate(" + pxz(tx) + "," + pxz(ty) + ") rotate(" + giro + "deg) scale(.08)", opacity:0, easing:"ease-out" },
+          { transform:"translate(" + pxz(tx) + "," + pxz(ty) + ") rotate(" + giro + "deg) scale(.26)", opacity:1, offset:.07, easing:"cubic-bezier(.25,.6,.4,1)" },
+          { transform:"translate(" + pxz(tx * 0.45) + "," + pxz(ty * 0.45 - alto) + ") rotate(" + giro * 0.3 + "deg) scale(.8)", opacity:1, offset:.46, easing:"cubic-bezier(.55,0,.85,.45)" },
+          { transform:"translate(0px,0px) rotate(0deg) scale(1.13,.85)", opacity:1, offset:.7, easing:"ease-out" },
+          { transform:"scale(.93,1.08)", offset:.82, easing:"ease-in-out" },
+          { transform:"scale(1.03,.98)", offset:.92, easing:"ease-out" },
           { transform:"none", opacity:1 }
-        ], { duration:950, delay:260 + i * paso2, easing:"cubic-bezier(.2,.9,.3,1)", fill:"backwards" });   // v4.4: escupe más lento
+        ], { duration:DUR_ESC, delay:260 + i * paso2, easing:"linear", fill:"backwards" });
       });
       escupidas(retrasos);
       W.__wittCambioInfo = { absorbidas:n, escupidas:m, paso:paso, paso2:paso2, t:Date.now(), piezas:nuevas.map(function(e){ return (e.id || e.className || e.tagName).toString().slice(0, 30); }) };
       if(svgL) A(svgL, [{ transform:"scale(1)" }, { transform:"scale(.82)" }, { transform:"scale(1.12)" }, { transform:"scale(1)" }], { duration:paso2, delay:260, iterations:Math.max(1, m), easing:"ease-out" });
       // el logo NO se queda parado: empieza a regresar cuando la última pieza ya va acomodándose (sin pausa ni tirón)
-      if(ultima){ var falta = 260 + (m - 1) * paso2 + 950 * 0.62; await new Promise(function(ok){ setTimeout(ok, falta); }); }
+      if(ultima){ var falta = 260 + (m - 1) * paso2 + DUR_ESC * 0.7; await new Promise(function(ok){ setTimeout(ok, falta); }); }
       // el anillo se apaga y el logo regresa a su esquina
       A(anillo, [{ transform:"scale(.5) rotate(1080deg)", opacity:.9 }, { transform:"scale(0) rotate(1260deg)", opacity:0 }], { duration:260, easing:"ease-in", fill:"forwards" });
       var lr2 = logo.getBoundingClientRect();
