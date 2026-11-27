@@ -6180,6 +6180,12 @@ html.witt-hoyo-negro #app-launcher .witt-curva{ opacity:0 !important; }
 @keyframes wi-sale{ 0%{ transform:translate(0,0) rotate(0deg) scale(.4); opacity:0; } 15%{ opacity:1; }
   100%{ transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1); opacity:0; } }
 @media (prefers-reduced-motion: reduce){ #witt-impacto{ display:none !important; } }
+/* ---------- v4.6 · Aviso al habilitar/ocultar Cortes de caja (5 toques a la versión) ---------- */
+#witt-aviso-caja{ position:fixed; left:50%; bottom:calc(28px + env(safe-area-inset-bottom)); z-index:9999; max-width:calc(100vw - 32px);
+  padding:12px 18px; border-radius:999px; background:var(--g-toast-bg, #2b302e); color:var(--g-toast-fg, #fff); font:600 14px Inter,system-ui,sans-serif;
+  box-shadow:var(--g-shadow-float); transform:translate(-50%, 24px); opacity:0; pointer-events:none; transition:transform .35s cubic-bezier(.2,1.3,.4,1), opacity .2s ease; }
+#witt-aviso-caja.show{ transform:translate(-50%, 0); opacity:1; }
+#witt-ver-pill, #witt-version{ -webkit-user-select:none; user-select:none; }
 </style>
 </head>
 <body>
@@ -28608,7 +28614,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "4.5", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "4.6", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -29237,7 +29243,13 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       marca:"Cortes de caja", sub:"¿Qué corte vas a cruzar hoy?" }
   ];
   var appDe = function(id){ return APPS.filter(function(a){ return a.id === id; })[0] || APPS[0]; };
+  // v4.6 (pedido del usuario): Cortes de caja NO está abierto para todos. Se habilita en ESTE teléfono tocando 5 veces
+  // seguidas el número de versión (la pastilla "v4.x" de arriba o "Versión 4.x" de abajo); otras 5 lo vuelven a ocultar.
+  // Es para que no lo vean todos (no es una contraseña: quien sepa el truco lo abre; los cortes nunca salen del teléfono).
+  var habilitada = lg("witt-caja-on", "0") === "1";
+  var appsVisibles = function(){ return APPS.filter(function(a){ return a.id !== "caja" || habilitada; }); };
   var modo = appDe(lg("witt-app", "inventarios")).id;
+  if(modo === "caja" && !habilitada) modo = "inventarios";
 
   /* ------------------------------------------------------------------ 1. MODO (qué herramienta se ve en el selector) */
   var aplicarModo = function(id){
@@ -29264,9 +29276,14 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }catch(e){ location.reload(); }
   };
   var abrirMenu = function(){
+    if(appsVisibles().length < 2 && !hayVersion()){
+      var lg0 = $("#app-launcher .launcher-brand .logo");
+      try{ lg0 && lg0.animate([{ transform:"scale(1)" }, { transform:"scale(.88)" }, { transform:"scale(1.06)" }, { transform:"scale(1)" }], { duration:320, easing:"ease-out" }); }catch(e){}
+      return;
+    }
     var logo = $("#app-launcher .launcher-brand .logo"), r = logo ? logo.getBoundingClientRect() : { left:16, bottom:60, width:46 };
     var panel = $(".wap-panel", menu);
-    var html = '<div class="wap-tit">Herramientas</div>' + APPS.map(function(a){
+    var html = '<div class="wap-tit">Herramientas</div>' + appsVisibles().map(function(a){
       return '<button type="button" class="wap-item' + (a.id === modo ? " on" : "") + '" role="menuitemradio" aria-checked="' + (a.id === modo) + '" data-app="' + a.id + '">' +
         '<span class="wap-ico" style="background:' + a.color + '">' + a.ico + '</span><span class="wap-txt"><b>' + esc(a.nombre) + '</b><small>' + esc(a.desc) + '</small></span>' +
         '<span class="wap-ok">' + SVG.ok + '</span></button>';
@@ -29376,7 +29393,9 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
      (girando hacia él), cambia la herramienta y ESCUPE cada pieza a su lugar con efecto gelatina; luego vuelve a su
      esquina. Mismo color de la app. Solo transform/opacity (60 fps). Con "reducir movimiento": fundido simple. */
   var cambiar = async function(id){
-    if(cambiando) return; cambiando = true;
+    if(cambiando) return;
+    if(id === "caja" && !habilitada) return;   // oculta: ni por código se cambia a Caja sin habilitarla
+    cambiando = true;
     var todas = [], A = function(el, kf, op){ var a = anim(el, kf, op); if(a) todas.push(a); return a; };   // todas se cancelan al final
     var L = $("#app-launcher"), inner = $("#app-launcher .launcher-inner"), logo = $("#app-launcher .launcher-brand .logo"), clon = null;
     try{
@@ -30057,6 +30076,30 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     if(e.target.closest && e.target.closest('#app-launcher [data-launch="refacciones"]')) lanzarImpacto();
   }, true);
   /* ------------------------------------------------------------------ arranque */
+  /* ------------------------------------------------------------------ 7. Habilitar Cortes de caja: 5 toques a la versión (v4.6) */
+  var avisoCaja = D.createElement("div"); avisoCaja.id = "witt-aviso-caja"; avisoCaja.setAttribute("role", "status"); avisoCaja.setAttribute("aria-live", "polite");
+  (D.body || D.documentElement).appendChild(avisoCaja);
+  var avisoT2 = 0;
+  var avisarCaja = function(txt){
+    avisoCaja.textContent = txt; avisoCaja.classList.remove("show"); void avisoCaja.offsetWidth; avisoCaja.classList.add("show");
+    clearTimeout(avisoT2); avisoT2 = setTimeout(function(){ avisoCaja.classList.remove("show"); }, 2600);
+  };
+  var toques = 0, ultimoToque = 0;
+  D.addEventListener("click", function(e){
+    if(!(e.target.closest && e.target.closest("#witt-ver-pill, #witt-version"))) return;
+    var ahora = Date.now();
+    toques = (ahora - ultimoToque < 1500) ? toques + 1 : 1; ultimoToque = ahora;
+    if(toques >= 2 && toques < 5) vibra(8);
+    if(toques < 5) return;
+    toques = 0;
+    habilitada = !habilitada; ls("witt-caja-on", habilitada ? "1" : null);
+    vibra(habilitada ? [30, 60, 30, 60, 80] : [80]);
+    try{ if(W.__wittBurbuja) W.__wittBurbuja(habilitada ? "verde" : "rojo"); }catch(x){}
+    if(habilitada) avisarCaja("Cortes de caja habilitado · toca el logo de Witt para cambiar");
+    else { avisarCaja("Cortes de caja oculto en este teléfono"); if(modo === "caja") aplicarModo("inventarios"); try{ app.classList.remove("show"); }catch(x){} }
+    marcarLogo();
+  }, true);
+  W.__wittCajaHabilitada = function(){ return habilitada; };
   var arrancar = function(){ marcarLogo(); aplicarModo(modo); };
   if(D.readyState === "loading") D.addEventListener("DOMContentLoaded", arrancar); else arrancar();
 })();
