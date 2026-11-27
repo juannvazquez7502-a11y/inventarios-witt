@@ -6016,12 +6016,11 @@ html.witt-cam-completa #toast{bottom:calc(210px + env(safe-area-inset-bottom)) !
 /* ---------- Modo CAJA dentro del selector ---------- */
 /* v4.2 (pedido del usuario): Caja usa el MISMO verde de la app; no se cambia el color */
 html.witt-modo-caja #app-launcher .launcher-inner > .app-card:not(.wcj-card),
-html.witt-modo-caja #app-launcher .launcher-inner > .wcr,
+html.witt-modo-caja #app-launcher .launcher-inner > .wcr:not(#wcj-home),
 html.witt-modo-caja #app-launcher #combined-dashboard-area,
 html.witt-modo-caja #app-launcher .launcher-danger,
 html.witt-modo-caja #app-launcher .launcher-inner > .launcher-foot{ display:none !important; }
-html:not(.witt-modo-caja) #wcj-home{ display:none; }
-#wcj-home{ display:flex; flex-direction:column; }
+html:not(.witt-modo-caja) #wcj-home, html:not(.witt-modo-caja) #wcj-extra{ display:none !important; }
 #app-launcher .app-card.wcj-hero{ margin-top:-52px; }
 #app-launcher .wcj-card .app-icon{ color:var(--g-accent); display:grid; place-items:center; }
 #app-launcher .wcj-card .app-icon svg{ width:24px; height:24px; }
@@ -6147,6 +6146,39 @@ html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2){ backgroun
 html.witt-hoyo-negro #app-launcher .launcher-inner > div:nth-child(2)::after,
 html.witt-hoyo-negro #app-launcher .witt-curva{ opacity:0 !important; }
 .launcher-brand.wh-clon .logo{ box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 0 28px rgba(111,232,198,.35) !important; }
+/* ---------- v4.4 · Cápsulas de Cortes de caja (carrusel como Vehículos): ilustración verde y blanco ---------- */
+#app-launcher .wcr .wcr-track > .app-card.wcj-cap-cruce{--wcr-foto:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 520%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%2300483d%22/%3E%3Cstop offset=%221%22 stop-color=%22%2300866a%22/%3E%3C/linearGradient%3E%3CradialGradient id=%22l%22 cx=%22.75%22 cy=%22.2%22 r=%22.7%22%3E%3Cstop offset=%220%22 stop-color=%22%236fe8c6%22 stop-opacity=%22.35%22/%3E%3Cstop offset=%221%22 stop-color=%22%236fe8c6%22 stop-opacity=%220%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width=%22400%22 height=%22520%22 fill=%22url(%23g)%22/%3E%3Crect width=%22400%22 height=%22520%22 fill=%22url(%23l)%22/%3E%3Ccircle cx=%22330%22 cy=%22430%22 r=%22150%22 fill=%22%23fff%22 opacity=%22.05%22/%3E%3Ccircle cx=%2240%22 cy=%2280%22 r=%2290%22 fill=%22%23fff%22 opacity=%22.05%22/%3E%3Cg transform=%22translate(118 92) rotate(-6)%22%3E%3Cpath d=%22M0 14a14 14 0 0 1 14-14h150a14 14 0 0 1 14 14v262l-18-12-18 12-18-12-18 12-18-12-18 12-18-12-18 12-18-12-18 12-18-12-18 12z%22 fill=%22%23fff%22/%3E%3Crect x=%2224%22 y=%2230%22 width=%2290%22 height=%2212%22 rx=%226%22 fill=%22%2300574a%22/%3E%3Crect x=%2224%22 y=%2260%22 width=%22130%22 height=%228%22 rx=%224%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%2224%22 y=%2282%22 width=%22110%22 height=%228%22 rx=%224%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%2224%22 y=%22104%22 width=%22124%22 height=%228%22 rx=%224%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%2224%22 y=%22126%22 width=%2296%22 height=%228%22 rx=%224%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%2224%22 y=%22170%22 width=%2260%22 height=%2210%22 rx=%225%22 fill=%22%2300574a%22 opacity=%22.6%22/%3E%3Crect x=%22104%22 y=%22166%22 width=%2250%22 height=%2216%22 rx=%228%22 fill=%22%2300574a%22/%3E%3C/g%3E%3Cg transform=%22translate(262 300)%22%3E%3Ccircle r=%2254%22 fill=%22%236fe8c6%22/%3E%3Ccircle r=%2254%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%226%22 opacity=%22.6%22/%3E%3Cpath d=%22m-24 2 16 16 32-34%22 fill=%22none%22 stroke=%22%2300483d%22 stroke-width=%2212%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3Cg fill=%22%23fff%22 opacity=%22.9%22%3E%3Cellipse cx=%2296%22 cy=%22402%22 rx=%2244%22 ry=%2213%22/%3E%3Cellipse cx=%2296%22 cy=%22390%22 rx=%2244%22 ry=%2213%22 opacity=%22.85%22/%3E%3Cellipse cx=%2296%22 cy=%22378%22 rx=%2244%22 ry=%2213%22 opacity=%22.7%22/%3E%3C/g%3E%3C/svg%3E");}
+#app-launcher .wcr .wcr-track > .app-card.wcj-cap-muestras{--wcr-foto:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 520%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%2300483d%22/%3E%3Cstop offset=%221%22 stop-color=%22%2300866a%22/%3E%3C/linearGradient%3E%3CradialGradient id=%22l%22 cx=%22.75%22 cy=%22.2%22 r=%22.7%22%3E%3Cstop offset=%220%22 stop-color=%22%236fe8c6%22 stop-opacity=%22.35%22/%3E%3Cstop offset=%221%22 stop-color=%22%236fe8c6%22 stop-opacity=%220%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width=%22400%22 height=%22520%22 fill=%22url(%23g)%22/%3E%3Crect width=%22400%22 height=%22520%22 fill=%22url(%23l)%22/%3E%3Ccircle cx=%22330%22 cy=%22430%22 r=%22150%22 fill=%22%23fff%22 opacity=%22.05%22/%3E%3Ccircle cx=%2240%22 cy=%2280%22 r=%2290%22 fill=%22%23fff%22 opacity=%22.05%22/%3E%3Cg transform=%22translate(70 110)%22%3E%3Crect width=%22260%22 height=%2262%22 rx=%2216%22 fill=%22%23fff%22 opacity=%221%22/%3E%3Ccircle cx=%2232%22 cy=%2231%22 r=%2212%22 fill=%22%236fe8c6%22/%3E%3Crect x=%2256%22 y=%2220%22 width=%22110%22 height=%229%22 rx=%224.5%22 fill=%22%2300574a%22/%3E%3Crect x=%2256%22 y=%2236%22 width=%2290%22 height=%227%22 rx=%223.5%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%22196%22 y=%2222%22 width=%2244%22 height=%2218%22 rx=%229%22 fill=%22%23d3f6ec%22/%3E%3C/g%3E%3Cg transform=%22translate(70 188)%22%3E%3Crect width=%22260%22 height=%2262%22 rx=%2216%22 fill=%22%23fff%22 opacity=%221%22/%3E%3Ccircle cx=%2232%22 cy=%2231%22 r=%2212%22 fill=%22%236fe8c6%22/%3E%3Crect x=%2256%22 y=%2220%22 width=%2296%22 height=%229%22 rx=%224.5%22 fill=%22%2300574a%22/%3E%3Crect x=%2256%22 y=%2236%22 width=%22120%22 height=%227%22 rx=%223.5%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%22196%22 y=%2222%22 width=%2244%22 height=%2218%22 rx=%229%22 fill=%22%23d3f6ec%22/%3E%3C/g%3E%3Cg transform=%22translate(70 266)%22%3E%3Crect width=%22260%22 height=%2262%22 rx=%2216%22 fill=%22%23fff%22 opacity=%22.92%22/%3E%3Ccircle cx=%2232%22 cy=%2231%22 r=%2212%22 fill=%22%23f2a845%22/%3E%3Crect x=%2256%22 y=%2220%22 width=%22120%22 height=%229%22 rx=%224.5%22 fill=%22%2300574a%22/%3E%3Crect x=%2256%22 y=%2236%22 width=%2280%22 height=%227%22 rx=%223.5%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%22196%22 y=%2222%22 width=%2244%22 height=%2218%22 rx=%229%22 fill=%22%23fde6c4%22/%3E%3C/g%3E%3Cg transform=%22translate(70 344)%22%3E%3Crect width=%22260%22 height=%2262%22 rx=%2216%22 fill=%22%23fff%22 opacity=%22.8%22/%3E%3Ccircle cx=%2232%22 cy=%2231%22 r=%2212%22 fill=%22%236fe8c6%22/%3E%3Crect x=%2256%22 y=%2220%22 width=%2284%22 height=%229%22 rx=%224.5%22 fill=%22%2300574a%22/%3E%3Crect x=%2256%22 y=%2236%22 width=%22104%22 height=%227%22 rx=%223.5%22 fill=%22%23cfe9e1%22/%3E%3Crect x=%22196%22 y=%2222%22 width=%2244%22 height=%2218%22 rx=%229%22 fill=%22%23d3f6ec%22/%3E%3C/g%3E%3Cg transform=%22translate(300 400)%22%3E%3Ccircle r=%2240%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%2212%22/%3E%3Cpath d=%22m28 28 34 34%22 stroke=%22%23fff%22 stroke-width=%2214%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3C/svg%3E");}
+#app-launcher .wcr .wcr-track > .app-card.wcj-cap-hallazgos{--wcr-foto:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 520%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%2300483d%22/%3E%3Cstop offset=%221%22 stop-color=%22%2300866a%22/%3E%3C/linearGradient%3E%3CradialGradient id=%22l%22 cx=%22.75%22 cy=%22.2%22 r=%22.7%22%3E%3Cstop offset=%220%22 stop-color=%22%236fe8c6%22 stop-opacity=%22.35%22/%3E%3Cstop offset=%221%22 stop-color=%22%236fe8c6%22 stop-opacity=%220%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width=%22400%22 height=%22520%22 fill=%22url(%23g)%22/%3E%3Crect width=%22400%22 height=%22520%22 fill=%22url(%23l)%22/%3E%3Ccircle cx=%22330%22 cy=%22430%22 r=%22150%22 fill=%22%23fff%22 opacity=%22.05%22/%3E%3Ccircle cx=%2240%22 cy=%2280%22 r=%2290%22 fill=%22%23fff%22 opacity=%22.05%22/%3E%3Cpath d=%22M200 120 330 350H70z%22 fill=%22%236fe8c6%22 stroke=%22%23fff%22 stroke-width=%2210%22 stroke-linejoin=%22round%22/%3E%3Crect x=%22191%22 y=%22190%22 width=%2218%22 height=%2290%22 rx=%229%22 fill=%22%2300483d%22/%3E%3Ccircle cx=%22200%22 cy=%22312%22 r=%2212%22 fill=%22%2300483d%22/%3E%3Cg transform=%22translate(250 330)%22%3E%3Ccircle r=%2264%22 fill=%22%23fff%22 opacity=%22.18%22/%3E%3Ccircle r=%2264%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%2214%22/%3E%3Cpath d=%22m46 46 52 52%22 stroke=%22%23fff%22 stroke-width=%2220%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3C/svg%3E");}
+#app-launcher .wcr .wcr-track > .app-card.wcj-cap::before{background-position:50% 50%;}
+#app-launcher .wcr .wcr-track > .app-card.wcj-cap .app-icon{display:grid;place-items:center;}
+#wcj-extra{ display:flex; flex-direction:column; gap:10px; }
+#wcj-extra .ios-ico svg{ width:18px; height:18px; color:#fff; }
+
+/* ---------- v4.4 · Logo del cambio de herramienta: VERDE con el logo blanco (no oscuro) ---------- */
+.launcher-brand.wh-clon .logo{ background:var(--g-hero, #00574a) !important;
+  box-shadow:0 0 0 2px rgba(255,255,255,.22), 0 0 30px rgba(111,232,198,.45), 0 10px 30px -8px rgba(0,0,0,.5) !important; }
+
+/* ---------- v4.4 · Refacciones: pistola de impacto (tuerca que gira, tiembla y salen volando) ---------- */
+#witt-impacto{ position:fixed; inset:0; z-index:9998; pointer-events:none; display:none; }
+#witt-impacto.show{ display:block; }
+#witt-impacto .wi-centro{ position:absolute; left:50%; top:46%; width:120px; height:120px; margin:-60px 0 0 -60px; }
+#witt-impacto.show .wi-centro{ animation:wi-centro 1.2s cubic-bezier(.3,0,.2,1) both; }
+#witt-impacto.show .wi-tiembla{ animation:wi-tiembla .06s linear 12; }
+#witt-impacto.show .wi-gira{ animation:wi-gira .8s cubic-bezier(.4,0,.9,.6) both; }
+#witt-impacto .wi-sale{ position:absolute; left:50%; top:46%; width:44px; height:44px; margin:-22px 0 0 -22px; opacity:0; }
+#witt-impacto.show .wi-sale{ animation:wi-sale .7s cubic-bezier(.15,.7,.3,1) .78s both; }
+#witt-impacto.show .wi-s0{ --dx:-120px; --dy:-150px; --r:-540deg; }
+#witt-impacto.show .wi-s1{ --dx:130px;  --dy:-120px; --r:620deg; }
+#witt-impacto.show .wi-s2{ --dx:-90px;  --dy:170px;  --r:480deg; animation-delay:.84s; }
+#witt-impacto.show .wi-s3{ --dx:110px;  --dy:150px;  --r:-500deg; animation-delay:.88s; }
+@keyframes wi-centro{ 0%{ transform:scale(.2); opacity:0; } 12%{ transform:scale(1.08); opacity:1; } 20%{ transform:scale(1); }
+  68%{ transform:scale(1); opacity:1; } 78%{ transform:translateY(-34px) scale(1.15); opacity:1; } 100%{ transform:translateY(160px) scale(.6) rotate(40deg); opacity:0; } }
+@keyframes wi-tiembla{ 0%{ transform:translate(1.5px,-1px); } 50%{ transform:translate(-1.5px,1px); } 100%{ transform:translate(1px,1.5px); } }
+@keyframes wi-gira{ from{ transform:rotate(0deg); } to{ transform:rotate(1800deg); } }
+@keyframes wi-sale{ 0%{ transform:translate(0,0) rotate(0deg) scale(.4); opacity:0; } 15%{ opacity:1; }
+  100%{ transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1); opacity:0; } }
+@media (prefers-reduced-motion: reduce){ #witt-impacto{ display:none !important; } }
 </style>
 </head>
 <body>
@@ -28575,7 +28607,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
 
   /* ---------------- 3. VERSIÓN (abajo del selector) ---------------- */
   // OJO al publicar: subir este número Y el de version.json (publicar-github\version.json) al mismo valor.
-  var VERSION_WEB = "4.3", FECHA_WEB = "25-nov-2026";
+  var VERSION_WEB = "4.4", FECHA_WEB = "25-nov-2026";
   W.__wittVersion = VERSION_WEB;
   try{
     var inner = $("#app-launcher .launcher-inner");
@@ -29291,7 +29323,20 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
   (D.body || D.documentElement).appendChild(hoyo);
   var cambiando = false;
   var anim = function(el, kf, op){ try{ return el.animate(kf, op); }catch(e){ return null; } };
-  var fin = function(a){ return new Promise(function(ok){ if(!a){ ok(); return; } a.onfinish = function(){ ok(); }; a.oncancel = function(){ ok(); }; }); };
+  // Espera a que termine una animación. OJO: si YA había terminado, onfinish no vuelve a sonar y la espera era eterna
+  // (el logo se quedaba "trabado" y no se podía volver a cambiar). Se usa a.finished (resuelve aunque ya haya acabado),
+  // con un tope de tiempo por si el navegador no corre animaciones (pantalla apagada).
+  var fin = function(a){
+    return new Promise(function(ok){
+      if(!a){ ok(); return; }
+      var listo = false, hecho = function(){ if(!listo){ listo = true; ok(); } };
+      try{ if(a.playState === "finished" || a.playState === "idle"){ hecho(); return; } }catch(e){}
+      try{ if(a.finished && a.finished.then) a.finished.then(hecho, hecho); }catch(e){}
+      a.addEventListener && a.addEventListener("finish", hecho); a.addEventListener && a.addEventListener("cancel", hecho);
+      var t = 0; try{ var tm = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null; t = tm ? (tm.endTime || 0) : 0; }catch(e){}
+      setTimeout(hecho, Math.max(400, t + 600));
+    });
+  };
   // Sonido: "sluuurp" grave mientras absorbe y un "blup" corto por cada pieza que escupe (WebAudio, programado)
   var ctxH = function(){ try{ var C = W.__wittCtxHoyo || (W.__wittCtxHoyo = new (W.AudioContext || W.webkitAudioContext)()); if(C.state === "suspended") C.resume().catch(function(){}); return C; }catch(e){ return null; } };
   var sorbo = function(dur){
@@ -29317,11 +29362,10 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       var r = el.getBoundingClientRect(); if(r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > vh) return;
       out.push(el);
     };
-    $$("#app-launcher .launcher-brand > span").forEach(add);
-    $$("#app-launcher .witt-head-der > *").forEach(add);
+    add($("#app-launcher .launcher-head"));   // el encabezado sale como UNA pieza (antes 4 chiquitas que casi no se veían)
     var hero = $("#app-launcher .launcher-inner > div:nth-child(2)");
     if(hero) $$(":scope > *", hero).forEach(function(el){ if(!el.classList.contains("witt-curva")) add(el); });
-    if(modo === "caja") $$("#wcj-home > *").forEach(add);
+    if(modo === "caja"){ $$("#wcj-home .wcr-track > .app-card").forEach(add); add($("#wcj-home .wcr-dots")); $$("#wcj-extra > *").forEach(add); }
     else { $$("#app-launcher .wcr-track > .app-card").forEach(add); add($("#app-launcher .wcr-dots")); }
     $$("#app-launcher .launcher-inner > .launcher-danger, #app-launcher .launcher-inner > .launcher-foot, #witt-version").forEach(add);
     return out;
@@ -29343,17 +29387,20 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       }
       if(L){ L.scrollTop = 0; L.style.overflow = "hidden"; }
       var vw = W.innerWidth || 375, vh = W.innerHeight || 800, cx = vw / 2, cy = vh * 0.46;
+      // ZOOM del tamaño de letra (Aa): las medidas CSS se multiplican por él; sin esto el logo "saltaba" al final
+      var zf = 1; try{ var pr = D.createElement("div"); pr.style.cssText = "position:fixed;left:0;top:0;width:100px;height:1px;visibility:hidden"; D.body.appendChild(pr); zf = (pr.getBoundingClientRect().width / 100) || 1; D.body.removeChild(pr); }catch(e){}
+      var pxz = function(v){ return (v / zf) + "px"; };
       var lr = logo.getBoundingClientRect(), lx = lr.left + lr.width / 2, ly = lr.top + lr.height / 2;
-      var ESC = Math.max(2, Math.min(3, vw / 150)), alCentro = "translate(" + (cx - lx) + "px," + (cy - ly) + "px) scale(" + ESC + ")";
+      var ESC = Math.max(2, Math.min(3, vw / 150)), alCentro = "translate(" + pxz(cx - lx) + "," + pxz(cy - ly) + ") scale(" + ESC + ")";
       // el logo: un clon encima (el original se esconde) que viaja al centro. Va DENTRO de un .launcher-brand para que
       // se pinte igual que el de verdad (el logo Witt blanco se dibuja con ".launcher-brand .logo::after"; fuera de ahí
       // salía el icono de capas de abajo). El logo NO cambia.
       clon = D.createElement("div"); clon.className = "launcher-brand wh-clon"; clon.setAttribute("aria-hidden", "true");
       var copia = logo.cloneNode(true); copia.removeAttribute("tabindex"); copia.removeAttribute("role");
-      copia.style.cssText = "margin:0;width:" + lr.width + "px;height:" + lr.height + "px;animation:none";
+      copia.style.cssText = "margin:0;width:" + pxz(lr.width) + ";height:" + pxz(lr.height) + ";animation:none";
       clon.appendChild(copia);
-      clon.style.cssText = "position:fixed;margin:0;padding:0;gap:0;display:block;left:" + lr.left + "px;top:" + lr.top + "px;width:" + lr.width + "px;height:" + lr.height +
-        "px;z-index:9996;pointer-events:none;will-change:transform";
+      clon.style.cssText = "position:fixed;margin:0;padding:0;gap:0;display:block;left:" + pxz(lr.left) + ";top:" + pxz(lr.top) + ";width:" + pxz(lr.width) + ";height:" + pxz(lr.height) +
+        ";z-index:9996;pointer-events:none;will-change:transform";
       (D.body || D.documentElement).appendChild(clon);
       logo.style.visibility = "hidden";
       // TODO EN NEGRO menos el logo (y las piezas, que se ven salir de él): se apagan los fondos del selector
@@ -29363,7 +29410,7 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       vibra([20, 50, 20]);
       await fin(A(clon, [{ transform:"none" }, { transform:alCentro + " rotate(360deg)" }], { duration:460, easing:"cubic-bezier(.3,1.3,.4,1)", fill:"forwards" }));
       // ABSORBE: pieza por pieza, en espiral hacia el logo
-      var viejas = piezas(), n = viejas.length, paso = Math.max(35, Math.min(75, 520 / Math.max(1, n))), absorb = [];
+      var viejas = piezas(), n = viejas.length, paso = Math.max(35, Math.min(60, 480 / Math.max(1, n))), absorb = [];
       A(anillo, [{ transform:"scale(0) rotate(0deg)", opacity:0 }, { transform:"scale(.62) rotate(360deg)", opacity:1, offset:.2 }, { transform:"scale(.5) rotate(1080deg)", opacity:.9 }],
         { duration:n * paso + 520, easing:"linear", fill:"forwards" });
       sorbo((n * paso + 480) / 1000);
@@ -29373,9 +29420,9 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
         var c = centroDe(el), tx = cx - c[0], ty = cy - c[1], giro = (i % 2 ? 1 : -1) * (90 + (i % 3) * 40);
         absorb.push(A(el, [
           { transform:"none", opacity:1 },
-          { transform:"translate(" + tx * 0.3 + "px," + ty * 0.3 + "px) rotate(" + giro * 0.15 + "deg) scale(.9)", opacity:1, offset:.35 },
-          { transform:"translate(" + tx + "px," + ty + "px) rotate(" + giro + "deg) scale(0)", opacity:0 }
-        ], { duration:480, delay:i * paso, easing:"cubic-bezier(.6,0,.9,.45)", fill:"forwards" }));
+          { transform:"translate(" + pxz(tx * 0.3) + "," + pxz(ty * 0.3) + ") rotate(" + giro * 0.15 + "deg) scale(.9)", opacity:1, offset:.35 },
+          { transform:"translate(" + pxz(tx) + "," + pxz(ty) + ") rotate(" + giro + "deg) scale(0)", opacity:0 }
+        ], { duration:430, delay:i * paso, easing:"cubic-bezier(.6,0,.9,.45)", fill:"forwards" }));
       });
       if(absorb.length) await fin(absorb[absorb.length - 1]);
       A(clon, [{ transform:alCentro + " rotate(360deg)" }, { transform:alCentro + " rotate(360deg) scale(1.25)" }, { transform:alCentro + " rotate(360deg)" }], { duration:260, easing:"ease-in-out", fill:"forwards" });   // "trago"
@@ -29387,29 +29434,34 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
       // Primero se sueltan las absorbidas (si no, sus medidas son 0 y las que existen en las dos herramientas no se
       // vuelven a escupir); todo en el mismo instante, sin pintar en medio, así que no hay parpadeo.
       absorb.forEach(function(a){ try{ a.cancel(); }catch(e){} });
-      var nuevas = piezas(), m = nuevas.length, paso2 = Math.max(55, Math.min(110, 760 / Math.max(1, m))), ultima = null, retrasos = [];
+      var nuevas = piezas(), m = nuevas.length, paso2 = Math.max(150, Math.min(230, 1500 / Math.max(1, m))), ultima = null, retrasos = [];
       nuevas.forEach(function(el, i){
         var c = centroDe(el), tx = cx - c[0], ty = cy - c[1], giro = (i % 2 ? -1 : 1) * 70;
         retrasos.push(260 + i * paso2);
         ultima = A(el, [
-          { transform:"translate(" + tx + "px," + ty + "px) rotate(" + giro + "deg) scale(0)", opacity:0 },
-          { transform:"translate(" + tx * 0.08 + "px," + ty * 0.08 + "px) rotate(0deg) scale(1.14,.86)", opacity:1, offset:.5 },
+          { transform:"translate(" + pxz(tx) + "," + pxz(ty) + ") rotate(" + giro + "deg) scale(0)", opacity:0 },
+          { transform:"translate(" + pxz(tx * 0.08) + "," + pxz(ty * 0.08) + ") rotate(0deg) scale(1.14,.86)", opacity:1, offset:.5 },
           { transform:"scale(.92,1.08)", offset:.66 },
           { transform:"scale(1.04,.97)", offset:.8 },
           { transform:"scale(.985,1.015)", offset:.91 },
           { transform:"none", opacity:1 }
-        ], { duration:680, delay:260 + i * paso2, easing:"cubic-bezier(.2,.9,.3,1)", fill:"backwards" });
+        ], { duration:950, delay:260 + i * paso2, easing:"cubic-bezier(.2,.9,.3,1)", fill:"backwards" });   // v4.4: escupe más lento
       });
       escupidas(retrasos);
+      W.__wittCambioInfo = { absorbidas:n, escupidas:m, paso:paso, paso2:paso2, t:Date.now(), piezas:nuevas.map(function(e){ return (e.id || e.className || e.tagName).toString().slice(0, 30); }) };
       if(svgL) A(svgL, [{ transform:"scale(1)" }, { transform:"scale(.82)" }, { transform:"scale(1.12)" }, { transform:"scale(1)" }], { duration:paso2, delay:260, iterations:Math.max(1, m), easing:"ease-out" });
-      if(ultima) await fin(ultima);
+      // el logo NO se queda parado: empieza a regresar cuando la última pieza ya va acomodándose (sin pausa ni tirón)
+      if(ultima){ var falta = 260 + (m - 1) * paso2 + 950 * 0.62; await new Promise(function(ok){ setTimeout(ok, falta); }); }
       // el anillo se apaga y el logo regresa a su esquina
       A(anillo, [{ transform:"scale(.5) rotate(1080deg)", opacity:.9 }, { transform:"scale(0) rotate(1260deg)", opacity:0 }], { duration:260, easing:"ease-in", fill:"forwards" });
       var lr2 = logo.getBoundingClientRect();
-      clon.style.left = lr2.left + "px"; clon.style.top = lr2.top + "px";
-      var alCentro2 = "translate(" + (cx - (lr2.left + lr2.width / 2)) + "px," + (cy - (lr2.top + lr2.height / 2)) + "px) scale(" + ESC + ")";
-      D.documentElement.classList.remove("witt-hoyo-negro");   // vuelven los fondos mientras el logo regresa
-      await fin(A(clon, [{ transform:alCentro2 + " rotate(360deg)" }, { transform:"none" }], { duration:420, easing:"cubic-bezier(.3,1.25,.4,1)", fill:"forwards" }));
+      clon.style.left = pxz(lr2.left); clon.style.top = pxz(lr2.top);
+      var alCentro2 = "translate(" + pxz(cx - (lr2.left + lr2.width / 2)) + "," + pxz(cy - (lr2.top + lr2.height / 2)) + ") scale(" + ESC + ")";
+      // regresa DESPACIO y suave (v4.4); los fondos vuelven hasta que llegó (redibujar el vidrio a medio vuelo lo trababa)
+      await fin(A(clon, [{ transform:alCentro2 + " rotate(360deg)" }, { transform:alCentro2 + " rotate(380deg) scale(1.06)", offset:.12 }, { transform:"none" }],
+        { duration:1150, easing:"cubic-bezier(.45,.05,.2,1)", fill:"forwards" }));
+      if(ultima) await fin(ultima);
+      D.documentElement.classList.remove("witt-hoyo-negro");
     }catch(e){ try{ if(appDe(id).id !== modo) aplicarModo(id); }catch(x){} }
     finally{
       todas.forEach(function(a){ try{ a.cancel(); }catch(e){} });   // sin depender de getAnimations() (teléfonos viejos)
@@ -29432,37 +29484,102 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     return '<svg class="wcj-ring" viewBox="0 0 52 52" aria-hidden="true"><circle class="fondo" cx="26" cy="26" r="22"/><circle class="valor" cx="26" cy="26" r="22" stroke-dasharray="' +
       c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - v)).toFixed(1) + '"/><text x="26" y="30.5" text-anchor="middle">' + Math.round(v * 100) + '%</text></svg>';
   };
+  /* v4.4 (pedido del usuario): el inicio de Caja son CÁPSULAS en carrusel, igual que Vehículos / Refacciones / Físico
+     (mismas clases .wcr / .wcr-track / .app-card, así hereda el 3D, el vidrio, los puntos y las flechas). Tocar la del
+     centro ENTRA a esa parte de Caja. "Ajustes del cruce" va abajo como renglón. */
+  var CAPS = [
+    { id:"cruce", clase:"wcj-cap-cruce", ico:SVG.caja, nombre:"Cruce de caja", desc:"Corte de caja contra claves de validación" },
+    { id:"muestras", clase:"wcj-cap-muestras", ico:SVG.lista, nombre:"Muestras", desc:"Cada recibo con su clave, estatus y explicación" },
+    { id:"hallazgos", clase:"wcj-cap-hallazgos", ico:SVG.alerta, nombre:"Hallazgos", desc:"Condición, efecto y recomendación" }
+  ];
+  var carrusel = null;   // { wrap, track, cards, dots, centro }
+  var armarCarrusel = function(inner){
+    var svg = function(d){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
+    var wrap = D.createElement("div");
+    wrap.id = "wcj-home"; wrap.className = "wcr wcj-wcr"; wrap.setAttribute("role", "region"); wrap.setAttribute("aria-roledescription", "carrusel");
+    wrap.setAttribute("aria-label", "Cortes de caja"); wrap.setAttribute("data-centro", "0");
+    wrap.innerHTML = '<button type="button" class="wcr-arrow wcr-prev" aria-label="Anterior">' + svg("m15 5-7 7 7 7") + '</button>' +
+      '<div class="wcr-track">' + CAPS.map(function(c){
+        return '<button type="button" class="app-card wcj-cap ' + c.clase + '" data-wcj="' + c.id + '"><div class="app-top"><div class="app-icon">' + c.ico + '</div>' +
+          '<div class="app-text"><div class="app-name"><h2>' + c.nombre + '</h2></div><p class="app-desc">' + c.desc + '</p></div><div class="app-ring"></div></div>' +
+          '<div class="app-stats"><span class="app-meta"></span></div></button>';
+      }).join("") + CAPS.map(function(){ return '<span class="wcr-snap" aria-hidden="true"></span>'; }).join("") + '</div>' +
+      '<button type="button" class="wcr-arrow wcr-next" aria-label="Siguiente">' + svg("m9 5 7 7-7 7") + '</button>' +
+      '<div class="wcr-dots">' + CAPS.map(function(c){ return '<button type="button" class="wcr-dot" aria-label="Ir a ' + c.nombre + '"></button>'; }).join("") + '</div>';
+    var extra = D.createElement("div"); extra.id = "wcj-extra";
+    extra.innerHTML = '<div class="ios-list"><button type="button" class="ios-row" data-wcj="ajustes"><span class="ios-ico" style="--ic:var(--g-hero);">' + SVG.ajustes +
+      '</span><span class="ios-label">Ajustes del cruce</span><span class="ios-chev"></span></button></div>' +
+      '<p class="wcj-foot">Todo se procesa en este teléfono: el archivo no se sube a ningún lado.</p>';
+    // DESPUÉS del carrusel de Inventarios: otras capas buscan "el primer .wcr / .wcr-track" del selector y debe seguir
+    // siendo el de Inventarios (fotos de los carros, cifras…). En modo Caja ese queda oculto y este ocupa su lugar.
+    var inv = $("#app-launcher .launcher-inner > .wcr:not(#wcj-home)");
+    var ancla = inv ? inv.nextSibling : $("#app-launcher .launcher-inner > .app-card");
+    inner.insertBefore(wrap, ancla || null);
+    inner.insertBefore(extra, wrap.nextSibling);
+    var track = $(".wcr-track", wrap), cards = $$(".wcr-track > .app-card", wrap), dots = $$(".wcr-dot", wrap);
+    var prev = $(".wcr-prev", wrap), next = $(".wcr-next", wrap);
+    var conView = false; try{ conView = !!(W.CSS && CSS.supports && CSS.supports("animation-timeline: view()")); }catch(e){}
+    if(!conView) wrap.classList.add("wcr-js");
+    var C = { wrap:wrap, track:track, cards:cards, centro:0 }, raf = 0, centroT = 0;
+    var destino = function(k){ var c = cards[k]; return c.offsetLeft + c.offsetWidth / 2 - track.clientWidth / 2; };
+    var ir = function(k, ya){ k = Math.max(0, Math.min(cards.length - 1, k)); try{ track.scrollTo({ left:destino(k), behavior:(ya || menos()) ? "instant" : "smooth" }); }catch(e){ track.scrollLeft = destino(k); } };
+    var marcar = function(k){
+      dots.forEach(function(d, i){ if(i === k) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
+      clearTimeout(centroT);
+      centroT = setTimeout(function(){ C.centro = k; wrap.setAttribute("data-centro", String(k)); prev.disabled = k === 0; next.disabled = k === cards.length - 1; }, 140);
+    };
+    var medir = function(){
+      raf = 0;
+      var w = track.clientWidth; if(!w) return;
+      var mitad = track.scrollLeft + w / 2, s = (cards[1].offsetLeft - cards[0].offsetLeft) || 1, mejor = 0, dist = 1e9;
+      cards.forEach(function(c, k){
+        var d = c.offsetLeft + c.offsetWidth / 2 - mitad;
+        if(Math.abs(d) < dist){ dist = Math.abs(d); mejor = k; }
+        if(wrap.classList.contains("wcr-js")){ var o = Math.max(-1, Math.min(1, d / s)); c.style.setProperty("--o", o.toFixed(4)); c.style.setProperty("--a", Math.abs(o).toFixed(4)); c.style.zIndex = String(10 - Math.round(9 * Math.abs(o))); }
+      });
+      marcar(mejor);
+    };
+    var pedir = function(){ if(!raf) raf = requestAnimationFrame(medir); };
+    track.addEventListener("scroll", pedir, { passive:true });
+    W.addEventListener("resize", function(){ ir(C.centro, true); pedir(); }, { passive:true });
+    prev.addEventListener("click", function(){ ir(C.centro - 1); });
+    next.addEventListener("click", function(){ ir(C.centro + 1); });
+    dots.forEach(function(d, k){ d.addEventListener("click", function(){ ir(k); }); });
+    // tocar una de lado (no recibe el dedo: el toque cae en el riel) la centra
+    track.addEventListener("click", function(e){
+      if(e.target.closest && e.target.closest(".app-card")) return;
+      var x = e.clientX, y = e.clientY;
+      cards.forEach(function(c, k){ if(k === C.centro) return; var r = c.getBoundingClientRect(); if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) ir(k); });
+    });
+    C.ir = ir; C.medir = medir;
+    requestAnimationFrame(function(){ ir(0, true); medir(); });
+    return C;
+  };
   var pintarInicioCaja = function(){
     var inner = $("#app-launcher .launcher-inner"); if(!inner) return;
-    var home = $("#wcj-home");
-    if(!home){
-      home = D.createElement("div"); home.id = "wcj-home";
-      // va donde está el carrusel de Inventarios (.wcr); sin carrusel, antes de la primera tarjeta
-      var ancla = $("#app-launcher .launcher-inner > .wcr") || $("#app-launcher .launcher-inner > .app-card");
-      inner.insertBefore(home, ancla || null);
+    if(!carrusel){
+      // el carrusel de Inventarios se arma al cargar (anim.js revisa que no haya otro .wcr); el de Caja va después
+      if(!$("#app-launcher .launcher-inner > .wcr") && $("#app-launcher .launcher-inner > .app-card.autos")){ setTimeout(pintarInicioCaja, 300); return; }
+      carrusel = armarCarrusel(inner);
     }
     var u = R ? { recibos:Object.keys(R.cruce.estat).length, cruz:cuenta("CRUZADO") + cuenta("CRUZADO CON OBSERVACIÓN") + cuenta("CRUZADO POR SUMA"),
-                  no:cuenta("NO CRUZADO"), hal:R.hallazgos.length, archivo:ARCH && ARCH.nombre, cuando:Date.now() } : resumenGuardado();
+                  no:cuenta("NO CRUZADO"), hal:R.hallazgos.length } : resumenGuardado();
     var pc = u && u.recibos ? u.cruz / u.recibos : 0;
-    var statCruce = u ? "<b>" + u.recibos + "</b> recibos · <b>" + u.cruz + "</b> cruzados · <b>" + u.no + "</b> sin cruzar" + (R ? "" : " · último cruce")
-                      : "Toca para elegir el Excel del corte y cruzarlo contra las claves.";
-    home.innerHTML =
-      '<button type="button" class="app-card wcj-card wcj-hero" data-wcj="cruce"><div class="app-top"><div class="app-icon">' + SVG.caja + '</div><div class="app-text">' +
-        '<div class="app-name"><h2>Cruce de caja</h2></div><p class="app-desc">Corte de caja contra claves de validación</p></div>' + (u ? anillo(pc) : "") + '</div>' +
-        '<div class="wcj-stat">' + statCruce + '</div></button>' +
-      '<button type="button" class="app-card wcj-card" data-wcj="muestras"><div class="app-top"><div class="app-icon">' + SVG.lista + '</div><div class="app-text">' +
-        '<div class="app-name"><h2>Muestras</h2></div><p class="app-desc">Cada recibo con su clave, estatus y explicación</p></div></div></button>' +
-      '<button type="button" class="app-card wcj-card" data-wcj="hallazgos"><div class="app-top"><div class="app-icon">' + SVG.alerta + '</div><div class="app-text">' +
-        '<div class="app-name"><h2>Hallazgos</h2></div><p class="app-desc">' + (u && u.hal != null ? u.hal + " hallazgos de auditoría" : "Condición, efecto y recomendación") + '</p></div></div></button>' +
-      '<button type="button" class="app-card wcj-card" data-wcj="ajustes"><div class="app-top"><div class="app-icon">' + SVG.ajustes + '</div><div class="app-text">' +
-        '<div class="app-name"><h2>Ajustes del cruce</h2></div><p class="app-desc">Hojas, filas, columnas y reglas</p></div></div></button>' +
-      '<p class="wcj-foot">Todo se procesa en este teléfono: el archivo no se sube a ningún lado.</p>';
+    var st = {
+      cruce: u ? "<b>" + u.recibos + "</b> recibos · <b>" + u.cruz + "</b> cruzados · <b>" + u.no + "</b> sin cruzar" + (R ? "" : " · último cruce") : "Toca para elegir el Excel del corte",
+      muestras: R ? "<b>" + u.recibos + "</b> recibos con su clave y explicación" : "Cruza un corte para ver cada recibo",
+      hallazgos: u && u.hal != null ? "<b>" + u.hal + "</b> hallazgos de auditoría" : "Riesgos del corte: condición, efecto y recomendación"
+    };
+    carrusel.cards.forEach(function(c){
+      var id = c.getAttribute("data-wcj"), m = $(".app-meta", c), ring = $(".app-ring", c);
+      if(m && m.innerHTML !== st[id]) m.innerHTML = st[id];
+      if(ring) ring.innerHTML = id === "cruce" && u ? anillo(pc) : "";
+    });
   };
   D.addEventListener("click", function(e){
-    var b = e.target.closest && e.target.closest("#wcj-home [data-wcj]"); if(!b) return;
+    var b = e.target.closest && e.target.closest("#wcj-home [data-wcj], #wcj-extra [data-wcj]"); if(!b) return;
     abrirCaja(b.getAttribute("data-wcj"));
   });
-
   /* ------------------------------------------------------------------ 5. CORTES DE CAJA: pantallas */
   var app = D.createElement("div");
   app.id = "witt-caja-app"; app.className = "modal-bg"; app.setAttribute("role", "dialog"); app.setAttribute("aria-label", "Cortes de caja");
@@ -29877,6 +29994,63 @@ $("#orph-close")?.addEventListener("click", ()=> $("#modal-orphans").classList.r
     }
   });
 
+  /* ------------------------------------------------------------------ 6. Al entrar a REFACCIONES: pistola de impacto (v4.4)
+     Pedido del usuario: que se escuche una pistola de impacto sacando tuercas, con su animación. Sonido sintetizado
+     (WebAudio: golpeteo metálico ~30 por segundo + aire + motor; dos ráfagas y el "clinc" de las tuercas al caer) y una
+     tuerca que gira rápido, tiembla y sale volando junto con otras. Solo transform/opacity; ~1.1 s; no bloquea toques. */
+  var tuerca = function(tam){
+    return '<svg viewBox="0 0 100 100" width="' + tam + '" height="' + tam + '" aria-hidden="true"><path d="M50 4 90 27v46L50 96 10 73V27z" fill="#e9f3ef" stroke="#00574a" stroke-width="5" stroke-linejoin="round"/>' +
+      '<circle cx="50" cy="50" r="19" fill="#00574a"/><circle cx="50" cy="50" r="12" fill="none" stroke="#6fe8c6" stroke-width="4" stroke-dasharray="6 5"/></svg>';
+  };
+  var impacto = D.createElement("div");
+  impacto.id = "witt-impacto"; impacto.setAttribute("aria-hidden", "true");
+  impacto.innerHTML = '<div class="wi-centro"><div class="wi-tiembla"><div class="wi-gira">' + tuerca(120) + '</div></div></div>' +
+    [0, 1, 2, 3].map(function(i){ return '<div class="wi-sale wi-s' + i + '">' + tuerca(44) + '</div>'; }).join("");
+  (D.body || D.documentElement).appendChild(impacto);
+  var sonidoImpacto = function(){
+    var C = ctxH(); if(!C) return;
+    try{
+      var t0 = C.currentTime, sr = C.sampleRate, n = Math.floor(sr * 0.9), buf = C.createBuffer(1, n, sr), d = buf.getChannelData(0);
+      for(var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      var rafaga = function(ini, dur, vol){
+        var src = C.createBufferSource(); src.buffer = buf;
+        var bp = C.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2600; bp.Q.value = 1.2;
+        var g = C.createGain(); g.gain.value = 0;
+        var lfo = C.createOscillator(); lfo.type = "square"; lfo.frequency.value = 31;          // martilleo ~31 golpes/s
+        var lg = C.createGain(); lg.gain.value = vol * 0.5;
+        lfo.connect(lg); lg.connect(g.gain);
+        var env = C.createGain(); env.gain.setValueAtTime(0.0001, t0 + ini); env.gain.exponentialRampToValueAtTime(1, t0 + ini + 0.03);
+        env.gain.setValueAtTime(1, t0 + ini + dur - 0.05); env.gain.exponentialRampToValueAtTime(0.0001, t0 + ini + dur);
+        src.connect(bp); bp.connect(g); g.connect(env); env.connect(C.destination);
+        // motor neumático por debajo
+        var mo = C.createOscillator(), mg = C.createGain(); mo.type = "sawtooth"; mo.frequency.setValueAtTime(120, t0 + ini); mo.frequency.linearRampToValueAtTime(150, t0 + ini + dur);
+        mg.gain.setValueAtTime(0.0001, t0 + ini); mg.gain.exponentialRampToValueAtTime(vol * 0.12, t0 + ini + 0.04); mg.gain.exponentialRampToValueAtTime(0.0001, t0 + ini + dur);
+        var lp = C.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+        mo.connect(lp); lp.connect(mg); mg.connect(C.destination);
+        src.start(t0 + ini, Math.random() * 0.2, dur + 0.05); lfo.start(t0 + ini); lfo.stop(t0 + ini + dur + 0.05); mo.start(t0 + ini); mo.stop(t0 + ini + dur + 0.05);
+      };
+      rafaga(0.00, 0.30, 0.55);
+      rafaga(0.40, 0.42, 0.65);
+      [[0.86, 2900], [0.93, 3600], [1.02, 2500]].forEach(function(p){   // las tuercas caen: "clinc"
+        var o = C.createOscillator(), g = C.createGain(), t = t0 + p[0];
+        o.type = "sine"; o.frequency.setValueAtTime(p[1], t);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        o.connect(g); g.connect(C.destination); o.start(t); o.stop(t + 0.25);
+      });
+    }catch(e){}
+  };
+  var impactoT = 0;
+  var lanzarImpacto = function(){
+    sonidoImpacto();
+    vibra([25, 15, 25, 15, 25, 15, 25, 80, 30, 15, 30, 15, 30, 15, 30, 15, 30]);
+    if(menos()) return;
+    impacto.classList.remove("show"); void impacto.offsetWidth; impacto.classList.add("show");
+    clearTimeout(impactoT); impactoT = setTimeout(function(){ impacto.classList.remove("show"); }, 1300);
+  };
+  W.__wittImpacto = lanzarImpacto;
+  D.addEventListener("click", function(e){
+    if(e.target.closest && e.target.closest('#app-launcher [data-launch="refacciones"]')) lanzarImpacto();
+  }, true);
   /* ------------------------------------------------------------------ arranque */
   var arrancar = function(){ marcarLogo(); aplicarModo(modo); };
   if(D.readyState === "loading") D.addEventListener("DOMContentLoaded", arrancar); else arrancar();
